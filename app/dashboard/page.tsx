@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     .eq("user_id", user?.id ?? "")
     .order("created_at", { ascending: false });
 
-  const tier = profile?.tier ?? "free";
+  const tier = (profile as any)?.tier ?? "free";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="divide-y divide-slate-900/80">
-                {reviews.map((review) => (
+                {reviews.map((review: any) => (
                   <div
                     key={review.id}
                     className="flex flex-col items-start justify-between gap-3 py-3 md:flex-row md:items-center"

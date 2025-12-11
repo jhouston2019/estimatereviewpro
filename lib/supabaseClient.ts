@@ -1,4 +1,4 @@
-import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
+import { createPagesBrowserClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "./supabase-types";
 
 export function createSupabaseBrowserClient() {
@@ -11,7 +11,9 @@ export function createSupabaseBrowserClient() {
     );
   }
 
-  return createBrowserClient<Database>(url, anonKey);
+  return createPagesBrowserClient<Database>({
+    supabaseUrl: url,
+    supabaseKey: anonKey,
+  });
 }
-
 

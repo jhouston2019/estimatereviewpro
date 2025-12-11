@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
 export default function RegisterPage() {
@@ -37,7 +38,9 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <RegisterForm />
+        <Suspense fallback={null}>
+          <RegisterForm />
+        </Suspense>
 
         <p className="mt-6 text-center text-[11px] text-slate-400">
           By continuing you agree to secure storage of your files for audit and
