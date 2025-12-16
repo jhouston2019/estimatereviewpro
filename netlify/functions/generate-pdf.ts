@@ -10,8 +10,11 @@ export const handler: Handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
+  let reviewId: string | null = null;
+
   try {
-    const { reviewId } = JSON.parse(event.body || "{}");
+    const { reviewId: id } = JSON.parse(event.body || "{}");
+    reviewId = id;
 
     if (!reviewId) {
       return {
@@ -19,6 +22,12 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ error: "Missing reviewId" }),
       };
     }
+
+    // Update status to generating_pdf
+    await (supabase as any)
+      .from("reviews")
+      .update({ status: "generating_pdf" })
+      .eq("id", reviewId);
 
     // Fetch review data
     type Review = Database["public"]["Tables"]["reviews"]["Row"];
@@ -68,6 +77,7 @@ export const handler: Handler = async (event) => {
       .from("reviews")
       .update({
         pdf_report_url: publicUrl,
+        status: "complete",
       })
       .eq("id", reviewId);
 
@@ -84,9 +94,26 @@ export const handler: Handler = async (event) => {
     };
   } catch (error: any) {
     console.error("Error in generate-pdf:", error);
+    
+    // Update review status to error
+    if (reviewId) {
+      try {
+        await (supabase as any)
+          .from("reviews")
+          .update({
+            status: "error",
+            error_message: error.message || "Failed to generate PDF",
+          })
+          .eq("id", reviewId);
+      } catch (updateError) {
+        console.error("Failed to update error status:", updateError);
+      }
+    }
+
     return {
       statusCode: 500,
       body: JSON.stringify({
+        success: false,
         error: error.message || "Failed to generate PDF",
       }),
     };

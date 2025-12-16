@@ -1,63 +1,131 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createServerClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import { ReRunButton } from "./ReRunButton";
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { StatusBadge } from "@/components/StatusBadge";
+import { SectionCard } from "@/components/SectionCard";
+import { DataTable } from "@/components/DataTable";
+import { PollingLoader } from "@/components/PollingLoader";
 import type { Database } from "@/lib/database.types";
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
 
-export default async function ReviewDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const supabase = await createServerClient();
+export default function ReviewDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [review, setReview] = useState<Review | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const fetchReview = async () => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-  if (!user) {
-    return notFound();
+      const { data, error: fetchError } = await (supabase
+        .from("reviews")
+        .select("*")
+        .eq("id", params.id)
+        .eq("user_id", user.id)
+        .single() as any);
+
+      if (fetchError || !data) {
+        setError("Review not found");
+        setLoading(false);
+        return;
+      }
+
+      setReview(data);
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message || "Failed to load review");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReview();
+  }, [params.id]);
+
+  // Polling effect
+  useEffect(() => {
+    if (!review) return;
+    
+    const status = review.status;
+    if (status === "complete" || status === "error") return;
+
+    const interval = setInterval(() => {
+      fetchReview();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [review?.status]);
+
+  const handleRetry = async () => {
+    if (!review) return;
+    
+    setIsRetrying(true);
+    try {
+      await fetch("/.netlify/functions/compare-estimates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId: review.id }),
+      });
+      
+      setTimeout(() => {
+        fetchReview();
+        setIsRetrying(false);
+      }, 2000);
+    } catch (err) {
+      setIsRetrying(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <PollingLoader message="Loading review..." />
+      </div>
+    );
   }
 
-  const { data: review, error } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("id", params.id)
-    .eq("user_id", user.id)
-    .single<Review>();
-
   if (error || !review) {
-    return notFound();
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-950">
+        <Header />
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
+          <SectionCard title="Error" variant="error">
+            <p className="text-xs text-slate-300">{error || "Review not found"}</p>
+            <Link
+              href="/dashboard"
+              className="mt-4 inline-block text-xs font-semibold text-amber-300 hover:underline"
+            >
+              ← Back to dashboard
+            </Link>
+          </SectionCard>
+        </main>
+      </div>
+    );
   }
 
   const analysis = review.ai_analysis_json as any;
   const comparison = review.ai_comparison_json as any;
   const summary = review.ai_summary_json as any;
+  const isProcessing = !["complete", "error"].includes(review.status);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
-      <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
-              <span className="text-xs font-black text-slate-950">ER</span>
-            </div>
-            <span className="text-sm font-semibold text-slate-50">
-              Estimate Review Pro
-            </span>
-          </Link>
-          <Link
-            href="/dashboard"
-            className="text-xs font-semibold text-slate-200 hover:underline hover:underline-offset-4"
-          >
-            Back to dashboard
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 py-8">
+        {/* Status Header */}
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
@@ -67,17 +135,11 @@ export default async function ReviewDetailPage({
               Estimate Analysis
             </h1>
             <p className="mt-1 text-xs text-slate-300">
-              Created{" "}
-              {new Date(review.created_at).toLocaleString(undefined, {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              Created {new Date(review.created_at).toLocaleString()}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={review.status} />
             {review.pdf_report_url && (
               <a
                 href={review.pdf_report_url}
@@ -88,17 +150,34 @@ export default async function ReviewDetailPage({
                 Download PDF Report
               </a>
             )}
-            <ReRunButton reviewId={review.id} />
           </div>
         </section>
 
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <PollingLoader message={`Processing: ${review.status.replace(/_/g, " ")}...`} />
+        )}
+
+        {/* Error State */}
+        {review.status === "error" && (
+          <SectionCard title="Error Occurred" variant="error">
+            <p className="text-xs text-slate-300">
+              {(review as any).error_message || "An error occurred during processing"}
+            </p>
+            <button
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="mt-4 inline-flex items-center rounded-full bg-rose-500 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+            >
+              {isRetrying ? "Retrying..." : "Retry Analysis"}
+            </button>
+          </SectionCard>
+        )}
+
         {/* Financial Summary */}
         {comparison?.summary && (
-          <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Financial Summary
-            </h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <SectionCard title="Financial Summary" variant="success">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
                   Contractor Total
@@ -124,147 +203,92 @@ export default async function ReviewDetailPage({
                 </p>
               </div>
             </div>
-          </section>
+          </SectionCard>
         )}
 
         {/* Key Findings */}
-        {comparison?.summary?.keyFindings &&
-          comparison.summary.keyFindings.length > 0 && (
-            <section className="rounded-3xl border border-amber-400/40 bg-amber-950/20 p-6 shadow-lg shadow-amber-500/10">
-              <h2 className="text-sm font-semibold text-amber-100">
-                Key Findings
-              </h2>
-              <ul className="mt-3 space-y-2 text-xs text-amber-50">
-                {comparison.summary.keyFindings.map(
-                  (finding: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />
-                      <span>{finding}</span>
-                    </li>
-                  )
-                )}
-              </ul>
-            </section>
-          )}
+        {comparison?.summary?.keyFindings && comparison.summary.keyFindings.length > 0 && (
+          <SectionCard title="Key Findings" variant="warning">
+            <ul className="space-y-2 text-xs text-slate-200">
+              {comparison.summary.keyFindings.map((finding: string, idx: number) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />
+                  <span>{finding}</span>
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        )}
 
         {/* Missing Items */}
         {comparison?.missingItems && comparison.missingItems.length > 0 && (
-          <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Missing Items
-            </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Items found in contractor estimate but not in carrier estimate
-            </p>
-            <div className="mt-4 space-y-3">
-              {comparison.missingItems.map((missing: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-slate-100">
-                        {missing.item?.description || "Item"}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        Trade: {missing.item?.trade || "N/A"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-semibold text-slate-50">
-                        ${missing.item?.total?.toFixed(2) || "0.00"}
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        {missing.item?.qty || 0} {missing.item?.unit || "EA"}
-                      </p>
-                    </div>
-                  </div>
-                  {missing.reason && (
-                    <p className="mt-2 text-[11px] text-rose-300">
-                      {missing.reason}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+          <SectionCard
+            title="Missing Items"
+            description="Items found in contractor estimate but not in carrier estimate"
+            variant="error"
+          >
+            <DataTable
+              columns={[
+                { key: "description", label: "Description" },
+                { key: "trade", label: "Trade" },
+                { key: "qty", label: "Qty", align: "right" },
+                { key: "total", label: "Total", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+                { key: "reason", label: "Reason" },
+              ]}
+              data={comparison.missingItems.map((item: any) => ({
+                description: item.item?.description || "N/A",
+                trade: item.item?.trade || "N/A",
+                qty: `${item.item?.qty || 0} ${item.item?.unit || ""}`,
+                total: item.item?.total || 0,
+                reason: item.reason || "",
+              }))}
+              emptyMessage="No missing items found"
+            />
+          </SectionCard>
         )}
 
         {/* Underpriced Items */}
-        {comparison?.underpricedItems &&
-          comparison.underpricedItems.length > 0 && (
-            <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-              <h2 className="text-sm font-semibold text-slate-50">
-                Underpriced Items
-              </h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Items where carrier pricing is significantly lower than
-                contractor
-              </p>
-              <div className="mt-4 space-y-3">
-                {comparison.underpricedItems.map((item: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                  >
-                    <p className="text-xs font-medium text-slate-100">
-                      {item.contractorItem?.description || "Item"}
-                    </p>
-                    <div className="mt-2 grid grid-cols-2 gap-4 text-[11px]">
-                      <div>
-                        <p className="text-slate-400">Contractor Price</p>
-                        <p className="font-semibold text-slate-50">
-                          ${item.contractorItem?.total?.toFixed(2) || "0.00"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Carrier Price</p>
-                        <p className="font-semibold text-slate-50">
-                          ${item.carrierItem?.total?.toFixed(2) || "0.00"}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-[11px] font-semibold text-rose-300">
-                      Difference: ${item.priceDifference?.toFixed(2) || "0.00"} (
-                      {item.percentDifference?.toFixed(1) || "0"}%)
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        {comparison?.underpricedItems && comparison.underpricedItems.length > 0 && (
+          <SectionCard
+            title="Underpriced Items"
+            description="Items where carrier pricing is significantly lower than contractor"
+            variant="warning"
+          >
+            <DataTable
+              columns={[
+                { key: "description", label: "Description" },
+                { key: "contractorPrice", label: "Contractor", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+                { key: "carrierPrice", label: "Carrier", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+                { key: "difference", label: "Difference", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+                { key: "percent", label: "%", align: "right", render: (val) => `${val?.toFixed(1) || "0"}%` },
+              ]}
+              data={comparison.underpricedItems.map((item: any) => ({
+                description: item.contractorItem?.description || "N/A",
+                contractorPrice: item.contractorItem?.total || 0,
+                carrierPrice: item.carrierItem?.total || 0,
+                difference: item.priceDifference || 0,
+                percent: item.percentDifference || 0,
+              }))}
+              emptyMessage="No underpriced items found"
+            />
+          </SectionCard>
+        )}
 
-        {/* Carrier Letter Summary */}
+        {/* Carrier Report Summary */}
         {summary?.plainEnglishSummary && (
-          <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Carrier Letter Summary
-            </h2>
+          <SectionCard title="Carrier Letter Summary">
             {summary.approvalStatus && (
-              <div className="mt-2">
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                    summary.approvalStatus === "approved"
-                      ? "bg-emerald-500/10 text-emerald-200 border border-emerald-500/40"
-                      : summary.approvalStatus === "denied"
-                      ? "bg-rose-500/10 text-rose-200 border border-rose-500/40"
-                      : "bg-amber-500/10 text-amber-200 border border-amber-500/40"
-                  }`}
-                >
-                  {summary.approvalStatus.toUpperCase()}
-                </span>
+              <div className="mb-4">
+                <StatusBadge status={summary.approvalStatus} />
               </div>
             )}
-            <p className="mt-4 text-xs leading-relaxed text-slate-300">
+            <p className="text-xs leading-relaxed text-slate-300">
               {summary.plainEnglishSummary}
             </p>
 
             {summary.keyFindings && summary.keyFindings.length > 0 && (
               <div className="mt-4">
-                <p className="text-[11px] font-semibold text-slate-400">
-                  Key Points:
-                </p>
+                <p className="text-[11px] font-semibold text-slate-400">Key Points:</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
                   {summary.keyFindings.map((finding: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-2">
@@ -276,85 +300,85 @@ export default async function ReviewDetailPage({
               </div>
             )}
 
-            {summary.recommendedNextSteps &&
-              summary.recommendedNextSteps.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-[11px] font-semibold text-slate-400">
-                    Recommended Next Steps:
-                  </p>
-                  <ol className="mt-2 space-y-1 text-xs text-slate-300">
-                    {summary.recommendedNextSteps.map(
-                      (step: string, idx: number) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="font-semibold text-amber-400">
-                            {idx + 1}.
-                          </span>
-                          <span>{step}</span>
-                        </li>
-                      )
-                    )}
-                  </ol>
-                </div>
-              )}
-          </section>
+            {summary.recommendedNextSteps && summary.recommendedNextSteps.length > 0 && (
+              <div className="mt-4">
+                <p className="text-[11px] font-semibold text-slate-400">
+                  Recommended Next Steps:
+                </p>
+                <ol className="mt-2 space-y-1 text-xs text-slate-300">
+                  {summary.recommendedNextSteps.map((step: string, idx: number) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="font-semibold text-amber-400">{idx + 1}.</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </SectionCard>
         )}
 
         {/* Line Items Table */}
         {analysis?.lineItems && analysis.lineItems.length > 0 && (
-          <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Contractor Line Items
-            </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              {analysis.lineItems.length} items extracted from contractor
-              estimate
-            </p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-left text-[11px] font-medium text-slate-400">
-                    <th className="pb-2">Trade</th>
-                    <th className="pb-2">Description</th>
-                    <th className="pb-2 text-right">Qty</th>
-                    <th className="pb-2 text-right">Unit Price</th>
-                    <th className="pb-2 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-300">
-                  {analysis.lineItems.map((item: any, idx: number) => (
-                    <tr key={idx} className="border-b border-slate-900/50">
-                      <td className="py-2 text-[10px] text-slate-400">
-                        {item.trade}
-                      </td>
-                      <td className="py-2">{item.description}</td>
-                      <td className="py-2 text-right">
-                        {item.qty} {item.unit}
-                      </td>
-                      <td className="py-2 text-right">
-                        ${item.unit_price?.toFixed(2) || "0.00"}
-                      </td>
-                      <td className="py-2 text-right font-semibold text-slate-50">
-                        ${item.total?.toFixed(2) || "0.00"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-slate-700 font-semibold">
-                    <td colSpan={4} className="pt-3 text-right text-slate-50">
-                      Total:
-                    </td>
-                    <td className="pt-3 text-right text-slate-50">
-                      ${analysis.summary?.totalAmount?.toFixed(2) || "0.00"}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+          <SectionCard
+            title="Contractor Line Items"
+            description={`${analysis.lineItems.length} items extracted from contractor estimate`}
+          >
+            <DataTable
+              columns={[
+                { key: "trade", label: "Trade" },
+                { key: "description", label: "Description" },
+                { key: "qty", label: "Qty", align: "right" },
+                { key: "unit_price", label: "Unit Price", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+                { key: "total", label: "Total", align: "right", render: (val) => `$${val?.toFixed(2) || "0.00"}` },
+              ]}
+              data={analysis.lineItems}
+              emptyMessage="No line items found"
+            />
+            <div className="mt-4 flex justify-end border-t border-slate-800 pt-3">
+              <div className="text-right">
+                <p className="text-xs font-semibold text-slate-400">Total:</p>
+                <p className="text-lg font-semibold text-slate-50">
+                  ${analysis.summary?.totalAmount?.toFixed(2) || "0.00"}
+                </p>
+              </div>
             </div>
-          </section>
+          </SectionCard>
+        )}
+
+        {/* PDF Download Section */}
+        {!review.pdf_report_url && review.status !== "error" && (
+          <SectionCard title="PDF Report">
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+              <span className="text-xs text-slate-300">Generating PDF report...</span>
+            </div>
+          </SectionCard>
         )}
       </main>
     </div>
   );
 }
 
+function Header() {
+  return (
+    <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
+            <span className="text-xs font-black text-slate-950">ER</span>
+          </div>
+          <span className="text-sm font-semibold text-slate-50">
+            Estimate Review Pro
+          </span>
+        </Link>
+        <Link
+          href="/dashboard"
+          className="text-xs font-semibold text-slate-200 hover:underline hover:underline-offset-4"
+        >
+          Back to dashboard
+        </Link>
+      </div>
+    </header>
+  );
+}

@@ -23,8 +23,11 @@ export const handler: Handler = async (event) => {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
+  let reviewId: string | null = null;
+
   try {
-    const { reviewId, fileUrl, fileType } = JSON.parse(event.body || "{}");
+    const { reviewId: id, fileUrl, fileType } = JSON.parse(event.body || "{}");
+    reviewId = id;
 
     if (!reviewId || !fileUrl) {
       return {
@@ -32,6 +35,12 @@ export const handler: Handler = async (event) => {
         body: JSON.stringify({ error: "Missing reviewId or fileUrl" }),
       };
     }
+
+    // Update status to analyzing
+    await (supabase as any)
+      .from("reviews")
+      .update({ status: "analyzing" })
+      .eq("id", reviewId);
 
     // Download file from Supabase Storage
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -135,9 +144,26 @@ export const handler: Handler = async (event) => {
     };
   } catch (error: any) {
     console.error("Error in analyze-estimate:", error);
+    
+    // Update review status to error
+    if (reviewId) {
+      try {
+        await (supabase as any)
+          .from("reviews")
+          .update({
+            status: "error",
+            error_message: error.message || "Failed to analyze estimate",
+          })
+          .eq("id", reviewId);
+      } catch (updateError) {
+        console.error("Failed to update error status:", updateError);
+      }
+    }
+
     return {
       statusCode: 500,
       body: JSON.stringify({
+        success: false,
         error: error.message || "Failed to analyze estimate",
       }),
     };
