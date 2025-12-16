@@ -17,6 +17,10 @@ export interface Database {
           subscription_status: string | null;
           stripe_customer_id: string | null;
           created_at: string | null;
+          plan_type: string | null;
+          billing_period_start: string | null;
+          included_reviews: number | null;
+          overage_price: number | null;
         };
         Insert: {
           id: string;
@@ -25,6 +29,10 @@ export interface Database {
           subscription_status?: string | null;
           stripe_customer_id?: string | null;
           created_at?: string | null;
+          plan_type?: string | null;
+          billing_period_start?: string | null;
+          included_reviews?: number | null;
+          overage_price?: number | null;
         };
         Update: {
           id?: string;
@@ -33,6 +41,39 @@ export interface Database {
           subscription_status?: string | null;
           stripe_customer_id?: string | null;
           created_at?: string | null;
+          plan_type?: string | null;
+          billing_period_start?: string | null;
+          included_reviews?: number | null;
+          overage_price?: number | null;
+        };
+      };
+      usage_tracking: {
+        Row: {
+          id: string;
+          organization_id: string;
+          billing_period_start: string;
+          reviews_used: number;
+          plan_type: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          billing_period_start: string;
+          reviews_used?: number;
+          plan_type: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          billing_period_start?: string;
+          reviews_used?: number;
+          plan_type?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
       };
       reviews: {
