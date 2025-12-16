@@ -5,6 +5,10 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
+import { ProgressSteps } from "@/components/ProgressSteps";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
 
 export default function UploadPage() {
   return (
@@ -60,12 +64,50 @@ function UploadForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [currentStatus, setCurrentStatus] = useState<string>("upload_complete");
+  const [validationErrors, setValidationErrors] = useState<{
+    contractor?: string;
+    carrier?: string;
+    report?: string;
+  }>({});
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return "File size must be less than 10MB";
+    }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return "File must be PDF, PNG, or JPG";
+    }
+    return null;
+  };
+
+  const handleFileChange = (
+    file: File | null,
+    setter: (file: File | null) => void,
+    field: "contractor" | "carrier" | "report"
+  ) => {
+    if (!file) {
+      setter(null);
+      setValidationErrors((prev) => ({ ...prev, [field]: undefined }));
+      return;
+    }
+
+    const error = validateFile(file);
+    if (error) {
+      setValidationErrors((prev) => ({ ...prev, [field]: error }));
+      setter(null);
+    } else {
+      setValidationErrors((prev) => ({ ...prev, [field]: undefined }));
+      setter(file);
+    }
+  };
 
   async function handleUpload(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setIsUploading(true);
     setUploadProgress("Checking subscription...");
+    setCurrentStatus("upload_complete");
 
     try {
       const supabase = createSupabaseBrowserClient();
@@ -183,6 +225,7 @@ function UploadForm() {
           user_id: user.id,
           contractor_estimate_url: contractorUrl,
           carrier_estimate_url: carrierUrl,
+          status: "upload_complete",
           ai_analysis_json: { status: "pending", mode } as any,
         } as any)
         .select()
@@ -193,6 +236,7 @@ function UploadForm() {
       }
 
       setUploadProgress("Starting AI analysis...");
+      setCurrentStatus("analyzing");
 
       // Trigger AI analysis pipeline
       const fileType = contractorFile.type.includes("pdf") ? "pdf" : "image";
@@ -205,6 +249,7 @@ function UploadForm() {
           reviewId: review.id,
           fileUrl: contractorUrl,
           fileType,
+          documentType: "contractor",
         }),
       });
 
@@ -213,6 +258,7 @@ function UploadForm() {
       }
 
       setUploadProgress("Comparing estimates...");
+      setCurrentStatus("comparing");
 
       // Step 2: Compare estimates (if carrier provided)
       if (carrierUrl && mode === "full") {
@@ -228,6 +274,7 @@ function UploadForm() {
       // Step 3: Summarize report (if provided)
       if (reportUrl) {
         setUploadProgress("Summarizing carrier letter...");
+        setCurrentStatus("summarizing");
         const reportFileType = reportFile!.type.includes("pdf") ? "pdf" : "image";
         await fetch("/.netlify/functions/summarize-report", {
           method: "POST",
@@ -243,6 +290,7 @@ function UploadForm() {
       // Step 4: Generate PDF
       if (mode === "full") {
         setUploadProgress("Generating PDF report...");
+        setCurrentStatus("generating_pdf");
         await fetch("/.netlify/functions/generate-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -253,12 +301,14 @@ function UploadForm() {
       }
 
       setUploadProgress("Complete! Redirecting...");
+      setCurrentStatus("complete");
 
       // Redirect to review page
       router.push(`/dashboard/review/${review.id}`);
     } catch (err: any) {
       console.error("Upload error:", err);
       setError(err.message || "Failed to upload and process estimates");
+      setCurrentStatus("error");
       setIsUploading(false);
       setUploadProgress("");
     }
@@ -266,6 +316,16 @@ function UploadForm() {
 
   return (
     <form className="space-y-5" onSubmit={handleUpload}>
+      {isUploading && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-4">
+          <p className="text-xs font-semibold text-amber-100">Processing your review...</p>
+          <p className="mt-1 text-xs text-amber-200">{uploadProgress}</p>
+          <div className="mt-4">
+            <ProgressSteps currentStep={currentStatus} />
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label
@@ -276,7 +336,7 @@ function UploadForm() {
             <span className="text-[10px] text-rose-300">*</span>
           </label>
           <p className="text-[11px] text-slate-400">
-            Required. PDF, JPG, or PNG. For Xactimate/Symbility, export the
+            Required. PDF, JPG, or PNG. Max 10MB. For Xactimate/Symbility, export the
             full estimate as a PDF.
           </p>
           <input
@@ -286,12 +346,23 @@ function UploadForm() {
             accept=".pdf,.png,.jpg,.jpeg"
             required
             disabled={isUploading}
-            onChange={(e) => setContractorFile(e.target.files?.[0] || null)}
+            onChange={(e) =>
+              handleFileChange(
+                e.target.files?.[0] || null,
+                setContractorFile,
+                "contractor"
+              )
+            }
             className="mt-1 block w-full cursor-pointer rounded-lg border border-dashed border-slate-700 bg-slate-950 px-3 py-6 text-[11px] text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           />
-          {contractorFile && (
+          {validationErrors.contractor && (
+            <p className="text-[10px] text-rose-400">
+              ✗ {validationErrors.contractor}
+            </p>
+          )}
+          {contractorFile && !validationErrors.contractor && (
             <p className="text-[10px] text-emerald-400">
-              ✓ {contractorFile.name}
+              ✓ {contractorFile.name} ({(contractorFile.size / 1024 / 1024).toFixed(2)}MB)
             </p>
           )}
         </div>
@@ -305,7 +376,7 @@ function UploadForm() {
           </label>
           <p className="text-[11px] text-slate-400">
             Upload the most recent carrier scope so we can compare line items
-            and pricing.
+            and pricing. Max 10MB.
           </p>
           <input
             id="carrier"
@@ -313,11 +384,24 @@ function UploadForm() {
             type="file"
             accept=".pdf,.png,.jpg,.jpeg"
             disabled={isUploading}
-            onChange={(e) => setCarrierFile(e.target.files?.[0] || null)}
+            onChange={(e) =>
+              handleFileChange(
+                e.target.files?.[0] || null,
+                setCarrierFile,
+                "carrier"
+              )
+            }
             className="mt-1 block w-full cursor-pointer rounded-lg border border-dashed border-slate-700 bg-slate-950 px-3 py-6 text-[11px] text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           />
-          {carrierFile && (
-            <p className="text-[10px] text-emerald-400">✓ {carrierFile.name}</p>
+          {validationErrors.carrier && (
+            <p className="text-[10px] text-rose-400">
+              ✗ {validationErrors.carrier}
+            </p>
+          )}
+          {carrierFile && !validationErrors.carrier && (
+            <p className="text-[10px] text-emerald-400">
+              ✓ {carrierFile.name} ({(carrierFile.size / 1024 / 1024).toFixed(2)}MB)
+            </p>
           )}
         </div>
       </div>
@@ -328,7 +412,7 @@ function UploadForm() {
         </label>
         <p className="text-[11px] text-slate-400">
           We&apos;ll summarize the technical reasoning and highlight key
-          approval/denial points in plain English.
+          approval/denial points in plain English. Max 10MB.
         </p>
         <input
           id="report"
@@ -336,11 +420,24 @@ function UploadForm() {
           type="file"
           accept=".pdf,.png,.jpg,.jpeg"
           disabled={isUploading}
-          onChange={(e) => setReportFile(e.target.files?.[0] || null)}
+          onChange={(e) =>
+            handleFileChange(
+              e.target.files?.[0] || null,
+              setReportFile,
+              "report"
+            )
+          }
           className="mt-1 block w-full cursor-pointer rounded-lg border border-dashed border-slate-700 bg-slate-950 px-3 py-6 text-[11px] text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-100 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
         />
-        {reportFile && (
-          <p className="text-[10px] text-emerald-400">✓ {reportFile.name}</p>
+        {validationErrors.report && (
+          <p className="text-[10px] text-rose-400">
+            ✗ {validationErrors.report}
+          </p>
+        )}
+        {reportFile && !validationErrors.report && (
+          <p className="text-[10px] text-emerald-400">
+            ✓ {reportFile.name} ({(reportFile.size / 1024 / 1024).toFixed(2)}MB)
+          </p>
         )}
       </div>
 
@@ -395,16 +492,6 @@ function UploadForm() {
         </div>
       )}
 
-      {isUploading && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-4 text-xs text-amber-100">
-          <p className="font-semibold">Processing your review...</p>
-          <p className="mt-1">{uploadProgress}</p>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-900">
-            <div className="h-full animate-pulse bg-gradient-to-r from-amber-400 to-sky-400" />
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2 text-[11px] text-slate-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -415,7 +502,7 @@ function UploadForm() {
         </div>
         <button
           type="submit"
-          disabled={isUploading || !contractorFile}
+          disabled={isUploading || !contractorFile || Object.keys(validationErrors).some(k => validationErrors[k as keyof typeof validationErrors])}
           className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-5 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUploading ? "Processing..." : "Start Analysis"}
