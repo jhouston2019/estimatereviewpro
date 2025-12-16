@@ -8,7 +8,7 @@ type Review = Database["public"]["Tables"]["reviews"]["Row"];
 
 export default async function DashboardPage() {
   const cookieStore = cookies();
-  const supabase = createServerClient(cookieStore);
+  const supabase = await createServerClient(cookieStore);
 
   const {
     data: { user },

@@ -13,7 +13,7 @@ export default async function ReviewDetailPage({
   params: { id: string };
 }) {
   const cookieStore = cookies();
-  const supabase = createServerClient(cookieStore);
+  const supabase = await createServerClient(cookieStore);
 
   const {
     data: { user },

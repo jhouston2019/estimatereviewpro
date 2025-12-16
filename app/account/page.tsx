@@ -8,7 +8,7 @@ import { PortalButton } from "./PortalButton";
 
 export default async function AccountPage() {
   const cookieStore = cookies();
-  const supabase = createServerClient(cookieStore);
+  const supabase = await createServerClient(cookieStore);
 
   // Get authenticated user
   const {
