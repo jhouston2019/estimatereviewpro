@@ -51,6 +51,30 @@ export const handler: Handler = async (event) => {
       throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
+    // Server-side file validation
+    const ALLOWED_MIME_TYPES = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+    ];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    const fileMimeType = fileData.type;
+    const fileSize = fileData.size;
+
+    if (!ALLOWED_MIME_TYPES.includes(fileMimeType)) {
+      throw new Error(
+        `Invalid file type: ${fileMimeType}. Only PDF, PNG, and JPG files are supported.`
+      );
+    }
+
+    if (fileSize > MAX_FILE_SIZE) {
+      throw new Error(
+        `File too large: ${(fileSize / 1024 / 1024).toFixed(2)}MB. Maximum size is 10MB.`
+      );
+    }
+
     // Convert to base64 for OpenAI Vision
     const buffer = await fileData.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");

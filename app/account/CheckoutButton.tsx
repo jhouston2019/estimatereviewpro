@@ -9,46 +9,34 @@ export function CheckoutButton({
   userId: string;
   priceType: "oneoff" | "pro";
 }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function handleCheckout() {
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      const response = await fetch("/.netlify/functions/create-checkout", {
+      const res = await fetch("/.netlify/functions/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          priceType,
-          successUrl: `${window.location.origin}/dashboard?payment=success`,
-          cancelUrl: `${window.location.origin}/account?payment=cancelled`,
-        }),
+        body: JSON.stringify({ userId, priceType }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
       }
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.sessionUrl;
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      alert(error.message || "Failed to start checkout");
-      setIsLoading(false);
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setLoading(false);
     }
   }
 
   return (
     <button
       onClick={handleCheckout}
-      disabled={isLoading}
-      className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={loading}
+      className="w-full rounded-full bg-amber-400 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-amber-300 disabled:opacity-50"
     >
-      {isLoading ? "Loading..." : priceType === "pro" ? "Upgrade Now" : "Purchase"}
+      {loading ? "Loading..." : priceType === "pro" ? "Subscribe Now" : "Purchase"}
     </button>
   );
 }
-

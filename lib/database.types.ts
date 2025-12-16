@@ -47,6 +47,7 @@ export interface Database {
           ai_analysis_json: Json | null;
           ai_comparison_json: Json | null;
           ai_summary_json: Json | null;
+          error_message: string | null;
           created_at: string;
         };
         Insert: {
@@ -60,6 +61,7 @@ export interface Database {
           ai_analysis_json?: Json | null;
           ai_comparison_json?: Json | null;
           ai_summary_json?: Json | null;
+          error_message?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["reviews"]["Row"]>;

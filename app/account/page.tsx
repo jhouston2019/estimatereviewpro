@@ -4,6 +4,8 @@ import { getProfile } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
 import { CheckoutButton } from "./CheckoutButton";
 import { PortalButton } from "./PortalButton";
+import { SectionCard } from "@/components/SectionCard";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function AccountPage() {
   const supabase = await createServerClient();
@@ -22,6 +24,12 @@ export default async function AccountPage() {
 
   const tier = profile?.tier ?? "free";
   const subscriptionStatus = profile?.subscription_status ?? "none";
+  const stripeCustomerId = profile?.stripe_customer_id;
+
+  // Enforce subscription for account page access
+  if (tier === "free") {
+    redirect("/pricing?upgrade=required");
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -65,18 +73,20 @@ export default async function AccountPage() {
           </p>
         </section>
 
-        {/* Current Plan */}
-        <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-          <h2 className="text-sm font-semibold text-slate-50">Current Plan</h2>
-          <div className="mt-4 flex items-center justify-between">
+        {/* Subscription Overview */}
+        <SectionCard title="Current Plan">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-semibold text-slate-50">
-                {tier === "pro"
-                  ? "Unlimited Monthly"
-                  : tier === "oneoff"
-                  ? "One-Time Review"
-                  : "Free Plan"}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-lg font-semibold text-slate-50">
+                  {tier === "pro"
+                    ? "Unlimited Monthly"
+                    : tier === "oneoff"
+                    ? "One-Time Review"
+                    : "Free Plan"}
+                </p>
+                <StatusBadge status={subscriptionStatus} />
+              </div>
               <p className="mt-1 text-xs text-slate-400">
                 {tier === "pro"
                   ? "$249/month - Unlimited reviews"
@@ -84,27 +94,19 @@ export default async function AccountPage() {
                   ? "$79 - Single review purchased"
                   : "No active subscription"}
               </p>
-              {subscriptionStatus && (
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Status: {subscriptionStatus}
-                </p>
-              )}
             </div>
             <div>
-              {tier === "pro" && profile?.stripe_customer_id && (
+              {tier === "pro" && stripeCustomerId && (
                 <PortalButton userId={user.id} />
               )}
             </div>
           </div>
-        </section>
+        </SectionCard>
 
         {/* Upgrade Options */}
         {tier !== "pro" && (
           <section className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6">
-              <h3 className="text-sm font-semibold text-slate-50">
-                $79 One-Time Review
-              </h3>
+            <SectionCard title="$79 One-Time Review">
               <p className="mt-2 text-xs text-slate-300">
                 Perfect for a single estimate analysis
               </p>
@@ -117,20 +119,17 @@ export default async function AccountPage() {
               <div className="mt-6">
                 <CheckoutButton userId={user.id} priceType="oneoff" />
               </div>
-            </div>
+            </SectionCard>
 
-            <div className="rounded-3xl border border-amber-400/80 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-slate-950 p-6">
+            <SectionCard title="$249/mo Unlimited" variant="success">
               <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-slate-50">
-                  $249/mo Unlimited
-                </h3>
+                <p className="mt-2 text-xs text-slate-100">
+                  For professionals running multiple claims
+                </p>
                 <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-950">
                   Best Value
                 </span>
               </div>
-              <p className="mt-2 text-xs text-slate-100">
-                For professionals running multiple claims
-              </p>
               <p className="mt-4 text-2xl font-semibold text-slate-50">$249</p>
               <ul className="mt-4 space-y-2 text-xs text-slate-100">
                 <li>✓ Unlimited reviews</li>
@@ -141,16 +140,38 @@ export default async function AccountPage() {
               <div className="mt-6">
                 <CheckoutButton userId={user.id} priceType="pro" />
               </div>
-            </div>
+            </SectionCard>
           </section>
         )}
 
+        {/* Billing Settings */}
+        {tier === "pro" && stripeCustomerId && (
+          <SectionCard title="Billing Settings">
+            <div className="space-y-4 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Payment Method</span>
+                <span className="text-slate-200">Managed via Stripe</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Billing Cycle</span>
+                <span className="text-slate-200">Monthly</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Next Billing Date</span>
+                <span className="text-slate-200">
+                  {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+            <div className="mt-6">
+              <PortalButton userId={user.id} />
+            </div>
+          </SectionCard>
+        )}
+
         {/* Account Details */}
-        <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60">
-          <h2 className="text-sm font-semibold text-slate-50">
-            Account Details
-          </h2>
-          <div className="mt-4 space-y-3 text-xs">
+        <SectionCard title="Account Details">
+          <div className="space-y-3 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-400">Email</span>
               <span className="text-slate-200">{user.email}</span>
@@ -168,7 +189,7 @@ export default async function AccountPage() {
               </span>
             </div>
           </div>
-        </section>
+        </SectionCard>
 
         {/* Sign Out */}
         <section>
@@ -185,4 +206,3 @@ export default async function AccountPage() {
     </div>
   );
 }
-
