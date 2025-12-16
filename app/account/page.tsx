@@ -2,13 +2,11 @@ import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { CheckoutButton } from "./CheckoutButton";
 import { PortalButton } from "./PortalButton";
 
 export default async function AccountPage() {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   // Get authenticated user
   const {

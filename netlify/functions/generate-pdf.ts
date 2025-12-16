@@ -64,7 +64,7 @@ export const handler: Handler = async (event) => {
     } = supabase.storage.from("reports").getPublicUrl(fileName);
 
     // Update review with PDF URL
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("reviews")
       .update({
         pdf_report_url: publicUrl,

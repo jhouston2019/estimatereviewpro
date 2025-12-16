@@ -700,7 +700,7 @@ function addSectionHeading(doc: PDFKit.PDFDocument, title: string) {
 function drawTableHeader(
   doc: PDFKit.PDFDocument,
   y: number,
-  columns: Array<{ label: string; width: number; align?: string }>
+  columns: Array<{ label: string; width: number; align?: "left" | "center" | "right" | "justify" }>
 ) {
   // Header background
   doc.rect(MARGINS.left, y, CONTENT_WIDTH, 18).fill(COLORS.primary);

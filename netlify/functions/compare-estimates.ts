@@ -88,6 +88,25 @@ export const handler: Handler = async (event) => {
         "../../lib/ai/prompts"
       );
 
+      // Map to ParsedLineItem format
+      const contractorParsed: any[] = contractorItems.map(item => ({
+        trade: item.trade,
+        description: item.description,
+        quantity: item.qty,
+        unit: item.unit,
+        unitPrice: item.unit_price,
+        total: item.total,
+      }));
+
+      const carrierParsed: any[] = carrierItems.map(item => ({
+        trade: item.trade,
+        description: item.description,
+        quantity: item.qty,
+        unit: item.unit,
+        unitPrice: item.unit_price,
+        total: item.total,
+      }));
+
       // Use production prompts for comparison
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -98,7 +117,7 @@ export const handler: Handler = async (event) => {
           },
           {
             role: "user",
-            content: ESTIMATE_COMPARISON_USER(contractorItems, carrierItems),
+            content: ESTIMATE_COMPARISON_USER(contractorParsed, carrierParsed),
           },
         ],
         response_format: { type: "json_object" },
@@ -110,7 +129,7 @@ export const handler: Handler = async (event) => {
       );
 
       // Save comparison result
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("reviews")
         .update({
           ai_comparison_json: comparisonResult,
@@ -152,7 +171,7 @@ export const handler: Handler = async (event) => {
         },
       };
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("reviews")
         .update({
           ai_comparison_json: summaryResult,

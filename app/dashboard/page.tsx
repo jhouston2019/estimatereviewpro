@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
 import { getProfile, type Profile } from "@/lib/supabase/queries";
-import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
 
 export default async function DashboardPage() {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   const {
     data: { user },

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import type { Database } from "@/lib/database.types";
 
 export default function UploadPage() {
   return (
@@ -79,11 +80,12 @@ function UploadForm() {
       }
 
       // Check user's tier and subscription
+      type Profile = Database["public"]["Tables"]["profiles"]["Row"];
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .maybeSingle();
+        .maybeSingle<Profile>();
 
       const tier = profile?.tier ?? "free";
 
@@ -175,16 +177,16 @@ function UploadForm() {
       setUploadProgress("Creating review record...");
 
       // Create review record
-      const { data: review, error: reviewError } = await supabase
+      const { data: review, error: reviewError } = await (supabase
         .from("reviews")
         .insert({
           user_id: user.id,
           contractor_estimate_url: contractorUrl,
           carrier_estimate_url: carrierUrl,
           ai_analysis_json: { status: "pending", mode } as any,
-        })
+        } as any)
         .select()
-        .maybeSingle();
+        .maybeSingle() as any);
 
       if (reviewError || !review) {
         throw new Error("Failed to create review record");

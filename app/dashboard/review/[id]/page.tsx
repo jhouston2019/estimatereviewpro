@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import { ReRunButton } from "./ReRunButton";
 import type { Database } from "@/lib/database.types";
 
@@ -12,8 +11,7 @@ export default async function ReviewDetailPage({
 }: {
   params: { id: string };
 }) {
-  const cookieStore = cookies();
-  const supabase = await createServerClient(cookieStore);
+  const supabase = await createServerClient();
 
   const {
     data: { user },

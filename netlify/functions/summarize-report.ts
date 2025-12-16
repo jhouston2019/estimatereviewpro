@@ -94,7 +94,7 @@ export const handler: Handler = async (event) => {
     };
 
     // Save to database
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("reviews")
       .update({
         ai_summary_json: summary,

@@ -6,7 +6,7 @@ import type { Database } from "../../lib/database.types";
 const supabase = createAdminClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: "2025-11-17.clover",
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -66,7 +66,7 @@ export const handler: Handler = async (event) => {
           updateData.subscription_status = "active";
         }
 
-        await supabase.from("profiles").update(updateData).eq("id", userId);
+        await (supabase as any).from("profiles").update(updateData).eq("id", userId);
 
         console.log(`Updated user ${userId} with tier ${tier}`);
         break;
@@ -94,7 +94,7 @@ export const handler: Handler = async (event) => {
         const status = subscription.status;
         const tier = status === "active" ? "pro" : profile.tier;
 
-        await supabase
+        await (supabase as any)
           .from("profiles")
           .update({
             subscription_status: status,
@@ -126,7 +126,7 @@ export const handler: Handler = async (event) => {
         }
 
         // Downgrade to free
-        await supabase
+        await (supabase as any)
           .from("profiles")
           .update({
             subscription_status: "cancelled",

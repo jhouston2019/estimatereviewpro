@@ -87,17 +87,16 @@ export const handler: Handler = async (event) => {
     const parsed = JSON.parse(content);
     
     // Support both new format (items) and legacy format (lineItems)
-    const lineItems: LineItem[] = parsed.items || parsed.lineItems || [];
+    const lineItems: any[] = parsed.items || parsed.lineItems || [];
 
     // Validate and normalize line items
-    const validatedItems = lineItems.map((item) => ({
+    const validatedItems: LineItem[] = lineItems.map((item: any) => ({
       trade: item.trade || "General",
       description: item.description || "Unknown item",
       qty: item.quantity || item.qty || 1,
       unit: item.unit || "EA",
       unit_price: item.unitPrice || item.unit_price || 0,
       total: item.total || 0,
-      notes: item.notes,
     }));
 
     // Calculate totals
@@ -116,7 +115,7 @@ export const handler: Handler = async (event) => {
     };
 
     // Save to database
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("reviews")
       .update({
         ai_analysis_json: analysisResult,
