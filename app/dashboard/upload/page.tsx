@@ -83,9 +83,9 @@ function UploadForm() {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      const tier = profile?.tier || "free";
+      const tier = profile?.tier ?? "free";
 
       // Business rules: Check if user can create review
       if (tier === "free") {
@@ -181,10 +181,10 @@ function UploadForm() {
           user_id: user.id,
           contractor_estimate_url: contractorUrl,
           carrier_estimate_url: carrierUrl,
-          ai_analysis_json: { status: "pending", mode },
+          ai_analysis_json: { status: "pending", mode } as any,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (reviewError || !review) {
         throw new Error("Failed to create review record");

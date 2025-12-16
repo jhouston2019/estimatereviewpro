@@ -1,11 +1,9 @@
 import { Handler } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "../../lib/supabase/admin";
 import Stripe from "stripe";
+import type { Database } from "../../lib/database.types";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createAdminClient();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-12-18.acacia",
@@ -80,11 +78,12 @@ export const handler: Handler = async (event) => {
         const customerId = subscription.customer as string;
 
         // Find user by customer ID
+        type Profile = Database["public"]["Tables"]["profiles"]["Row"];
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
           .eq("stripe_customer_id", customerId)
-          .single();
+          .single<Profile>();
 
         if (!profile) {
           console.error(`No profile found for customer ${customerId}`);
@@ -114,11 +113,12 @@ export const handler: Handler = async (event) => {
         const customerId = subscription.customer as string;
 
         // Find user by customer ID
+        type Profile = Database["public"]["Tables"]["profiles"]["Row"];
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
           .eq("stripe_customer_id", customerId)
-          .single();
+          .single<Profile>();
 
         if (!profile) {
           console.error(`No profile found for customer ${customerId}`);

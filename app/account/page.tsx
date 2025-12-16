@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { createServerClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { CheckoutButton } from "./CheckoutButton";
 import { PortalButton } from "./PortalButton";
 
 export default async function AccountPage() {
-  const supabase = createSupabaseServerComponentClient();
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
+  // Get authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -14,14 +19,11 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  // Fully typed profile fetch
+  const profile = await getProfile(user.id);
 
-  const tier = profile?.tier || "free";
-  const subscriptionStatus = profile?.subscription_status;
+  const tier = profile?.tier ?? "free";
+  const subscriptionStatus = profile?.subscription_status ?? "none";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">

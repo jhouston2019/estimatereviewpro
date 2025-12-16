@@ -1,17 +1,20 @@
 import Link from "next/link";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { createServerClient } from "@/lib/supabase/server";
+import { getProfile, type Profile } from "@/lib/supabase/queries";
+import { cookies } from "next/headers";
+import type { Database } from "@/lib/database.types";
+
+type Review = Database["public"]["Tables"]["reviews"]["Row"];
 
 export default async function DashboardPage() {
-  const supabase = createSupabaseServerComponentClient();
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
+  const profile = await getProfile(user?.id ?? "");
 
   const { data: reviews } = await supabase
     .from("reviews")
@@ -19,7 +22,7 @@ export default async function DashboardPage() {
     .eq("user_id", user?.id ?? "")
     .order("created_at", { ascending: false });
 
-  const tier = (profile as any)?.tier ?? "free";
+  const tier = profile?.tier ?? "free";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -113,7 +116,7 @@ export default async function DashboardPage() {
               </p>
             ) : (
               <div className="divide-y divide-slate-900/80">
-                {reviews.map((review: any) => (
+                {reviews.map((review: Review) => (
                   <div
                     key={review.id}
                     className="flex flex-col items-start justify-between gap-3 py-3 md:flex-row md:items-center"

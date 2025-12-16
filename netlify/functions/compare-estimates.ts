@@ -1,11 +1,9 @@
 import { Handler } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "../../lib/supabase/admin";
 import OpenAI from "openai";
+import type { Database } from "../../lib/database.types";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createAdminClient();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -61,11 +59,12 @@ export const handler: Handler = async (event) => {
     }
 
     // Fetch review data
+    type Review = Database["public"]["Tables"]["reviews"]["Row"];
     const { data: review, error: fetchError } = await supabase
       .from("reviews")
       .select("*")
       .eq("id", reviewId)
-      .single();
+      .single<Review>();
 
     if (fetchError || !review) {
       throw new Error("Review not found");

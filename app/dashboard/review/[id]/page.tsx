@@ -1,14 +1,20 @@
 import Link from "next/link";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { createServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { ReRunButton } from "./ReRunButton";
+import type { Database } from "@/lib/database.types";
+
+type Review = Database["public"]["Tables"]["reviews"]["Row"];
 
 export default async function ReviewDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const supabase = createSupabaseServerComponentClient();
+  const cookieStore = cookies();
+  const supabase = createServerClient(cookieStore);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -22,7 +28,7 @@ export default async function ReviewDetailPage({
     .select("*")
     .eq("id", params.id)
     .eq("user_id", user.id)
-    .single();
+    .single<Review>();
 
   if (error || !review) {
     return notFound();
