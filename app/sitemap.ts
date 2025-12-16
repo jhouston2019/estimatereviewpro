@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import keywords from "@/seo/keywords.json";
+import seoKeywords from "@/seo/seo-keywords";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://estimatereviewpro.com";
@@ -38,8 +39,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "" ? 1.0 : 0.8,
   }));
 
-  // SEO pages from keywords
-  const seoPages = keywords.map((keyword) => {
+  // SEO pages from dynamic route keywords
+  const dynamicSeoPages = keywords.map((keyword) => {
     const slug = keyword.toLowerCase().replace(/\s+/g, "-");
     return {
       url: `${baseUrl}/seo/${slug}`,
@@ -49,6 +50,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     };
   });
 
-  return [...staticPages, ...seoPages];
+  // SEO pages from generated static pages
+  const staticSeoPages = seoKeywords.map((keyword) => {
+    const slug = keyword
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim();
+    return {
+      url: `${baseUrl}/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    };
+  });
+
+  return [...staticPages, ...dynamicSeoPages, ...staticSeoPages];
 }
 

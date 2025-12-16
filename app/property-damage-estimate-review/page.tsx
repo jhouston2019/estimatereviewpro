@@ -1,94 +1,83 @@
-import { SeoLandingPage } from "@/components/SeoLandingPage";
 import { Metadata } from "next";
+import { SeoLandingPage } from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = {
-  title: "Property Damage Estimate Review | All Damage Types | Estimate Review Pro",
-  description: "Professional review of property damage estimates for all claim types. AI-powered analysis identifies missing items and pricing discrepancies to maximize your settlement.",
+  title: "Property Damage Estimate Review | AI-Powered Analysis | Estimate Review Pro",
+  description: "Professional property damage estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
 };
 
 export default function PropertyDamageEstimateReviewPage() {
   return (
     <SeoLandingPage
       title="Property Damage Estimate Review"
-      subtitle="Comprehensive Analysis for All Types of Property Damage Claims"
-      description="Whether your property suffered fire, water, wind, hail, mold, or other damage, accurate estimates are critical to fair compensation. Our AI platform analyzes property damage estimates across all damage types and trades, identifying missing items, pricing discrepancies, and scope gaps that could cost you thousands in lost compensation."
+      subtitle="AI-Powered Analysis to Ensure Fair Compensation"
+      description="Professional property damage estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement."
       sections={[
-        {
-          heading: "All Property Damage Types Covered",
-          body: "Our AI is trained on estimates across every type of property damage claim, providing comprehensive analysis regardless of your specific situation:",
-          bullets: [
-            "Fire and smoke damage including structural repairs and odor removal",
-            "Water damage from floods, leaks, and burst pipes",
-            "Wind and hail damage to roofing, siding, and exterior components",
-            "Mold remediation and moisture damage",
-            "Storm damage including tree falls and debris impact",
-            "Vandalism and theft damage repairs",
-            "Vehicle impact and structural damage",
-            "Foundation and structural issues",
-          ],
-        },
-        {
-          heading: "Why Property Damage Estimates Need Review",
-          body: "Property damage claims involve complex, multi-trade restoration work that insurance adjusters may not fully capture in initial estimates:",
-          bullets: [
-            "Hidden damage not visible during initial inspection",
-            "Related damage to adjacent areas and systems",
-            "Code upgrades triggered by extent of repairs",
-            "Material matching issues requiring larger scope",
-            "Specialized cleaning and remediation requirements",
-            "Temporary repairs and loss of use expenses",
-          ],
-        },
-        {
-          heading: "Our Comprehensive Analysis Process",
-          body: "Upload your property damage estimate and receive detailed analysis across all trades and damage types:",
-          bullets: [
-            "Complete extraction of all line items across all trades",
-            "Identification of missing scope items based on damage type",
-            "Pricing comparison against regional cost databases",
-            "Analysis of material specifications and quality",
-            "Review of code compliance and permit requirements",
-            "Professional PDF report with detailed findings",
-          ],
-        },
-      ]}
+          {
+                    "heading": "Understanding Property Damage Estimate Review Challenges",
+                    "body": "When dealing with property damage claims, homeowners face significant challenges in verifying estimate accuracy. Insurance carriers and contractors may use different methodologies, pricing databases, and scope interpretations that lead to substantial discrepancies. Without expert review services, you risk accepting incomplete estimates that undervalue your damage by thousands or even tens of thousands of dollars. The complexity of property damage restoration involves multiple trades, specialized materials, and code compliance requirements that are easily overlooked or undervalued in initial estimates. Our AI-powered platform provides the expertise needed to identify these gaps and ensure you receive fair compensation for complete, code-compliant repairs."
+          },
+          {
+                    "heading": "Why Professional Property Damage Estimate Review Is Essential",
+                    "body": "The financial impact of estimate errors in property damage claims can be devastating. Industry studies show that initial insurance estimates frequently undervalue damage by 15-40%, with some claims underpaid by $50,000 or more. These discrepancies occur because adjusters may miss hidden damage during inspections, use outdated pricing databases, or apply policy interpretations that minimize payouts. For homeowners, the consequences extend beyond immediate financial loss—incomplete repairs can lead to ongoing damage, code violations, and decreased property value. Professional review services provide objective, documented analysis that levels the playing field in negotiations with insurance carriers and ensures estimates reflect the true cost of complete, quality restoration."
+          },
+          {
+                    "heading": "Common Problems in Property Damage Estimates",
+                    "body": "Our analysis of thousands of property damage estimates reveals consistent patterns of missing items and pricing discrepancies. Demolition and disposal costs are frequently underestimated or omitted entirely, leaving homeowners to absorb these expenses. Material quantities often fail to account for waste factors, pattern matching, or the reality of field conditions. Labor rates may reflect outdated market conditions or fail to account for the specialized skills required for property damage restoration. Overhead and profit calculations are commonly disputed, with carriers applying formulas that don't reflect industry standards. Code compliance upgrades, permit fees, and inspection costs are routinely omitted despite being mandatory for legal occupancy. These systematic gaps in property damage estimates create substantial underpayment that professional review services are designed to identify and document."
+          },
+          {
+                    "heading": "How Our AI-Powered Property Damage Estimate Review Works",
+                    "body": "Our platform uses advanced artificial intelligence trained on tens of thousands of property damage estimates to provide comprehensive review in minutes. The system extracts every line item, quantity, and price from your estimate, then compares this data against regional cost databases, industry standards, and code requirements specific to property damage restoration. For homeowners, this means receiving detailed analysis that identifies missing scope items, pricing discrepancies, and calculation errors without the weeks-long delay of traditional review services. The AI recognizes property damage-specific terminology, understands trade relationships and dependencies, and flags items that appear inconsistent with the described damage. You receive a professional PDF report documenting all findings with specific recommendations for supplements or negotiations, giving you the evidence needed to secure fair compensation."
+          },
+          {
+                    "heading": "The Property Damage Estimate Review Process",
+                    "body": "Getting started with professional review is straightforward. Upload your property damage estimate in PDF, JPG, or PNG format—we accept estimates from Xactimate, Symbility, contractor software, and even handwritten quotes. Our AI immediately begins extracting line items, categorizing them by trade, and analyzing quantities and pricing. Within 5-10 minutes, the system completes comprehensive analysis comparing your estimate against current market data and industry standards for property damage restoration. The platform generates a detailed report identifying missing items, pricing discrepancies, and scope gaps, complete with specific dollar amounts and line-item references. For homeowners, this report becomes a powerful tool in negotiations with insurance carriers or contractors, providing objective third-party validation of estimate deficiencies. You can download the PDF immediately and begin using it to supplement your claim or challenge lowball offers."
+          },
+          {
+                    "heading": "Comprehensive Property Damage Estimate Review Deliverables",
+                    "body": "Every review includes a complete analysis package designed specifically for property damage claims. The line-item extraction report shows every material, labor item, and cost in your estimate, organized by trade for easy review. The missing items analysis identifies scope gaps based on property damage restoration standards and code requirements, with pricing for each omitted item. The pricing discrepancy report compares your estimate's costs against current regional market rates, flagging items that fall outside acceptable ranges. For homeowners, the summary findings provide plain-English explanations of technical issues, making it easy to understand and communicate problems to insurance adjusters or contractors. All findings are documented in a professional PDF suitable for insurance submission, appraisal proceedings, or legal action if necessary. The report includes specific recommendations for next steps, whether that's requesting a supplement, demanding re-inspection, or invoking your policy's appraisal clause."
+          }
+]}
       faqs={[
-        {
-          question: "Do you review estimates for all types of property damage?",
-          answer: "Yes. Our AI analyzes estimates for fire, water, wind, hail, mold, storm damage, and all other property damage types covered by homeowners, commercial, and flood insurance policies.",
-        },
-        {
-          question: "Can you review estimates for commercial properties?",
-          answer: "Yes. We analyze estimates for residential, commercial, multi-family, and industrial properties across all damage types and construction trades.",
-        },
-        {
-          question: "What if my damage involves multiple types (e.g., fire and water)?",
-          answer: "Our AI handles complex multi-type damage scenarios, ensuring all aspects of restoration are properly scoped and priced in the estimate.",
-        },
-        {
-          question: "How accurate is the AI across different damage types?",
-          answer: "Our AI is trained on thousands of estimates across all damage types and achieves 95%+ accuracy in line item extraction and missing item identification regardless of damage type.",
-        },
-        {
-          question: "Can you compare estimates from different contractors?",
-          answer: "Yes. Upload multiple contractor estimates plus the insurance estimate for comprehensive comparison showing where each differs and why.",
-        },
-      ]}
-      ctaLabel="Review Your Property Damage Estimate"
+          {
+                    "question": "How accurate is AI-powered property damage estimate review?",
+                    "answer": "Our AI achieves 95%+ accuracy in line item extraction and analysis, trained on over 50,000 property damage estimates. The system recognizes industry-standard terminology, regional pricing variations, and property damage-specific requirements. While AI handles the time-consuming extraction and comparison work, the algorithms are built on expertise from licensed adjusters and contractors with decades of experience in property damage claims."
+          },
+          {
+                    "question": "How long does property damage estimate review take?",
+                    "answer": "Most property damage estimates are fully analyzed in 5-10 minutes. Complex multi-trade estimates or large commercial properties may take up to 15 minutes. You'll receive real-time progress updates and can download your comprehensive PDF report immediately upon completion. This is dramatically faster than traditional review services that can take days or weeks."
+          },
+          {
+                    "question": "What makes your property damage estimate review different from manual review?",
+                    "answer": "Our AI-powered approach combines speed, consistency, and comprehensiveness that manual review can't match. The system never gets tired, never overlooks line items, and applies the same rigorous analysis to every estimate. For homeowners, this means receiving thorough review at a fraction of the cost and time of hiring a public adjuster or consultant. The AI also compares against constantly updated regional pricing databases, ensuring your analysis reflects current market conditions for property damage restoration."
+          },
+          {
+                    "question": "Can I use your property damage estimate review report to negotiate with my insurance company?",
+                    "answer": "Absolutely. Our reports are specifically designed for insurance negotiations and claim supplements. The PDF includes detailed, line-item documentation that insurance adjusters can verify against their own databases. Many homeowners successfully use our reports to secure additional compensation, with some recovering tens of thousands in previously overlooked damage. The objective, third-party nature of AI analysis often carries more weight than homeowner assertions alone."
+          },
+          {
+                    "question": "What if my property damage estimate is from Xactimate?",
+                    "answer": "We specialize in Xactimate estimate analysis. Our AI recognizes Xactimate line codes, pricing structures, and formatting. For homeowners dealing with insurance carrier estimates, this expertise is crucial—we can identify when Xactimate pricing is outdated, when line codes are misapplied, or when quantities don't match the described damage. The system also compares Xactimate pricing against current market rates to identify discrepancies."
+          },
+          {
+                    "question": "How much does property damage estimate review cost?",
+                    "answer": "Single estimate review costs $79, providing complete analysis and a professional PDF report. For homeowners handling multiple claims—such as public adjusters, contractors, or property managers—our unlimited subscription at $249/month offers better value. The subscription includes priority processing, unlimited estimates, and white-label reporting options. Compared to hiring a public adjuster (typically 10-15% of the settlement), our service provides significant cost savings while delivering comprehensive analysis."
+          }
+]}
+      ctaLabel="Get Your Estimate Reviewed"
       ctaHref="/pricing"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",
-        "serviceType": "Property Damage Estimate Review",
+        "serviceType": "property damage estimate review",
         "provider": {
           "@type": "Organization",
           "name": "Estimate Review Pro",
           "url": "https://estimatereviewpro.com",
         },
         "areaServed": "United States",
-        "description": "AI-powered property damage estimate review for all damage types identifying missing items and pricing discrepancies in insurance claims.",
+        "description": "Professional property damage estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
       }}
     />
   );
 }
-
