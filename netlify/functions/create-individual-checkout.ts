@@ -6,6 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export const handler: Handler = async (event) => {
+  // Only allow POST
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -14,33 +15,31 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { userId, email } = JSON.parse(event.body || "{}");
+    const { email } = JSON.parse(event.body || "{}");
 
-    if (!userId || !email) {
+    if (!email) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Missing userId or email" }),
+        body: JSON.stringify({ error: "Email is required" }),
       };
     }
 
+    // Create Stripe checkout session for one-time payment
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "payment",
+      customer_email: email,
       line_items: [
         {
           price: process.env.STRIPE_PRICE_INDIVIDUAL_149!,
           quantity: 1,
         },
       ],
-      customer_email: email,
-      client_reference_id: userId,
+      success_url: `${process.env.SITE_URL}/thank-you`,
+      cancel_url: `${process.env.SITE_URL}/`,
       metadata: {
-        userId,
         plan: "individual",
         included_reviews: "1",
       },
-      success_url: `${process.env.SITE_URL}/thank-you`,
-      cancel_url: `${process.env.SITE_URL}/`,
     });
 
     return {
@@ -55,4 +54,3 @@ export const handler: Handler = async (event) => {
     };
   }
 };
-

@@ -1,205 +1,184 @@
 import { createAdminClient } from "./supabase/admin";
-import type { Database } from "./database.types";
-import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
-});
-
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type UsageTracking = Database["public"]["Tables"]["usage_tracking"]["Row"];
-
-interface UsageInfo {
-  reviewsUsed: number;
-  includedReviews: number;
-  overagePrice: number;
-  planType: string;
-  canSubmit: boolean;
-  message?: string;
+export interface UsageData {
+  organization_id: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  reviews_used: number;
+  plan_type: "individual" | "firm" | "pro";
 }
 
 /**
- * Check if user can submit a review and handle overage billing
+ * Get current usage for an organization
  */
-export async function checkAndTrackUsage(userId: string): Promise<UsageInfo> {
+export async function getUsage(organizationId: string): Promise<UsageData | null> {
   const supabase = createAdminClient();
 
-  // Get user profile
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
+  const { data, error } = await supabase
+    .from("organization_usage")
     .select("*")
-    .eq("id", userId)
-    .single<Profile>();
+    .eq("organization_id", organizationId)
+    .single();
 
-  if (profileError || !profile) {
-    throw new Error("Profile not found");
+  if (error) {
+    console.error("Error fetching usage:", error);
+    return null;
   }
 
-  const planType = profile.plan_type || "individual";
-  const includedReviews = profile.included_reviews || 1;
-  const overagePrice = profile.overage_price || 0;
-  const billingPeriodStart = profile.billing_period_start;
-
-  // For individual plans, check if they've already used their review
-  if (planType === "individual") {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("id")
-      .eq("user_id", userId);
-
-    const reviewsUsed = reviews?.length || 0;
-
-    if (reviewsUsed >= includedReviews) {
-      return {
-        reviewsUsed,
-        includedReviews,
-        overagePrice,
-        planType,
-        canSubmit: false,
-        message: "You have used your included review. Please purchase another review to continue.",
-      };
-    }
-
-    return {
-      reviewsUsed,
-      includedReviews,
-      overagePrice,
-      planType,
-      canSubmit: true,
-    };
-  }
-
-  // For firm/pro plans, check usage tracking
-  if (!billingPeriodStart) {
-    throw new Error("Billing period not set for subscription plan");
-  }
-
-  // Get or create usage tracking record
-  let { data: usage } = await supabase
-    .from("usage_tracking")
-    .select("*")
-    .eq("organization_id", userId)
-    .eq("billing_period_start", billingPeriodStart)
-    .single<UsageTracking>();
-
-  if (!usage) {
-    // Create new usage record
-    const { data: newUsage } = await (supabase as any)
-      .from("usage_tracking")
-      .insert({
-        organization_id: userId,
-        billing_period_start: billingPeriodStart,
-        reviews_used: 0,
-        plan_type: planType,
-      })
-      .select()
-      .single();
-
-    usage = newUsage;
-  }
-
-  if (!usage) {
-    throw new Error("Failed to get usage tracking");
-  }
-
-  const reviewsUsed = usage.reviews_used;
-
-  // Pro plan: Hard cap at 40 reviews
-  if (planType === "pro" && reviewsUsed >= includedReviews) {
-    return {
-      reviewsUsed,
-      includedReviews,
-      overagePrice,
-      planType,
-      canSubmit: false,
-      message: `You have reached your plan limit of ${includedReviews} reviews this month. Your usage will reset at the next billing cycle.`,
-    };
-  }
-
-  // Firm plan: Allow overages with billing
-  if (planType === "firm" && reviewsUsed >= includedReviews) {
-    // Bill for overage
-    if (profile.stripe_customer_id && overagePrice > 0) {
-      try {
-        await stripe.invoiceItems.create({
-          customer: profile.stripe_customer_id,
-          amount: overagePrice * 100, // Convert to cents
-          currency: "usd",
-          description: `Additional estimate review (beyond ${includedReviews} included)`,
-        });
-      } catch (error) {
-        console.error("Failed to create invoice item:", error);
-        throw new Error("Failed to process overage billing");
-      }
-    }
-  }
-
-  return {
-    reviewsUsed,
-    includedReviews,
-    overagePrice,
-    planType,
-    canSubmit: true,
-    message: planType === "firm" && reviewsUsed >= includedReviews
-      ? `This review will be billed at $${overagePrice} (beyond ${includedReviews} included reviews).`
-      : undefined,
-  };
+  return data as UsageData;
 }
 
 /**
- * Increment usage after successful review submission
+ * Increment usage count for an organization
  */
-export async function incrementUsage(userId: string): Promise<void> {
+export async function incrementUsage(organizationId: string): Promise<boolean> {
   const supabase = createAdminClient();
 
-  // Get user profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single<Profile>();
+  // Get current usage
+  const usage = await getUsage(organizationId);
 
-  if (!profile) {
-    throw new Error("Profile not found");
+  if (!usage) {
+    console.error("No usage record found for organization:", organizationId);
+    return false;
   }
 
-  const planType = profile.plan_type || "individual";
-  const billingPeriodStart = profile.billing_period_start;
-
-  // Individual plans don't use usage_tracking (tracked via reviews table)
-  if (planType === "individual") {
-    return;
-  }
-
-  if (!billingPeriodStart) {
-    throw new Error("Billing period not set");
+  // Check if at limit for Pro plan
+  if (usage.plan_type === "pro" && usage.reviews_used >= 40) {
+    console.error("Pro plan at review limit (40)");
+    return false;
   }
 
   // Increment usage
-  const { data: usage } = await supabase
-    .from("usage_tracking")
-    .select("*")
-    .eq("organization_id", userId)
-    .eq("billing_period_start", billingPeriodStart)
-    .single<UsageTracking>();
+  const { error } = await supabase
+    .from("organization_usage")
+    // @ts-expect-error - Supabase type inference issue with Update type
+    .update({
+      reviews_used: usage.reviews_used + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId);
 
-  if (usage) {
-    await (supabase as any)
-      .from("usage_tracking")
-      .update({
-        reviews_used: usage.reviews_used + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", usage.id);
-  } else {
-    await (supabase as any)
-      .from("usage_tracking")
-      .insert({
-        organization_id: userId,
-        billing_period_start: billingPeriodStart,
-        reviews_used: 1,
-        plan_type: planType,
-      });
+  if (error) {
+    console.error("Error incrementing usage:", error);
+    return false;
   }
+
+  return true;
 }
 
+/**
+ * Reset usage for a new billing period
+ */
+export async function resetUsage(
+  organizationId: string,
+  billingPeriodStart: string,
+  billingPeriodEnd: string
+): Promise<boolean> {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("organization_usage")
+    // @ts-expect-error - Supabase type inference issue with Update type
+    .update({
+      billing_period_start: billingPeriodStart,
+      billing_period_end: billingPeriodEnd,
+      reviews_used: 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId);
+
+  if (error) {
+    console.error("Error resetting usage:", error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Create initial usage record for new subscription
+ */
+export async function createUsageRecord(
+  organizationId: string,
+  planType: "individual" | "firm" | "pro",
+  billingPeriodStart: string,
+  billingPeriodEnd: string
+): Promise<boolean> {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("organization_usage")
+    // @ts-expect-error - Supabase type inference issue with Insert type
+    .insert({
+      organization_id: organizationId,
+      billing_period_start: billingPeriodStart,
+      billing_period_end: billingPeriodEnd,
+      reviews_used: 0,
+      plan_type: planType,
+    });
+
+  if (error) {
+    console.error("Error creating usage record:", error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Check if organization can submit a review
+ */
+export async function canSubmitReview(organizationId: string): Promise<{
+  allowed: boolean;
+  reason?: string;
+}> {
+  const usage = await getUsage(organizationId);
+
+  if (!usage) {
+    return { allowed: false, reason: "No usage record found" };
+  }
+
+  // Individual plan: always allowed (one-time purchase per review)
+  if (usage.plan_type === "individual") {
+    return { allowed: true };
+  }
+
+  // Firm plan: always allowed (overage billing)
+  if (usage.plan_type === "firm") {
+    return { allowed: true };
+  }
+
+  // Pro plan: hard cap at 40
+  if (usage.plan_type === "pro") {
+    if (usage.reviews_used >= 40) {
+      return {
+        allowed: false,
+        reason: "Monthly review limit reached (40/40). Limit resets at next billing cycle.",
+      };
+    }
+    return { allowed: true };
+  }
+
+  return { allowed: false, reason: "Invalid plan type" };
+}
+
+/**
+ * Calculate overage charges for Firm plan
+ */
+export async function calculateOverage(organizationId: string): Promise<number> {
+  const usage = await getUsage(organizationId);
+
+  if (!usage || usage.plan_type !== "firm") {
+    return 0;
+  }
+
+  const includedReviews = 10;
+  const overagePrice = 75;
+
+  if (usage.reviews_used <= includedReviews) {
+    return 0;
+  }
+
+  const overageCount = usage.reviews_used - includedReviews;
+  return overageCount * overagePrice;
+}

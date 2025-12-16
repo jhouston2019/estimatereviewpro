@@ -1,17 +1,12 @@
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Thank You | Estimate Review Pro",
-  description: "Your payment was successful. Get started with your estimate review.",
-};
+import Link from "next/link";
 
 export default function ThankYouPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="max-w-2xl text-center">
-        <div className="mb-8">
+      <div className="max-w-md text-center">
+        <div className="mb-6">
           <svg
-            className="w-20 h-20 mx-auto text-green-600"
+            className="w-20 h-20 text-green-600 mx-auto"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -25,42 +20,30 @@ export default function ThankYouPage() {
           </svg>
         </div>
 
-        <h1 className="text-4xl font-bold text-neutral-900 mb-4">
+        <h1 className="text-3xl font-bold text-neutral-900 mb-4">
           Thank You!
         </h1>
-        
-        <p className="text-lg text-neutral-600 mb-8">
+
+        <p className="text-lg text-neutral-700 mb-8">
           Your payment was successful. You can now upload your estimate for review.
         </p>
 
         <div className="space-y-4">
-          <a
+          <Link
             href="/dashboard/upload"
-            className="inline-block bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition"
+            className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            Upload Your Estimate
-          </a>
-          
-          <div>
-            <a
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Go to Dashboard
-            </a>
-          </div>
-        </div>
+            Upload Estimate
+          </Link>
 
-        <div className="mt-12 pt-8 border-t border-neutral-200">
-          <p className="text-sm text-neutral-500">
-            Questions? Contact us at{" "}
-            <a href="mailto:support@estimatereviewpro.com" className="text-blue-600 hover:underline">
-              support@estimatereviewpro.com
-            </a>
-          </p>
+          <Link
+            href="/dashboard"
+            className="block w-full bg-neutral-100 text-neutral-900 py-3 px-6 rounded-lg font-semibold hover:bg-neutral-200 transition"
+          >
+            Go to Dashboard
+          </Link>
         </div>
       </div>
     </div>
   );
 }
-

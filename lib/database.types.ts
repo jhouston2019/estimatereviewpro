@@ -16,11 +16,12 @@ export interface Database {
           tier: string | null;
           subscription_status: string | null;
           stripe_customer_id: string | null;
+          organization_id: string | null;
           created_at: string | null;
           plan_type: string | null;
+          stripe_subscription_id: string | null;
           billing_period_start: string | null;
-          included_reviews: number | null;
-          overage_price: number | null;
+          billing_period_end: string | null;
         };
         Insert: {
           id: string;
@@ -28,11 +29,12 @@ export interface Database {
           tier?: string | null;
           subscription_status?: string | null;
           stripe_customer_id?: string | null;
+          organization_id?: string | null;
           created_at?: string | null;
           plan_type?: string | null;
+          stripe_subscription_id?: string | null;
           billing_period_start?: string | null;
-          included_reviews?: number | null;
-          overage_price?: number | null;
+          billing_period_end?: string | null;
         };
         Update: {
           id?: string;
@@ -40,18 +42,20 @@ export interface Database {
           tier?: string | null;
           subscription_status?: string | null;
           stripe_customer_id?: string | null;
+          organization_id?: string | null;
           created_at?: string | null;
           plan_type?: string | null;
+          stripe_subscription_id?: string | null;
           billing_period_start?: string | null;
-          included_reviews?: number | null;
-          overage_price?: number | null;
+          billing_period_end?: string | null;
         };
       };
-      usage_tracking: {
+      organization_usage: {
         Row: {
           id: string;
           organization_id: string;
           billing_period_start: string;
+          billing_period_end: string;
           reviews_used: number;
           plan_type: string;
           created_at: string | null;
@@ -61,6 +65,7 @@ export interface Database {
           id?: string;
           organization_id: string;
           billing_period_start: string;
+          billing_period_end: string;
           reviews_used?: number;
           plan_type: string;
           created_at?: string | null;
@@ -70,6 +75,7 @@ export interface Database {
           id?: string;
           organization_id?: string;
           billing_period_start?: string;
+          billing_period_end?: string;
           reviews_used?: number;
           plan_type?: string;
           created_at?: string | null;
@@ -80,6 +86,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          organization_id: string | null;
           status: string;
           contractor_estimate_url: string | null;
           carrier_estimate_url: string | null;
@@ -94,6 +101,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
+          organization_id?: string | null;
           status?: string;
           contractor_estimate_url?: string | null;
           carrier_estimate_url?: string | null;

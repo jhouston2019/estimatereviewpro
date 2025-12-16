@@ -1,10 +1,11 @@
--- Add usage tracking for firm plans
+-- Usage tracking for firm subscriptions
 CREATE TABLE IF NOT EXISTS usage_tracking (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   billing_period_start timestamptz NOT NULL,
+  billing_period_end timestamptz NOT NULL,
   reviews_used integer NOT NULL DEFAULT 0,
-  plan_type text NOT NULL CHECK (plan_type IN ('individual', 'firm', 'pro')),
+  plan_type text NOT NULL CHECK (plan_type IN ('firm', 'pro')),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -13,61 +14,62 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
 CREATE INDEX IF NOT EXISTS idx_usage_tracking_org_period 
   ON usage_tracking(organization_id, billing_period_start);
 
--- Add plan metadata to profiles
-ALTER TABLE profiles 
-  ADD COLUMN IF NOT EXISTS plan_type text DEFAULT 'individual' CHECK (plan_type IN ('individual', 'firm', 'pro')),
-  ADD COLUMN IF NOT EXISTS billing_period_start timestamptz,
-  ADD COLUMN IF NOT EXISTS included_reviews integer DEFAULT 1,
-  ADD COLUMN IF NOT EXISTS overage_price integer DEFAULT 0;
-
--- Function to reset usage at billing cycle
-CREATE OR REPLACE FUNCTION reset_usage_for_billing_cycle()
-RETURNS trigger AS $$
-BEGIN
-  -- When billing_period_start changes, reset usage
-  IF OLD.billing_period_start IS DISTINCT FROM NEW.billing_period_start THEN
-    INSERT INTO usage_tracking (
-      organization_id,
-      billing_period_start,
-      reviews_used,
-      plan_type
-    ) VALUES (
-      NEW.id,
-      NEW.billing_period_start,
-      0,
-      NEW.plan_type
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger to auto-reset usage
-DROP TRIGGER IF EXISTS trigger_reset_usage ON profiles;
-CREATE TRIGGER trigger_reset_usage
-  AFTER UPDATE OF billing_period_start ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION reset_usage_for_billing_cycle();
-
--- Function to get current usage
+-- Function to get current usage for an organization
 CREATE OR REPLACE FUNCTION get_current_usage(org_id uuid)
 RETURNS TABLE (
   reviews_used integer,
-  included_reviews integer,
-  overage_price integer,
-  plan_type text
+  plan_type text,
+  billing_period_start timestamptz,
+  billing_period_end timestamptz
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
-    COALESCE(ut.reviews_used, 0) as reviews_used,
-    p.included_reviews,
-    p.overage_price,
-    p.plan_type
-  FROM profiles p
-  LEFT JOIN usage_tracking ut ON ut.organization_id = p.id 
-    AND ut.billing_period_start = p.billing_period_start
-  WHERE p.id = org_id;
+    ut.reviews_used,
+    ut.plan_type,
+    ut.billing_period_start,
+    ut.billing_period_end
+  FROM usage_tracking ut
+  WHERE ut.organization_id = org_id
+    AND ut.billing_period_start <= now()
+    AND ut.billing_period_end > now()
+  ORDER BY ut.billing_period_start DESC
+  LIMIT 1;
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to increment usage
+CREATE OR REPLACE FUNCTION increment_usage(org_id uuid)
+RETURNS void AS $$
+DECLARE
+  current_period record;
+BEGIN
+  -- Get current billing period
+  SELECT * INTO current_period
+  FROM usage_tracking
+  WHERE organization_id = org_id
+    AND billing_period_start <= now()
+    AND billing_period_end > now()
+  ORDER BY billing_period_start DESC
+  LIMIT 1;
+
+  -- Increment usage
+  IF FOUND THEN
+    UPDATE usage_tracking
+    SET reviews_used = reviews_used + 1,
+        updated_at = now()
+    WHERE id = current_period.id;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add plan fields to profiles table
+ALTER TABLE profiles 
+  ADD COLUMN IF NOT EXISTS plan_type text CHECK (plan_type IN ('individual', 'firm', 'pro')),
+  ADD COLUMN IF NOT EXISTS stripe_subscription_id text,
+  ADD COLUMN IF NOT EXISTS billing_period_start timestamptz,
+  ADD COLUMN IF NOT EXISTS billing_period_end timestamptz;
+
+-- Index for plan lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_plan_type ON profiles(plan_type);
+CREATE INDEX IF NOT EXISTS idx_profiles_stripe_subscription ON profiles(stripe_subscription_id);

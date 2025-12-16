@@ -6,6 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export const handler: Handler = async (event) => {
+  // Only allow POST
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -14,12 +15,12 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const { userId, email, plan } = JSON.parse(event.body || "{}");
+    const { plan, email } = JSON.parse(event.body || "{}");
 
-    if (!userId || !email || !plan) {
+    if (!plan || !email) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Missing userId, email, or plan" }),
+        body: JSON.stringify({ error: "Plan and email are required" }),
       };
     }
 
@@ -30,39 +31,29 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Select correct price ID based on plan
-    const priceId = plan === "firm" 
-      ? process.env.STRIPE_PRICE_FIRM_499!
-      : process.env.STRIPE_PRICE_PRO_1499!;
+    // Select the correct price ID
+    const priceId =
+      plan === "firm"
+        ? process.env.STRIPE_PRICE_FIRM_499!
+        : process.env.STRIPE_PRICE_PRO_1499!;
 
-    const metadata = plan === "firm"
-      ? {
-          userId,
-          plan: "firm",
-          included_reviews: "10",
-          overage_price: "75",
-        }
-      : {
-          userId,
-          plan: "pro",
-          included_reviews: "40",
-          overage_price: "0",
-        };
-
+    // Create Stripe checkout session for subscription
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "subscription",
+      customer_email: email,
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      customer_email: email,
-      client_reference_id: userId,
-      metadata,
       success_url: `${process.env.SITE_URL}/thank-you`,
       cancel_url: `${process.env.SITE_URL}/pricing`,
+      metadata: {
+        plan: plan,
+        included_reviews: plan === "firm" ? "10" : "40",
+        overage_price: plan === "firm" ? "75" : "0",
+      },
     });
 
     return {
@@ -77,4 +68,3 @@ export const handler: Handler = async (event) => {
     };
   }
 };
-
