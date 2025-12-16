@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DownloadPDFButton } from "./review/DownloadPDFButton";
 import type { Database } from "@/lib/database.types";
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
@@ -200,14 +201,9 @@ export default function DashboardPage() {
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       <StatusBadge status={review.status} />
                       {review.pdf_report_url && (
-                        <a
-                          href={review.pdf_report_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 font-semibold hover:border-slate-500 hover:text-slate-50"
-                        >
-                          Download PDF
-                        </a>
+                        <div className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 font-semibold hover:border-slate-500 hover:text-slate-50">
+                          <DownloadPDFButton pdfUrl={review.pdf_report_url} compact />
+                        </div>
                       )}
                       <Link
                         href={`/dashboard/review/${review.id}`}

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { SectionCard } from "@/components/SectionCard";
 import { DataTable } from "@/components/DataTable";
 import { PollingLoader } from "@/components/PollingLoader";
+import { DownloadPDFButton } from "../DownloadPDFButton";
 import type { Database } from "@/lib/database.types";
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
@@ -141,14 +142,7 @@ export default function ReviewDetailPage({ params }: { params: { id: string } })
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={review.status} />
             {review.pdf_report_url && (
-              <a
-                href={review.pdf_report_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105"
-              >
-                Download PDF Report
-              </a>
+              <DownloadPDFButton pdfUrl={review.pdf_report_url} />
             )}
           </div>
         </section>
