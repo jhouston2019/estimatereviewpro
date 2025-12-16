@@ -29,12 +29,13 @@ export default function DashboardPage() {
         }
 
         // Fetch profile
-        const { data: profileData } = await supabase
+        const profileResult = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .maybeSingle();
 
+        const profileData = profileResult.data as Profile | null;
         setProfile(profileData);
 
         // Check subscription
