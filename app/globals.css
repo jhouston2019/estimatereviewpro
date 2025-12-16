@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617; /* slate-950 */
+  --foreground: #e5e7eb; /* slate-200 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-brand-gold: #facc15; /* yellow-400 */
+  --color-brand-gold-soft: #fbbf24; /* amber-400 */
+  --color-brand-blue: #38bdf8; /* sky-400 */
+  --color-card: #020617; /* slate-950 */
+  --color-card-muted: #020617; /* same bg, rely on borders */
+}
+
+body {
+  background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+}
+
