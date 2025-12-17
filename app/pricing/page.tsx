@@ -1,281 +1,163 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 
 export default function PricingPage() {
-  const [loading, setLoading] = useState<string | null>(null);
-
-  const handleCheckout = async (plan: "individual" | "firm" | "pro") => {
-    setLoading(plan);
-
-    try {
-      const endpoint =
-        plan === "individual"
-          ? "/.netlify/functions/create-individual-checkout"
-          : "/.netlify/functions/create-firm-checkout";
-
-      const body =
-        plan === "individual"
-          ? { email: "customer@example.com" } // Replace with actual user email
-          : { plan: plan, email: "customer@example.com" }; // Replace with actual user email
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert("Error creating checkout session");
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      alert("Error creating checkout session");
-    } finally {
-      setLoading(null);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="max-w-5xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-4xl font-bold text-neutral-900 mb-4">
-          Simple, Transparent Pricing
-        </h1>
-      </div>
-
-      {/* Policyholder Pricing (Primary) */}
-      <div className="max-w-5xl mx-auto px-6 pb-12">
-        <div className="max-w-md mx-auto">
-          <div className="border-2 border-blue-600 rounded-lg p-8 bg-blue-50 shadow-lg">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-              Professional Estimate Review
-            </h2>
-            <div className="mb-6">
-              <span className="text-5xl font-bold text-neutral-900">$149</span>
-              <span className="text-neutral-600 ml-2">— one-time</span>
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
+              <span className="text-sm font-black text-slate-950">ER</span>
             </div>
-
-            <ul className="space-y-3 mb-8 text-neutral-700">
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Upload your contractor or insurance estimate</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Line-by-line review and issue flagging</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Plain-English explanation</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Downloadable PDF summary</span>
-              </li>
-            </ul>
-
-            <button
-              onClick={() => handleCheckout("individual")}
-              disabled={loading === "individual"}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            <span className="text-sm font-semibold text-slate-50">
+              Estimate Review Pro
+            </span>
+          </Link>
+          <nav className="flex items-center gap-4 text-xs font-medium text-slate-200">
+            <Link
+              href="/login"
+              className="hidden rounded-full border border-slate-700 px-4 py-1.5 hover:border-slate-500 hover:text-slate-50 sm:inline-flex"
             >
-              {loading === "individual" ? "Loading..." : "Upload & Get Started"}
-            </button>
-          </div>
+              Log in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-sm shadow-amber-500/40 hover:brightness-105"
+            >
+              Get started
+            </Link>
+          </nav>
         </div>
-      </div>
+      </header>
 
-      {/* Divider */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="text-center text-neutral-500 text-sm font-medium">
-          For firms, adjusters, and professionals
-        </div>
-      </div>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-12 md:py-16">
+        <section className="text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
+            Pricing
+          </p>
+          <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">
+            Simple pricing for serious claim professionals.
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-300 md:text-base">
+            Start with a single review or switch your team to unlimited monthly
+            usage. Every plan includes AI estimate comparison, carrier letter
+            summaries, PDF reports, and secure storage.
+          </p>
+        </section>
 
-      {/* Firm Pricing */}
-      <div className="max-w-5xl mx-auto px-6 pb-20">
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Firm Plan */}
-          <div className="border border-neutral-300 rounded-lg p-8 bg-white shadow">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-              Firm Plan
+        <section className="grid gap-6 md:grid-cols-2">
+          <div className="flex flex-col rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-xl shadow-slate-950/70">
+            <h2 className="text-sm font-semibold text-slate-50">
+              $79 One‑Time Review
             </h2>
-            <div className="mb-6">
-              <span className="text-4xl font-bold text-neutral-900">$499</span>
-              <span className="text-neutral-600 ml-2">/ month</span>
-            </div>
-
-            <ul className="space-y-3 mb-6 text-neutral-700">
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Up to 10 estimate reviews per month</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Priority processing</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Client-ready PDF summaries</span>
-              </li>
-            </ul>
-
-            <p className="text-sm text-neutral-600 mb-6">
-              Additional reviews billed at $75 each
+            <p className="mt-1 text-xs text-slate-300">
+              Best for occasional claims or trying Estimate Review Pro on a live
+              file.
             </p>
-
-            <button
-              onClick={() => handleCheckout("firm")}
-              disabled={loading === "firm"}
-              className="w-full bg-neutral-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-neutral-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === "firm" ? "Loading..." : "Start Firm Plan"}
-            </button>
-          </div>
-
-          {/* Pro Firm Plan */}
-          <div className="border border-neutral-300 rounded-lg p-8 bg-white shadow">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-              Pro Firm Plan
-            </h2>
-            <div className="mb-6">
-              <span className="text-4xl font-bold text-neutral-900">$1,499</span>
-              <span className="text-neutral-600 ml-2">/ month</span>
-            </div>
-
-            <ul className="space-y-3 mb-6 text-neutral-700">
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Up to 40 estimate reviews per month</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Priority queue</span>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  className="w-5 h-5 text-neutral-600 mr-3 mt-0.5 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>White-label PDF summaries</span>
-              </li>
+            <p className="mt-4 text-3xl font-semibold text-slate-50">
+              $79{" "}
+              <span className="text-xs font-normal text-slate-400">
+                per review
+              </span>
+            </p>
+            <ul className="mt-4 space-y-2 text-xs text-slate-200">
+              <li>✓ Upload carrier + contractor estimates</li>
+              <li>✓ Full AI line‑item analysis</li>
+              <li>✓ Carrier letter / engineer report summary</li>
+              <li>✓ Downloadable PDF report included</li>
+              <li>✓ Stored in your dashboard for future access</li>
             </ul>
-
-            <div className="h-6 mb-6"></div>
-
-            <button
-              onClick={() => handleCheckout("pro")}
-              disabled={loading === "pro"}
-              className="w-full bg-neutral-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-neutral-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === "pro" ? "Loading..." : "Start Pro Plan"}
-            </button>
+            <div className="mt-6">
+              <Link
+                href="/register?plan=oneoff"
+                className="inline-flex w-full items-center justify-center rounded-full border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-50 hover:border-slate-500 hover:bg-slate-800"
+              >
+                Purchase a single review
+              </Link>
+            </div>
           </div>
+
+          <div className="relative flex flex-col rounded-3xl border border-amber-400/80 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-slate-950 p-6 shadow-xl shadow-amber-500/40">
+            <div className="absolute right-4 top-4 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-950">
+              Most popular
+            </div>
+            <h2 className="text-sm font-semibold text-slate-50">
+              $249/mo Unlimited
+            </h2>
+            <p className="mt-1 text-xs text-slate-100">
+              For PA firms, roofing companies, and claim teams running multiple
+              files per month.
+            </p>
+            <p className="mt-4 text-3xl font-semibold text-slate-50">
+              $249{" "}
+              <span className="text-xs font-normal text-slate-200">
+                per user / month
+              </span>
+            </p>
+            <ul className="mt-4 space-y-2 text-xs text-slate-100">
+              <li>✓ Unlimited estimate reviews per user</li>
+              <li>✓ Team usage allowed within your firm</li>
+              <li>✓ Priority processing for every file</li>
+              <li>✓ White‑label PDF output with your branding</li>
+              <li>✓ Full access to dashboard history and re‑runs</li>
+            </ul>
+            <div className="mt-6">
+              <Link
+                href="/register?plan=pro"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105"
+              >
+                Upgrade to Unlimited
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-2 grid gap-6 rounded-3xl border border-slate-900 bg-slate-950/70 p-6 text-xs text-slate-300 md:grid-cols-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Secure by design
+            </p>
+            <p className="mt-2">
+              Estimates and reports are stored in Supabase with row‑level
+              security. Only you – and your team, if enabled – can access your
+              files.
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Cancel anytime
+            </p>
+            <p className="mt-2">
+              Manage billing and invoices through the Stripe customer portal.
+              Downgrade or cancel in one click without emailing support.
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Built for production
+            </p>
+            <p className="mt-2">
+              Deployed on Netlify with serverless functions for AI analysis,
+              Stripe billing, and PDF rendering – without sharing your API keys
+              client‑side.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-900/80 bg-slate-950/80">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-[11px] text-slate-500">
+          <p>© {new Date().getFullYear()} Estimate Review Pro.</p>
+          <Link
+            href="/"
+            className="hover:text-slate-300 hover:underline hover:underline-offset-4"
+          >
+            Back to home
+          </Link>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
+
+

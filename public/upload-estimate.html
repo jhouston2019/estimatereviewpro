@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimate Review Pro - Upload Estimate</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .warning-banner {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 4px;
+        }
+
+        .warning-banner h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .warning-banner ul {
+            color: #856404;
+            margin-left: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .form-section {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .checkbox-group {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: flex-start;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            margin-top: 3px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            display: none;
+            padding: 30px;
+            background: #f8f9fa;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .report-content {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .limitations-section {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 4px;
+        }
+
+        .limitations-section h3 {
+            color: #0d47a1;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .limitations-section ul {
+            color: #0d47a1;
+            margin-left: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Estimate Review Pro</h1>
+            <p>Expert-Grade Xactimate-Aware Estimate Analysis Engine</p>
+            <p style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Deterministic • Platform-Aware • Non-Advocacy</p>
+        </div>
+
+        <div class="warning-banner">
+            <h3>⚠️ IMPORTANT: What This Tool Does NOT Do</h3>
+            <ul>
+                <li>Does NOT negotiate with insurance companies</li>
+                <li>Does NOT interpret policy coverage or exclusions</li>
+                <li>Does NOT provide legal advice or claim strategy</li>
+                <li>Does NOT give pricing opinions or cost assessments</li>
+                <li>Does NOT recommend actions or advocate on your behalf</li>
+            </ul>
+        </div>
+
+        <div class="form-section">
+            <form id="estimateForm">
+                <div class="form-group">
+                    <label for="estimateType">Estimate Type *</label>
+                    <select id="estimateType" name="estimateType" required>
+                        <option value="">-- Select Type --</option>
+                        <option value="PROPERTY">Property Damage (Home, Building)</option>
+                        <option value="AUTO">Auto/Vehicle Damage</option>
+                        <option value="COMMERCIAL">Commercial Property</option>
+                    </select>
+                    <div class="help-text">Select the type of insurance estimate you're submitting</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="damageType">Damage Type *</label>
+                    <select id="damageType" name="damageType" required>
+                        <option value="">-- Select Damage Type --</option>
+                        <option value="WATER">Water Damage</option>
+                        <option value="FIRE">Fire Damage</option>
+                        <option value="WIND">Wind/Storm Damage</option>
+                        <option value="HAIL">Hail Damage</option>
+                        <option value="COLLISION">Collision (Auto)</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="estimateText">Paste Estimate Text *</label>
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong style="color: #856404;">⚠️ IMPORTANT:</strong>
+                        <span style="color: #856404; font-size: 13px;">Paste estimate line items only. Do not include questions, requests, opinions, or commentary.</span>
+                    </div>
+                    <textarea id="estimateText" name="estimateText" rows="10" 
+                              style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: monospace; font-size: 13px;"
+                              placeholder="Paste your insurance estimate here...&#10;&#10;Example:&#10;DRY - Remove damaged drywall - 200 SF&#10;DRY - Install new drywall - 200 SF&#10;PNT - Paint walls - 200 SF&#10;..." required></textarea>
+                    <div class="help-text">Copy and paste the line items from your insurance estimate (Xactimate format preferred)</div>
+                </div>
+
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="acknowledgement" required>
+                        <span>I understand this is a factual analysis tool only. It does not provide advice, recommendations, or opinions on coverage, pricing, or claim strategy. Missing items may not be applicable or covered under my policy.</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Analyze Estimate
+                </button>
+            </form>
+        </div>
+
+        <div class="limitations-section">
+            <h3>ℹ️ What This Tool Provides</h3>
+            <ul>
+                <li>Xactimate-aware estimate structure analysis</li>
+                <li>Detection of trade categories present in the estimate</li>
+                <li>Identification of categories NOT detected (observational only)</li>
+                <li>Line item integrity observations (zero quantities, structural patterns)</li>
+                <li>Deterministic, neutral findings report</li>
+            </ul>
+            <p style="margin-top: 10px; font-size: 12px; color: #0d47a1;">
+                <strong>This is NOT an AI assistant.</strong> This is a deterministic estimate analysis engine. 
+                Same input = same output. No subjective reasoning. No coverage interpretation.
+            </p>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h2>Analysis Results</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('estimateForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultContent = document.getElementById('resultContent');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validate form
+            if (!form.checkValidity()) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Get form data
+            const estimateType = document.getElementById('estimateType').value;
+            const damageType = document.getElementById('damageType').value;
+            const estimateText = document.getElementById('estimateText').value;
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+
+            // Show loading
+            resultSection.classList.add('show');
+            resultContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your estimate...</p>
+                </div>
+            `;
+
+            try {
+                // Call the analyze-estimate function
+                const response = await fetch('/.netlify/functions/analyze-estimate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        estimateText: estimateText,
+                        metadata: {
+                            estimateType: estimateType,
+                            damageType: damageType
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                // Display results
+                displayResults(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultContent.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> ${error.message}
+                        <br><br>
+                        ${error.message.includes('Prohibited') ? 
+                            'This request contains language or content that is outside the scope of this tool.' : 
+                            'Please check your input and try again.'}
+                    </div>
+                `;
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Analyze Estimate';
+            }
+        });
+
+        function displayResults(data) {
+            const report = data.report;
+            
+            let html = '<div class="report-content">';
+            
+            // Display classification
+            html += `<strong>ESTIMATE CLASSIFICATION:</strong> ${data.classification.classification}\n`;
+            html += `<strong>CONFIDENCE:</strong> ${data.classification.confidence}\n\n`;
+            
+            html += '═'.repeat(80) + '\n\n';
+            
+            // Display full report
+            if (report.summary) {
+                html += report.summary + '\n\n';
+                html += '═'.repeat(80) + '\n\n';
+            }
+            
+            if (report.includedItems) {
+                html += report.includedItems + '\n\n';
+                html += '═'.repeat(80) + '\n\n';
+            }
+            
+            if (report.potentialOmissions) {
+                html += report.potentialOmissions + '\n\n';
+                html += '═'.repeat(80) + '\n\n';
+            }
+            
+            if (report.potentialUnderScoping) {
+                html += report.potentialUnderScoping + '\n\n';
+                html += '═'.repeat(80) + '\n\n';
+            }
+            
+            if (report.limitations) {
+                html += report.limitations + '\n';
+            }
+            
+            html += '</div>';
+            
+            // Add download button
+            html += `
+                <button onclick="downloadReport()" style="margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                    Download Report
+                </button>
+            `;
+            
+            resultContent.innerHTML = html;
+            
+            // Store report data for download
+            window.currentReport = data;
+        }
+
+        function downloadReport() {
+            if (!window.currentReport) return;
+            
+            const report = window.currentReport.report;
+            let text = 'ESTIMATE REVIEW PRO - FINDINGS REPORT\n';
+            text += 'Generated: ' + new Date().toLocaleString() + '\n';
+            text += '═'.repeat(80) + '\n\n';
+            
+            text += 'CLASSIFICATION: ' + window.currentReport.classification.classification + '\n';
+            text += 'CONFIDENCE: ' + window.currentReport.classification.confidence + '\n\n';
+            text += '═'.repeat(80) + '\n\n';
+            
+            if (report.summary) text += report.summary + '\n\n' + '═'.repeat(80) + '\n\n';
+            if (report.includedItems) text += report.includedItems + '\n\n' + '═'.repeat(80) + '\n\n';
+            if (report.potentialOmissions) text += report.potentialOmissions + '\n\n' + '═'.repeat(80) + '\n\n';
+            if (report.potentialUnderScoping) text += report.potentialUnderScoping + '\n\n' + '═'.repeat(80) + '\n\n';
+            if (report.limitations) text += report.limitations + '\n';
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'estimate-review-' + Date.now() + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
+
