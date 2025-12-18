@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:case": "git ls-files | sort | uniq -d",
     "netlify:dev": "netlify dev",
     "netlify:deploy": "netlify deploy --prod",
     "test:safety": "node netlify/functions/test-safety.js",
