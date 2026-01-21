@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Estimate Review Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+
+        .dashboard-header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #374151;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-left h1 {
+            font-size: 24px;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(55, 65, 81, 0.8);
+            color: #f8fafc;
+            border: 1px solid #4b5563;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(75, 85, 99, 0.8);
+        }
+
+        .btn-danger {
+            background: rgba(220, 38, 38, 0.2);
+            color: #fca5a5;
+            border: 1px solid #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: rgba(220, 38, 38, 0.3);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-card h3 {
+            color: #9ca3af;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #374151;
+            border-radius: 12px;
+            color: #f8fafc;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-box::placeholder {
+            color: #6b7280;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-title h2 {
+            font-size: 22px;
+            color: #f8fafc;
+        }
+
+        .section-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-main {
+            background: rgba(220, 38, 38, 0.2);
+            color: #fca5a5;
+            border: 1px solid #dc2626;
+        }
+
+        .badge-seo {
+            background: rgba(5, 150, 105, 0.2);
+            color: #6ee7b7;
+            border: 1px solid #059669;
+        }
+
+        .toggle-icon {
+            font-size: 20px;
+            color: #9ca3af;
+            transition: transform 0.3s ease;
+        }
+
+        .section.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
+        .page-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid #374151;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .page-card:hover {
+            transform: translateY(-3px);
+            border-color: #3b82f6;
+            box-shadow: 0 5px 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .page-card.main-page:hover {
+            border-color: #dc2626;
+            box-shadow: 0 5px 20px rgba(220, 38, 38, 0.2);
+        }
+
+        .page-card.seo-page:hover {
+            border-color: #059669;
+            box-shadow: 0 5px 20px rgba(5, 150, 105, 0.2);
+        }
+
+        .page-card h3 {
+            color: #f8fafc;
+            font-size: 16px;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .page-card .page-path {
+            color: #9ca3af;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 15px 20px;
+            }
+
+            .header-left h1 {
+                font-size: 20px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .section-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1>
+                <span>🔐</span>
+                Admin Dashboard
+            </h1>
+            <div class="user-info" id="userInfo"></div>
+        </div>
+        <div class="header-right">
+            <a href="/estimate-review.html" class="header-btn btn-secondary" target="_blank">View Main Site</a>
+            <button class="header-btn btn-danger" id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Pages</h3>
+                <div class="stat-value" id="totalPages">11</div>
+            </div>
+            <div class="stat-card">
+                <h3>Main Pages</h3>
+                <div class="stat-value" id="mainPages">11</div>
+            </div>
+            <div class="stat-card">
+                <h3>SEO Pages</h3>
+                <div class="stat-value" id="seoPages">10</div>
+            </div>
+            <div class="stat-card">
+                <h3>Upload Page</h3>
+                <div class="stat-value">1</div>
+            </div>
+        </div>
+
+        <!-- Search Box -->
+        <div class="search-section">
+            <input 
+                type="text" 
+                class="search-box" 
+                id="searchBox" 
+                placeholder="🔍 Search pages by title or path..."
+            >
+        </div>
+
+        <!-- Main Pages Section -->
+        <div class="section" id="mainPagesSection">
+            <div class="section-header" onclick="toggleSection('mainPagesSection')">
+                <div class="section-title">
+                    <h2>📄 Main Pages</h2>
+                    <span class="section-badge badge-main">11 pages</span>
+                </div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="section-content" id="mainPagesContent">
+                <!-- Main pages will be inserted here -->
+            </div>
+        </div>
+
+        <!-- SEO Pages Section -->
+        <div class="section" id="seoPagesSection">
+            <div class="section-header" onclick="toggleSection('seoPagesSection')">
+                <div class="section-title">
+                    <h2>🎯 SEO Landing Pages</h2>
+                    <span class="section-badge badge-seo">10 pages</span>
+                </div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="section-content" id="seoPagesContent">
+                <!-- SEO pages will be inserted here -->
+            </div>
+        </div>
+
+        <!-- No Results Message -->
+        <div class="no-results" id="noResults" style="display: none;">
+            No pages found matching your search.
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            window.location.href = '/admin-login.html';
+        }
+
+        // Display login time
+        const loginTime = sessionStorage.getItem('adminLoginTime');
+        if (loginTime) {
+            const date = new Date(loginTime);
+            document.getElementById('userInfo').textContent = `Logged in: ${date.toLocaleString()}`;
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('adminAuthenticated');
+                sessionStorage.removeItem('adminLoginTime');
+                window.location.href = '/admin-login.html';
+            }
+        });
+
+        // All pages data
+        const pages = {
+            main: [
+                {
+                    title: 'Insurance Estimate Review Tool | Expert-Grade Xactimate Analysis',
+                    path: '/estimate-review.html',
+                    description: 'Main landing page - Expert-grade Xactimate-aware estimate analysis'
+                },
+                {
+                    title: 'Upload Estimate for Review',
+                    path: '/upload-estimate.html',
+                    description: 'Upload and analyze insurance estimates'
+                },
+                {
+                    title: 'Adjuster Estimate Review',
+                    path: '/adjuster-estimate-review.html',
+                    description: 'Insurance adjuster estimate analysis'
+                },
+                {
+                    title: 'Contractor Estimate Review',
+                    path: '/contractor-estimate-review.html',
+                    description: 'Contractor estimate validation'
+                },
+                {
+                    title: 'Fire Damage Estimate Review',
+                    path: '/fire-damage-estimate-review.html',
+                    description: 'Fire and smoke damage estimate analysis'
+                },
+                {
+                    title: 'Water Damage Estimate Review',
+                    path: '/water-damage-estimate-review.html',
+                    description: 'Water damage estimate analysis'
+                },
+                {
+                    title: 'Wind & Hail Estimate Review',
+                    path: '/wind-hail-estimate-review.html',
+                    description: 'Wind and hail damage estimate analysis'
+                },
+                {
+                    title: 'Xactimate Estimate Review',
+                    path: '/xactimate-estimate-review.html',
+                    description: 'Specialized Xactimate format analysis'
+                },
+                {
+                    title: 'Insurance Estimate Review',
+                    path: '/insurance-estimate-review.html',
+                    description: 'General insurance estimate review'
+                },
+                {
+                    title: 'What This Is NOT - Estimate Review Pro',
+                    path: '/estimate-review-not-claim-help.html',
+                    description: 'Clarification of tool limitations and scope'
+                },
+                {
+                    title: 'Estimate Review Pro vs ChatGPT',
+                    path: '/estimate-review-vs-chatgpt.html',
+                    description: 'Comparison with AI assistants'
+                }
+            ],
+            seo: [
+                {
+                    title: 'Adjuster Estimate Review',
+                    path: '/adjuster-estimate-review.html',
+                    description: 'Insurance adjuster estimate analysis'
+                },
+                {
+                    title: 'Contractor Estimate Review',
+                    path: '/contractor-estimate-review.html',
+                    description: 'Contractor estimate validation'
+                },
+                {
+                    title: 'Fire Damage Estimate Review',
+                    path: '/fire-damage-estimate-review.html',
+                    description: 'Fire and smoke damage estimate analysis'
+                },
+                {
+                    title: 'Water Damage Estimate Review',
+                    path: '/water-damage-estimate-review.html',
+                    description: 'Water damage estimate analysis'
+                },
+                {
+                    title: 'Wind & Hail Estimate Review',
+                    path: '/wind-hail-estimate-review.html',
+                    description: 'Wind and hail damage estimate analysis'
+                },
+                {
+                    title: 'Xactimate Estimate Review',
+                    path: '/xactimate-estimate-review.html',
+                    description: 'Specialized Xactimate format analysis'
+                },
+                {
+                    title: 'Insurance Estimate Review',
+                    path: '/insurance-estimate-review.html',
+                    description: 'General insurance estimate review'
+                },
+                {
+                    title: 'What This Is NOT',
+                    path: '/estimate-review-not-claim-help.html',
+                    description: 'Tool limitations and scope'
+                },
+                {
+                    title: 'vs ChatGPT Comparison',
+                    path: '/estimate-review-vs-chatgpt.html',
+                    description: 'Comparison with AI assistants'
+                },
+                {
+                    title: 'Upload Estimate',
+                    path: '/upload-estimate.html',
+                    description: 'Upload and analyze estimates'
+                }
+            ]
+        };
+
+        // Render pages
+        function renderPages() {
+            const mainContent = document.getElementById('mainPagesContent');
+            const seoContent = document.getElementById('seoPagesContent');
+
+            // Render main pages
+            mainContent.innerHTML = pages.main.map(page => `
+                <a href="${page.path}" class="page-card main-page" target="_blank">
+                    <h3>${page.title}</h3>
+                    <div class="page-path">${page.path}</div>
+                </a>
+            `).join('');
+
+            // Render SEO pages
+            seoContent.innerHTML = pages.seo.map(page => `
+                <a href="${page.path}" class="page-card seo-page" target="_blank">
+                    <h3>${page.title}</h3>
+                    <div class="page-path">${page.path}</div>
+                </a>
+            `).join('');
+        }
+
+        // Toggle section
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('collapsed');
+        }
+
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        searchBox.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm === '') {
+                // Show all sections
+                document.getElementById('mainPagesSection').style.display = 'block';
+                document.getElementById('seoPagesSection').style.display = 'block';
+                document.getElementById('noResults').style.display = 'none';
+                renderPages();
+                return;
+            }
+
+            // Filter pages
+            const filteredMain = pages.main.filter(page => 
+                page.title.toLowerCase().includes(searchTerm) || 
+                page.path.toLowerCase().includes(searchTerm) ||
+                page.description.toLowerCase().includes(searchTerm)
+            );
+
+            const filteredSeo = pages.seo.filter(page => 
+                page.title.toLowerCase().includes(searchTerm) || 
+                page.path.toLowerCase().includes(searchTerm) ||
+                page.description.toLowerCase().includes(searchTerm)
+            );
+
+            // Update main pages
+            const mainContent = document.getElementById('mainPagesContent');
+            if (filteredMain.length > 0) {
+                document.getElementById('mainPagesSection').style.display = 'block';
+                mainContent.innerHTML = filteredMain.map(page => `
+                    <a href="${page.path}" class="page-card main-page" target="_blank">
+                        <h3>${page.title}</h3>
+                        <div class="page-path">${page.path}</div>
+                    </a>
+                `).join('');
+            } else {
+                document.getElementById('mainPagesSection').style.display = 'none';
+            }
+
+            // Update SEO pages
+            const seoContent = document.getElementById('seoPagesContent');
+            if (filteredSeo.length > 0) {
+                document.getElementById('seoPagesSection').style.display = 'block';
+                seoContent.innerHTML = filteredSeo.map(page => `
+                    <a href="${page.path}" class="page-card seo-page" target="_blank">
+                        <h3>${page.title}</h3>
+                        <div class="page-path">${page.path}</div>
+                    </a>
+                `).join('');
+            } else {
+                document.getElementById('seoPagesSection').style.display = 'none';
+            }
+
+            // Show no results message if nothing found
+            if (filteredMain.length === 0 && filteredSeo.length === 0) {
+                document.getElementById('noResults').style.display = 'block';
+            } else {
+                document.getElementById('noResults').style.display = 'none';
+            }
+        });
+
+        // Initial render
+        renderPages();
+    </script>
+</body>
+</html>
