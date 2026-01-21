@@ -48,14 +48,14 @@ export default function PricingPage() {
         <section className="grid gap-6 md:grid-cols-2">
           <div className="flex flex-col rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-xl shadow-slate-950/70">
             <h2 className="text-sm font-semibold text-slate-50">
-              $79 One‑Time Review
+              $49 One‑Time Review
             </h2>
             <p className="mt-1 text-xs text-slate-300">
               Best for occasional claims or trying Estimate Review Pro on a live
               file.
             </p>
             <p className="mt-4 text-3xl font-semibold text-slate-50">
-              $79{" "}
+              $49{" "}
               <span className="text-xs font-normal text-slate-400">
                 per review
               </span>
