@@ -121,14 +121,12 @@ export default function EstimateReviewPage() {
             >
               Pricing
             </Link>
-            <a
-              href="https://github.com/jhouston2019/estimatereviewpro"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-slate-300 hover:underline hover:underline-offset-4"
+            <Link
+              href="/admin-login.html"
+              className="text-xs opacity-50 hover:opacity-100 hover:text-slate-300"
             >
-              GitHub
-            </a>
+              Admin
+            </Link>
           </div>
         </div>
       </footer>

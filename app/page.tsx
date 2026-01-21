@@ -224,14 +224,12 @@ export default function Home() {
             >
               Pricing
             </Link>
-            <a
-              href="https://github.com/jhouston2019/estimatereviewpro"
-            target="_blank"
-              rel="noreferrer"
-              className="hover:text-slate-300 hover:underline hover:underline-offset-4"
-          >
-              GitHub
-          </a>
+            <Link
+              href="/admin-login.html"
+              className="text-xs opacity-50 hover:opacity-100 hover:text-slate-300"
+            >
+              Admin
+            </Link>
           </div>
         </div>
       </footer>
