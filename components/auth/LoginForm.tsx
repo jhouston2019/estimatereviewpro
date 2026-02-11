@@ -59,7 +59,7 @@ export function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 outline-none ring-0 placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+          className="block w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 outline-none ring-0 placeholder:text-slate-500 focus:border-[#1e3a8a] focus:ring-1 focus:ring-[#1e3a8a]"
           placeholder="you@firm.com"
         />
       </div>
@@ -78,7 +78,7 @@ export function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="block w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 outline-none ring-0 placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+          className="block w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 outline-none ring-0 placeholder:text-slate-500 focus:border-[#1e3a8a] focus:ring-1 focus:ring-[#1e3a8a]"
           placeholder="••••••••"
         />
       </div>
@@ -92,7 +92,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="flex w-full items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/40 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex w-full items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isLoading ? "Signing in…" : "Log in"}
       </button>

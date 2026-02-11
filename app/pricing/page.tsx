@@ -6,8 +6,8 @@ export default function PricingPage() {
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
-              <span className="text-sm font-black text-slate-950">ER</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+              <span className="text-sm font-black text-white">ER</span>
             </div>
             <span className="text-sm font-semibold text-slate-50">
               Estimate Review Pro
@@ -22,7 +22,7 @@ export default function PricingPage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-sm shadow-amber-500/40 hover:brightness-105"
+              className="inline-flex items-center rounded-full bg-[#1e3a8a] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
             >
               Get started
             </Link>
@@ -32,7 +32,7 @@ export default function PricingPage() {
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-12 md:py-16">
         <section className="text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
             Pricing
           </p>
           <h1 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-slate-50 md:text-4xl">
@@ -77,8 +77,8 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div className="relative flex flex-col rounded-3xl border border-amber-400/80 bg-gradient-to-b from-amber-500/10 via-amber-500/5 to-slate-950 p-6 shadow-xl shadow-amber-500/40">
-            <div className="absolute right-4 top-4 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-950">
+          <div className="relative flex flex-col rounded-3xl border border-[#1e3a8a]/80 bg-gradient-to-b from-[#1e3a8a]/10 via-[#1e3a8a]/5 to-slate-950 p-6 shadow-xl shadow-[#1e3a8a]/40">
+            <div className="absolute right-4 top-4 rounded-full bg-[#1e3a8a] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
               Most popular
             </div>
             <h2 className="text-sm font-semibold text-slate-50">
@@ -104,7 +104,7 @@ export default function PricingPage() {
             <div className="mt-6">
               <Link
                 href="/register?plan=pro"
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105"
+                className="inline-flex w-full items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
               >
                 Upgrade to Unlimited
               </Link>

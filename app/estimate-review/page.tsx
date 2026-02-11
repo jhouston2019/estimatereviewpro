@@ -3,26 +3,26 @@ import Link from "next/link";
 
 export default function EstimateReviewPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
-              <span className="text-sm font-black text-slate-950">ER</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+              <span className="text-sm font-black text-white">ER</span>
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold text-slate-50">
                 Estimate Review Pro
               </span>
               <span className="text-xs text-slate-400">
-                AI estimate review for claims teams
+                Expert-Grade Xactimate Analysis
               </span>
             </div>
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium text-slate-200">
             <Link
               href="/pricing"
-              className="transition hover:text-amber-300 hover:underline hover:underline-offset-4"
+              className="transition hover:text-white hover:underline hover:underline-offset-4"
             >
               Pricing
             </Link>
@@ -34,7 +34,7 @@ export default function EstimateReviewPage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-sm shadow-amber-500/40 hover:brightness-105"
+              className="inline-flex items-center rounded-full bg-[#1e3a8a] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
             >
               Get started
             </Link>
@@ -42,74 +42,259 @@ export default function EstimateReviewPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-6 py-12 md:py-20">
-        <section className="max-w-3xl space-y-8">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
-            Not Sure If This Repair or Insurance Estimate Is Fair?
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 py-12 md:py-20">
+        {/* Hero Section */}
+        <section className="mb-16 text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#1e3a8a]/40 bg-[#1e3a8a]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Deterministic • Platform-Aware • Non-Advisory
+          </div>
+          
+          <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
+            Insurance Estimate Review Tool
           </h1>
+          
+          <p className="mx-auto mb-8 max-w-3xl text-lg leading-relaxed text-slate-300 md:text-xl">
+            Expert-grade Xactimate-aware estimate analysis. Deterministic structural review with trade category detection and line item observations.
+          </p>
 
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-50">
-              What This Is
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-300 md:text-base">
-              Estimates for repairs, construction, or insurance claims can vary
-              widely depending on who prepared them, what was included, and how
-              items were scoped. Many estimates look official but leave out
-              important details or undervalue key components.
-            </p>
-            <p className="text-sm leading-relaxed text-slate-300 md:text-base">
-              Estimate Review Pro helps you understand what an estimate is
-              actually saying — and what may be missing — before you agree to
-              it.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Why This Matters
-            </h2>
-            <ul className="list-disc space-y-1 pl-4 text-sm leading-relaxed text-slate-300 md:text-base">
-              <li>You may overpay for work that’s overstated</li>
-              <li>Insurance estimates may omit necessary repairs</li>
-              <li>Important line items or scope details can be overlooked</li>
-              <li>Once you agree, leverage often decreases</li>
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-50">
-              How Estimate Review Pro Works
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-300 md:text-base">
-              Upload your estimate and receive a clear, plain-English breakdown
-              of the line items, scope, and potential gaps. The goal is clarity
-              — so you know what questions to ask and what to review before
-              moving forward.
-            </p>
-          </div>
-
-          <div>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
               href="/dashboard/upload"
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105"
+              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af]"
             >
-              Review My Estimate
+              Upload Estimate for Review
+            </Link>
+            <span className="text-sm text-slate-400">
+              $149 one-time • No subscription • Deterministic results
+            </span>
+          </div>
+        </section>
+
+        {/* What It Does Section */}
+        <section className="mb-16">
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-8 shadow-2xl md:p-12">
+            <h2 className="mb-6 text-2xl font-bold text-white md:text-3xl">
+              What is Estimate Review Pro?
+            </h2>
+            <p className="mb-6 text-base leading-relaxed text-slate-300 md:text-lg">
+              Estimate Review Pro is a <strong className="text-white">deterministic, platform-aware estimate analysis engine</strong> that performs structural review of insurance estimates. The system detects Xactimate format, identifies trade categories, and generates observational findings about estimate structure.
+            </p>
+            <p className="text-base leading-relaxed text-slate-300 md:text-lg">
+              This is <strong className="text-white">NOT an AI assistant</strong>. This is a procedural analysis tool that produces the same output for the same input every time (100% deterministic).
+            </p>
+          </div>
+        </section>
+
+        {/* What It Does NOT Do - Warning Box */}
+        <section className="mb-16">
+          <div className="rounded-3xl border-2 border-rose-500/30 bg-rose-950/20 p-8 shadow-2xl md:p-12">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/20">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-rose-200 md:text-3xl">
+                What This Tool Does NOT Do
+              </h2>
+            </div>
+            <ul className="grid gap-3 text-base text-rose-100/90 md:grid-cols-2 md:text-lg">
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT negotiate</strong> with insurance companies</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT interpret</strong> policy coverage or exclusions</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT provide</strong> legal advice or claim strategy</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT give</strong> pricing opinions or cost assessments</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT recommend</strong> actions or advocate on your behalf</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 text-rose-400">✕</span>
+                <span><strong>Does NOT determine</strong> what is owed, covered, or required</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="mb-16">
+          <h2 className="mb-8 text-center text-3xl font-bold text-white md:text-4xl">
+            What This Tool Provides
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Feature 1 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                🔍
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Xactimate Detection
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Detects Xactimate format with confidence scoring. Requires ≥75% confidence or rejects document. Parses 30+ trade codes (DRY, PNT, FLR, RFG, etc.).
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                📊
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Trade Category Analysis
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Identifies trade categories detected in estimate. Identifies categories NOT detected. Compares against loss type expectations (observational only).
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                🔧
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Line Item Observations
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Detects zero-quantity items. Detects removal without replacement patterns. Detects structural inconsistencies. Reports observations only.
+              </p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                ✅
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Deterministic Output
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                Same input = same output (100%). Rule-based findings only. No subjective reasoning. Temperature 0.0 (not AI guessing).
+              </p>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                📋
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Neutral Findings Report
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                5-section structured report. Detected trades, categories not detected, line item observations, comprehensive limitations.
+              </p>
+            </div>
+
+            {/* Feature 6 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
+                🛡️
+              </div>
+              <h3 className="mb-3 text-xl font-bold text-white">
+                Enhanced Safety
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-300">
+                6-layer guardrails. 40+ prohibited phrase scanning. Refuses out-of-scope requests. Clear disclaimers throughout.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="mb-16">
+          <h2 className="mb-8 text-center text-3xl font-bold text-white md:text-4xl">
+            How It Works
+          </h2>
+          <div className="space-y-4">
+            {[
+              {
+                step: "1",
+                title: "Upload Estimate",
+                desc: "Paste your insurance estimate text (Xactimate format preferred). Select estimate type and damage type from structured dropdowns.",
+              },
+              {
+                step: "2",
+                title: "Xactimate Parsing",
+                desc: "System detects Xactimate format with confidence scoring. Parses trade codes, quantities, and units. If confidence < 75%, document is rejected.",
+              },
+              {
+                step: "3",
+                title: "Trade Analysis",
+                desc: "Identifies trade categories present in estimate. Compares against loss type expectations (WATER, FIRE, WIND, HAIL, COLLISION). Generates observational findings.",
+              },
+              {
+                step: "4",
+                title: "Integrity Checks",
+                desc: "Runs 8 integrity rules: zero quantities, removal without replacement, drywall without paint, labor without material, and more. Reports observations only.",
+              },
+              {
+                step: "5",
+                title: "Neutral Report",
+                desc: "Generates structured findings report with comprehensive disclaimers. Same estimate = same report (100% deterministic).",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="flex gap-6 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl"
+              >
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#1e3a8a] text-xl font-bold text-white">
+                  {item.step}
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xl font-bold text-white">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-slate-300">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="mb-16">
+          <div className="rounded-3xl border-2 border-[#1e3a8a] bg-gradient-to-br from-[#1e3a8a]/20 to-slate-900/50 p-12 text-center shadow-2xl">
+            <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+              Ready to Review Your Estimate?
+            </h2>
+            <p className="mb-8 text-lg text-slate-300">
+              Upload your insurance estimate for expert-grade structural analysis.
+            </p>
+            <Link
+              href="/dashboard/upload"
+              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af]"
+            >
+              Upload Estimate Now
             </Link>
           </div>
+        </section>
 
-          <p className="text-xs text-slate-400">
-            Disclaimer
-            <span className="ml-1">
-              Educational assistance only. Not legal, insurance, or financial
-              advice.
-            </span>
-          </p>
+        {/* Disclaimer */}
+        <section className="mb-8">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-6 text-center">
+            <p className="text-xs leading-relaxed text-slate-400">
+              <strong className="text-slate-300">Critical Disclaimer:</strong> This tool provides observational estimate analysis only. It does not provide legal advice, claim strategy, coverage interpretation, policy analysis, pricing opinions, cost assessments, negotiation assistance, advocacy, or determinations about what is owed, covered, or required. For coverage questions, consult your insurance policy or agent. For legal questions, consult an attorney.
+            </p>
+          </div>
         </section>
       </main>
 
       <footer className="border-t border-slate-900/80 bg-slate-950/80">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-6 text-[11px] text-slate-500 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-6 text-[11px] text-slate-500 sm:flex-row">
           <p>
             © {new Date().getFullYear()} Estimate Review Pro. All rights
             reserved.
@@ -133,5 +318,3 @@ export default function EstimateReviewPage() {
     </div>
   );
 }
-
-

@@ -45,21 +45,21 @@ export function SeoLandingPage({
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link href="/" className="text-blue-600 hover:text-blue-700 font-semibold">
+          <Link href="/" className="text-[#1e3a8a] hover:text-[#1e40af] font-semibold">
             ← Estimate Review Pro
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-16">
+      <section className="bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] text-white py-16">
         <div className="max-w-4xl mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">{title}</h1>
-          <p className="text-xl md:text-2xl mb-8 text-blue-100">{subtitle}</p>
-          <p className="text-lg mb-8 text-blue-50">{description}</p>
+          <p className="text-xl md:text-2xl mb-8 text-gray-100">{subtitle}</p>
+          <p className="text-lg mb-8 text-gray-50">{description}</p>
           <Link
             href={ctaHref}
-            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors"
+            className="inline-block bg-white text-[#1e3a8a] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-50 transition-colors"
           >
             {ctaLabel}
           </Link>
@@ -102,15 +102,15 @@ export function SeoLandingPage({
       )}
 
       {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-12">
+      <section className="bg-[#1e3a8a] text-white py-12">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 text-blue-100">
+          <p className="text-xl mb-8 text-gray-100">
             Upload your estimate and receive a comprehensive analysis in minutes.
           </p>
           <Link
             href={ctaHref}
-            className="inline-block bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-50 transition-colors"
+            className="inline-block bg-white text-[#1e3a8a] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-50 transition-colors"
           >
             {ctaLabel}
           </Link>

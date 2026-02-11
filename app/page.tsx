@@ -6,8 +6,8 @@ export default function Home() {
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
-              <span className="text-sm font-black text-slate-950">ER</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+              <span className="text-sm font-black text-white">ER</span>
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold text-slate-50">
@@ -21,7 +21,7 @@ export default function Home() {
           <nav className="flex items-center gap-6 text-sm font-medium text-slate-200">
             <Link
               href="/pricing"
-              className="transition hover:text-amber-300 hover:underline hover:underline-offset-4"
+              className="transition hover:text-white hover:underline hover:underline-offset-4"
             >
               Pricing
             </Link>
@@ -33,7 +33,7 @@ export default function Home() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-4 py-1.5 text-xs font-semibold text-slate-950 shadow-sm shadow-amber-500/40 hover:brightness-105"
+              className="inline-flex items-center rounded-full bg-[#1e3a8a] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
             >
               Get started
             </Link>
@@ -44,14 +44,14 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-6 py-12 md:py-20">
         <section className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
           <div className="space-y-8">
-            <p className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-950/40 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-amber-200 shadow-sm shadow-amber-500/40">
+            <p className="inline-flex items-center gap-2 rounded-full border border-[#1e3a8a]/40 bg-[#1e3a8a]/20 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-blue-200 shadow-sm shadow-[#1e3a8a]/40">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Built for public adjusters, contractors & claim pros
             </p>
             <div className="space-y-4">
               <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
                 Understand your estimate.{" "}
-                <span className="bg-gradient-to-r from-amber-300 via-amber-200 to-sky-300 bg-clip-text text-transparent">
+                <span className="text-white">
                   Win your claim.
                 </span>
               </h1>
@@ -65,7 +65,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-4">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-md shadow-amber-500/40 hover:brightness-105"
+                className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
               >
                 Start a review
               </Link>
@@ -145,8 +145,8 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-amber-400/40 bg-amber-950/30 p-3 text-[11px] text-amber-50 shadow-inner shadow-amber-500/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                <div className="rounded-xl border border-[#1e3a8a]/40 bg-[#1e3a8a]/20 p-3 text-[11px] text-blue-50 shadow-inner shadow-[#1e3a8a]/20">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-200">
                     Key discrepancies
                   </p>
                   <ul className="mt-1 list-disc space-y-1 pl-4">

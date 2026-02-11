@@ -8,8 +8,8 @@ export default function RegisterPage() {
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-400 to-sky-500 shadow-lg shadow-amber-500/30">
-              <span className="text-sm font-black text-slate-950">ER</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+              <span className="text-sm font-black text-white">ER</span>
             </div>
             <span className="text-sm font-semibold text-slate-50">
               Estimate Review Pro
@@ -17,7 +17,7 @@ export default function RegisterPage() {
           </Link>
           <Link
             href="/login"
-            className="text-xs font-semibold text-amber-300 hover:underline hover:underline-offset-4"
+            className="text-xs font-semibold text-blue-300 hover:underline hover:underline-offset-4"
           >
             Already a customer?
           </Link>
@@ -26,7 +26,7 @@ export default function RegisterPage() {
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-6 py-10">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
             Get started
           </p>
           <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-50">
