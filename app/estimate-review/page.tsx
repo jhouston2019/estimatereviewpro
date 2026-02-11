@@ -89,37 +89,32 @@ export default function EstimateReviewPage() {
         {/* What It Does NOT Do - Warning Box */}
         <section className="mb-16">
           <div className="rounded-3xl border-2 border-rose-500/30 bg-rose-950/20 p-8 shadow-2xl md:p-12">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/20">
-                <span className="text-2xl">⚠️</span>
-              </div>
-              <h2 className="text-2xl font-bold text-rose-200 md:text-3xl">
-                What This Tool Does NOT Do
-              </h2>
-            </div>
+            <h2 className="mb-6 text-2xl font-bold text-rose-200 md:text-3xl">
+              What This Tool Does NOT Do
+            </h2>
             <ul className="grid gap-3 text-base text-rose-100/90 md:grid-cols-2 md:text-lg">
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT negotiate</strong> with insurance companies</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT interpret</strong> policy coverage or exclusions</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT provide</strong> legal advice or claim strategy</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT give</strong> pricing opinions or cost assessments</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT recommend</strong> actions or advocate on your behalf</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 text-rose-400">✕</span>
+                <span className="mt-1 text-rose-400">×</span>
                 <span><strong>Does NOT determine</strong> what is owed, covered, or required</span>
               </li>
             </ul>
@@ -134,8 +129,8 @@ export default function EstimateReviewPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                🔍
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Xactimate Detection
@@ -147,8 +142,8 @@ export default function EstimateReviewPage() {
 
             {/* Feature 2 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                📊
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Trade Category Analysis
@@ -160,8 +155,8 @@ export default function EstimateReviewPage() {
 
             {/* Feature 3 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                🔧
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Line Item Observations
@@ -173,8 +168,8 @@ export default function EstimateReviewPage() {
 
             {/* Feature 4 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                ✅
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Deterministic Output
@@ -186,8 +181,8 @@ export default function EstimateReviewPage() {
 
             {/* Feature 5 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                📋
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Neutral Findings Report
@@ -199,8 +194,8 @@ export default function EstimateReviewPage() {
 
             {/* Feature 6 */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl transition hover:border-[#1e3a8a]/50">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#1e3a8a]/20 text-2xl">
-                🛡️
+              <div className="mb-4 flex h-3 w-3 items-center justify-center">
+                <div className="h-3 w-3 rounded-full bg-[#1e3a8a]"></div>
               </div>
               <h3 className="mb-3 text-xl font-bold text-white">
                 Enhanced Safety
