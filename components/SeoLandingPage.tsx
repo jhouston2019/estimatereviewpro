@@ -33,7 +33,7 @@ export function SeoLandingPage({
   schema,
 }: SeoLandingPageProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Schema.org JSON-LD */}
       {schema && (
         <script
@@ -43,23 +43,32 @@ export function SeoLandingPage({
       )}
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <Link href="/" className="text-[#1e3a8a] hover:text-[#1e40af] font-semibold">
-            ← Estimate Review Pro
+      <header className="bg-[#0F172A] border-b border-slate-800">
+        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2563EB]">
+              <span className="text-xs font-black text-white">ER</span>
+            </div>
+            <span className="text-white font-semibold">Estimate Review Pro</span>
+          </Link>
+          <Link 
+            href="/upload"
+            className="rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] transition"
+          >
+            Start Review
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] text-white py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">{title}</h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-100">{subtitle}</p>
-          <p className="text-lg mb-8 text-gray-50">{description}</p>
+      <section className="bg-gradient-to-br from-[#0F172A] to-[#1e293b] text-white py-20">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">{title}</h1>
+          <p className="text-xl md:text-2xl mb-6 text-slate-200">{subtitle}</p>
+          <p className="text-lg mb-10 text-slate-300 max-w-3xl mx-auto">{description}</p>
           <Link
-            href={ctaHref}
-            className="inline-block bg-white text-[#1e3a8a] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-50 transition-colors"
+            href="/upload"
+            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-full font-semibold text-lg hover:bg-[#1d4ed8] transition shadow-lg shadow-[#2563EB]/40"
           >
             {ctaLabel}
           </Link>
@@ -102,15 +111,15 @@ export function SeoLandingPage({
       )}
 
       {/* CTA Section */}
-      <section className="bg-[#1e3a8a] text-white py-12">
+      <section className="bg-gradient-to-br from-[#0F172A] to-[#1e293b] text-white py-16">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 text-gray-100">
-            Upload your estimate and receive a comprehensive analysis in minutes.
+          <h2 className="text-3xl font-bold mb-4">Ready to Analyze Your Estimate?</h2>
+          <p className="text-xl mb-8 text-slate-300">
+            Structured analysis in under 2 minutes. No credit card required for preview.
           </p>
           <Link
-            href={ctaHref}
-            className="inline-block bg-white text-[#1e3a8a] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-50 transition-colors"
+            href="/upload"
+            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-full font-semibold text-lg hover:bg-[#1d4ed8] transition shadow-lg shadow-[#2563EB]/40"
           >
             {ctaLabel}
           </Link>
@@ -118,47 +127,25 @@ export function SeoLandingPage({
       </section>
 
       {/* Disclaimer */}
-      <section className="bg-gray-100 py-8">
+      <section className="bg-slate-100 py-8">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-sm text-gray-600 space-y-2">
-            <p className="font-semibold">Important Limitations:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>
-                This is an automated, observational estimate analysis. No coverage,
-                pricing, or entitlement determinations are made.
-              </li>
-              <li>
-                This service does NOT provide legal advice, claim negotiation, or
-                coverage interpretation.
-              </li>
-              <li>
-                Results are for informational purposes only and do not guarantee
-                any specific outcome or payment.
-              </li>
-              <li>
-                This is NOT a substitute for professional legal counsel or licensed
-                public adjuster services.
-              </li>
-              <li>
-                By using this service, you acknowledge these limitations and agree
-                that findings are observational only.
-              </li>
-            </ul>
-          </div>
+          <p className="text-sm text-slate-600 text-center">
+            This tool generates structured findings only. No coverage, pricing, or entitlement determinations are made.
+          </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-[#0F172A] text-white py-8">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="text-gray-400">
+          <p className="text-slate-400">
             © {new Date().getFullYear()} Estimate Review Pro. All rights reserved.
           </p>
-          <div className="mt-4 space-x-4">
-            <Link href="/pricing" className="text-gray-400 hover:text-white">
+          <div className="mt-4 space-x-6">
+            <Link href="/pricing" className="text-slate-400 hover:text-white transition">
               Pricing
             </Link>
-            <Link href="/" className="text-gray-400 hover:text-white">
+            <Link href="/" className="text-slate-400 hover:text-white transition">
               Home
             </Link>
           </div>

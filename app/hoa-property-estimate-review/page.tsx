@@ -3,15 +3,15 @@ import { SeoLandingPage } from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = {
   title: "HOA Property Estimate Review | AI-Powered Analysis | Estimate Review Pro",
-  description: "Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
+  description: "Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
 };
 
 export default function HoaPropertyEstimateReviewPage() {
   return (
     <SeoLandingPage
       title="HOA Property Estimate Review"
-      subtitle="AI-Powered Analysis to Ensure Fair Compensation"
-      description="Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement."
+      subtitle="Structured Analysis for Claims Teams"
+      description="Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies."
       sections={[
           {
                     "heading": "Understanding HOA Property Estimate Review Challenges",
@@ -64,8 +64,8 @@ export default function HoaPropertyEstimateReviewPage() {
                     "answer": "Single estimate review costs $79, providing complete analysis and a professional PDF report. For property associations handling multiple claims—such as public adjusters, contractors, or property managers—our unlimited subscription at $249/month offers better value. The subscription includes priority processing, unlimited estimates, and white-label reporting options. Compared to hiring a public adjuster (typically 10-15% of the settlement), our service provides significant cost savings while delivering comprehensive analysis."
           }
 ]}
-      ctaLabel="Get Your Estimate Reviewed"
-      ctaHref="/pricing"
+      ctaLabel="Start Your Estimate Review"
+      ctaHref="/upload"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",
@@ -76,8 +76,11 @@ export default function HoaPropertyEstimateReviewPage() {
           "url": "https://estimatereviewpro.com",
         },
         "areaServed": "United States",
-        "description": "Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
+        "description": "Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
       }}
     />
   );
 }
+
+
+

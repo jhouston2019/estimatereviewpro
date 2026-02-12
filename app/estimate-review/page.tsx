@@ -111,7 +111,7 @@ export default function EstimateReviewPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-1 text-rose-400">×</span>
-                <span><strong>Does NOT recommend</strong> actions or advocate on your behalf</span>
+                <span><strong>Does NOT recommend</strong> actions or review on your behalf</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-1 text-rose-400">×</span>
@@ -313,3 +313,4 @@ export default function EstimateReviewPage() {
     </div>
   );
 }
+

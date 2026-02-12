@@ -3,15 +3,15 @@ import { SeoLandingPage } from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = {
   title: "How To Dispute Insurance Estimate | AI-Powered Analysis | Estimate Review Pro",
-  description: "Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
+  description: "Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
 };
 
 export default function HowToDisputeInsuranceEstimatePage() {
   return (
     <SeoLandingPage
       title="How To Dispute Insurance Estimate"
-      subtitle="AI-Powered Analysis to Ensure Fair Compensation"
-      description="Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement."
+      subtitle="Structured Analysis for Claims Teams"
+      description="Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies."
       sections={[
           {
                     "heading": "Understanding How To Dispute Insurance Estimate Challenges",
@@ -64,8 +64,8 @@ export default function HowToDisputeInsuranceEstimatePage() {
                     "answer": "Single estimate dispute costs $79, providing complete analysis and a professional PDF report. For homeowners handling multiple claims—such as public adjusters, contractors, or property managers—our unlimited subscription at $249/month offers better value. The subscription includes priority processing, unlimited estimates, and white-label reporting options. Compared to hiring a public adjuster (typically 10-15% of the settlement), our service provides significant cost savings while delivering comprehensive analysis."
           }
 ]}
-      ctaLabel="Get Your Estimate Reviewed"
-      ctaHref="/pricing"
+      ctaLabel="Start Your Estimate Review"
+      ctaHref="/upload"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",
@@ -76,8 +76,11 @@ export default function HowToDisputeInsuranceEstimatePage() {
           "url": "https://estimatereviewpro.com",
         },
         "areaServed": "United States",
-        "description": "Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to maximize your insurance claim settlement.",
+        "description": "Professional how to dispute insurance estimate service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
       }}
     />
   );
 }
+
+
+

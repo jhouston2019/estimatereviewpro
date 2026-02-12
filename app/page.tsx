@@ -2,231 +2,238 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-[#0F172A]">
+      <header className="border-b border-slate-800/50 bg-[#0F172A]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2563EB] shadow-lg shadow-[#2563EB]/30">
               <span className="text-sm font-black text-white">ER</span>
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold text-slate-50">
+              <span className="text-sm font-semibold text-white">
                 Estimate Review Pro
               </span>
               <span className="text-xs text-slate-400">
-                AI estimate review for claims teams
+                Structured estimate analysis
               </span>
             </div>
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium text-slate-200">
             <Link
               href="/pricing"
-              className="transition hover:text-white hover:underline hover:underline-offset-4"
+              className="transition hover:text-white"
             >
               Pricing
             </Link>
             <Link
               href="/login"
-              className="hidden rounded-full border border-slate-700 px-4 py-1.5 text-xs font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-50 sm:inline-flex"
+              className="hidden rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white sm:inline-flex"
             >
               Log in
             </Link>
             <Link
-              href="/register"
-              className="inline-flex items-center rounded-full bg-[#1e3a8a] px-4 py-1.5 text-xs font-semibold text-white shadow-sm shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
+              href="/upload"
+              className="inline-flex items-center rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[#2563EB]/40 hover:bg-[#1d4ed8]"
             >
-              Get started
+              Start Review
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-6 py-12 md:py-20">
-        <section className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-6 py-16 md:py-24">
+        <section className="grid gap-12 md:grid-cols-[1.2fr_1fr] md:items-center">
           <div className="space-y-8">
-            <p className="inline-flex items-center gap-2 rounded-full border border-[#1e3a8a]/40 bg-[#1e3a8a]/20 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-blue-200 shadow-sm shadow-[#1e3a8a]/40">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2563EB]/30 bg-[#2563EB]/10 px-4 py-2 text-xs font-medium uppercase tracking-wider text-blue-300">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Built for public adjusters, contractors & claim pros
-            </p>
-            <div className="space-y-4">
-              <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
-                Understand your estimate.{" "}
-                <span className="text-white">
-                  Win your claim.
-                </span>
+              Deterministic • Platform-Aware • Non-Advisory
+            </div>
+            
+            <div className="space-y-6">
+              <h1 className="text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
+                Structured Estimate Analysis for Claims Teams
               </h1>
-              <p className="max-w-xl text-balance text-sm leading-relaxed text-slate-300 md:text-base">
-                Upload contractor and carrier estimates plus carrier letters.
-                Estimate Review Pro uses OpenAI to extract line items, compare
-                scopes, flag missing or underpriced work, and generate a clean
-                PDF you can send directly to the carrier or policyholder.
+              <p className="max-w-xl text-balance text-lg leading-relaxed text-slate-300">
+                Identify scope gaps, missing line items, and structural inconsistencies in under 2 minutes. Xactimate-aware parsing with deterministic output.
               </p>
             </div>
+
             <div className="flex flex-wrap items-center gap-4">
               <Link
-                href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 hover:bg-[#1e40af]"
+                href="/upload"
+                className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#2563EB]/40 hover:bg-[#1d4ed8] transition"
               >
-                Start a review
+                Start Your Estimate Review
               </Link>
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center rounded-full border border-slate-700 px-5 py-2.5 text-xs font-semibold text-slate-200 hover:border-slate-500 hover:text-slate-50"
+                className="inline-flex items-center justify-center rounded-full border border-slate-700 px-6 py-4 text-base font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
               >
                 View pricing
               </Link>
-              <p className="w-full text-xs text-slate-400 md:w-auto md:pl-2">
-                No engineering required. Secure, HIPAA-friendly storage via
-                Supabase.
-              </p>
             </div>
+
+            <p className="text-sm text-slate-400">
+              $149 one-time • No subscription • Same input = same output
+            </p>
+
             <dl className="grid gap-4 text-xs text-slate-300 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                <dt className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+              <div className="rounded-xl border border-slate-800 bg-[#0F172A]/60 p-5">
+                <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">
                   Turnaround
                 </dt>
-                <dd className="mt-2 text-base font-semibold text-slate-50">
-                  Under 2 minutes
+                <dd className="mt-2 text-xl font-bold text-white">
+                  Under 2 min
                 </dd>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                <dt className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+              <div className="rounded-xl border border-slate-800 bg-[#0F172A]/60 p-5">
+                <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">
                   Formats
                 </dt>
-                <dd className="mt-2 text-base font-semibold text-slate-50">
-                  Xactimate, Symbility, PDFs & photos
+                <dd className="mt-2 text-xl font-bold text-white">
+                  Xactimate, PDF
                 </dd>
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                <dt className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                  Reports
+              <div className="rounded-xl border border-slate-800 bg-[#0F172A]/60 p-5">
+                <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                  Output
                 </dt>
-                <dd className="mt-2 text-base font-semibold text-slate-50">
-                  White‑label PDF exports
+                <dd className="mt-2 text-xl font-bold text-white">
+                  Structured report
                 </dd>
               </div>
             </dl>
           </div>
 
           <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950/90 p-5 shadow-2xl shadow-slate-900/80">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Carrier vs contractor scope
+            <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#F8FAFC] p-6 shadow-2xl">
+              <div className="flex items-center justify-between text-xs text-slate-600 mb-4">
+                <span className="inline-flex items-center gap-2 font-semibold">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  Estimate Analysis
                 </span>
-                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-slate-300">
-                  Live AI comparison
+                <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700">
+                  Deterministic
                 </span>
               </div>
 
-              <div className="mt-4 space-y-3 text-xs">
-                <div className="grid grid-cols-[1fr_auto_1fr] gap-3 text-[11px] text-slate-300">
-                  <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Contractor estimate
-                    </p>
-                    <p className="mt-1 font-medium text-slate-50">
-                      Full roof tear‑off, ice & water shield, interior repaint
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="mx-auto rounded-full bg-slate-900 px-2 py-1 text-[10px] text-slate-400">
-                      ➝ AI review
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Carrier estimate
-                    </p>
-                    <p className="mt-1 font-medium text-slate-50">
-                      Spot repairs only, no code upgrades, no interior
-                    </p>
-                  </div>
+              <div className="space-y-4">
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    Input Estimate
+                  </p>
+                  <p className="text-sm font-medium text-slate-900">
+                    DRY - Remove drywall - 200 SF<br />
+                    DRY - Install drywall - 200 SF<br />
+                    FLR - Remove flooring - 150 SF
+                  </p>
                 </div>
 
-                <div className="rounded-xl border border-[#1e3a8a]/40 bg-[#1e3a8a]/20 p-3 text-[11px] text-blue-50 shadow-inner shadow-[#1e3a8a]/20">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-200">
-                    Key discrepancies
+                <div className="rounded-lg border-2 border-[#2563EB] bg-blue-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-blue-700 mb-2">
+                    Detected Issues
                   </p>
-                  <ul className="mt-1 list-disc space-y-1 pl-4">
-                    <li>Missing ice & water shield on eaves and valleys</li>
-                    <li>Underpriced interior repaint – 2 coats not included</li>
-                    <li>No line items for code‑required drip edge</li>
+                  <ul className="space-y-2 text-sm text-blue-900">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600">•</span>
+                      <span>PNT trade not detected (drywall without paint)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600">•</span>
+                      <span>FLR removal without replacement detected</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600">•</span>
+                      <span>INS trade not detected for water loss</span>
+                    </li>
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-[11px] text-slate-200">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Plain‑English summary
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
+                    Structured Findings
                   </p>
-                  <p className="mt-1">
-                    The carrier&apos;s estimate omits several code‑required
-                    items and does not match the contractor&apos;s scope for a
-                    full roof replacement. We recommend requesting an updated
-                    estimate including ice &amp; water shield, drip edge, and
-                    interior repaint.
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    The estimate includes drywall installation without paint trade. Flooring removal is present without reinstallation. Insulation trade is not detected.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <p>Trusted workflow for PA firms, roofing companies, and TPAs.</p>
-              <p className="hidden text-right sm:block">
-                Hosted on Netlify. Auth, storage &amp; RLS security via Supabase.
-              </p>
-            </div>
+            <p className="text-xs text-slate-400 text-center">
+              100% deterministic • No subjective reasoning • Observational only
+            </p>
           </div>
         </section>
 
-        <section className="grid gap-6 border-y border-slate-800 py-10 md:grid-cols-3">
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Estimate comparison
+        <section className="grid gap-8 border-y border-slate-800/50 py-12 md:grid-cols-3">
+          <div className="space-y-3">
+            <div className="flex h-3 w-3 items-center justify-center">
+              <div className="h-3 w-3 rounded-full bg-[#2563EB]"></div>
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              Xactimate Detection
             </h2>
-            <p className="text-xs text-slate-300">
-              Parse carrier and contractor estimates into clean line items. See
-              missing trades, mis‑categorized scopes, and underpriced work in
-              seconds.
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Parses 30+ trade codes with confidence scoring. Requires ≥75% confidence or rejects document. Deterministic format validation.
             </p>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Carrier report summary
+          <div className="space-y-3">
+            <div className="flex h-3 w-3 items-center justify-center">
+              <div className="h-3 w-3 rounded-full bg-[#2563EB]"></div>
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              Trade Analysis
             </h2>
-            <p className="text-xs text-slate-300">
-              Turn dense engineer or carrier letters into plain‑English
-              summaries, including approval/denial reasoning and key technical
-              points.
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Identifies categories detected and NOT detected. Compares against loss type patterns. Reports observations only.
             </p>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-50">
-              Actionable next steps
+          <div className="space-y-3">
+            <div className="flex h-3 w-3 items-center justify-center">
+              <div className="h-3 w-3 rounded-full bg-[#2563EB]"></div>
+            </div>
+            <h2 className="text-lg font-bold text-white">
+              Integrity Checks
             </h2>
-            <p className="text-xs text-slate-300">
-              Every review ends with suggested talking points and questions to
-              send back to the carrier, helping you move files toward
-              resolution.
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Runs 8 structural rules: zero quantities, removal without replacement, drywall without paint. No subjective judgments.
             </p>
           </div>
+        </section>
+
+        <section className="rounded-2xl border-2 border-[#2563EB]/30 bg-[#2563EB]/5 p-12 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Analyze Your Estimate?
+          </h2>
+          <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
+            Upload your insurance estimate for structured analysis. Paste text or upload PDF.
+          </p>
+          <Link
+            href="/upload"
+            className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-10 py-4 text-lg font-semibold text-white shadow-lg shadow-[#2563EB]/40 hover:bg-[#1d4ed8] transition"
+          >
+            Start Your Estimate Review
+          </Link>
+          <p className="mt-6 text-sm text-slate-400">
+            No credit card required for preview • Full export requires account
+          </p>
         </section>
       </main>
 
-      <footer className="border-t border-slate-900/80 bg-slate-950/80">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-6 text-[11px] text-slate-500 sm:flex-row">
+      <footer className="border-t border-slate-800/50 bg-[#0F172A]/95">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} Estimate Review Pro. All rights reserved.</p>
-          <div className="flex gap-4">
+          <div className="flex gap-6">
             <Link
               href="/pricing"
-              className="hover:text-slate-300 hover:underline hover:underline-offset-4"
+              className="hover:text-slate-300 transition"
             >
               Pricing
             </Link>
             <Link
               href="/admin-login.html"
-              className="text-xs opacity-50 hover:opacity-100 hover:text-slate-300"
+              className="opacity-50 hover:opacity-100 hover:text-slate-300 transition"
             >
               Admin
             </Link>
@@ -236,4 +243,3 @@ export default function Home() {
     </div>
   );
 }
-
