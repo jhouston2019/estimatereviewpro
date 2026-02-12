@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-11-17.clover',
 });
 
 export async function POST(request: NextRequest) {
@@ -165,53 +165,16 @@ async function billOverage(teamId: string, overagePrice: number) {
       ? process.env.STRIPE_PRICE_PROFESSIONAL_OVERAGE!
       : process.env.STRIPE_PRICE_ENTERPRISE_OVERAGE!;
 
-    // Create usage record for metered billing
-    const subscriptionItem = subscription.items.data.find(
-      item => item.price.id === overagePriceId
-    );
-
-    if (subscriptionItem) {
-      // Report usage
-      await stripe.subscriptionItems.createUsageRecord(
-        subscriptionItem.id,
-        {
-          quantity: 1,
-          timestamp: Math.floor(Date.now() / 1000),
-          action: 'increment',
-        },
-        {
-          idempotencyKey: `overage_${teamId}_${Date.now()}`,
-        }
-      );
-    } else {
-      // Add overage price to subscription if not already added
-      await stripe.subscriptions.update(subscription.id, {
-        items: [
-          ...subscription.items.data.map(item => ({ id: item.id })),
-          { price: overagePriceId },
-        ],
-      });
-
-      // Then report usage
-      const updatedSubscription = await stripe.subscriptions.retrieve(subscription.id);
-      const newItem = updatedSubscription.items.data.find(
-        item => item.price.id === overagePriceId
-      );
-
-      if (newItem) {
-        await stripe.subscriptionItems.createUsageRecord(
-          newItem.id,
-          {
-            quantity: 1,
-            timestamp: Math.floor(Date.now() / 1000),
-            action: 'increment',
-          },
-          {
-            idempotencyKey: `overage_${teamId}_${Date.now()}`,
-          }
-        );
-      }
-    }
+    // Create invoice item for overage (simpler than metered billing)
+    await stripe.invoiceItems.create({
+      customer: subscription.customer as string,
+      amount: overagePrice * 100, // Convert to cents
+      currency: 'usd',
+      description: `Overage review - ${new Date().toLocaleDateString()}`,
+      subscription: subscription.id,
+    }, {
+      idempotencyKey: `overage_${teamId}_${Date.now()}`,
+    });
 
     console.log(`Billed overage for team ${teamId}: $${overagePrice}`);
   } catch (error) {

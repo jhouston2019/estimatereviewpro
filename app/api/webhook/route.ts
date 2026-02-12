@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-11-17.clover',
 });
 
 const supabase = createClient(
@@ -201,8 +201,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   // Handle successful recurring payment
-  if (invoice.subscription) {
-    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+  // Note: Invoice type may not have subscription property in latest Stripe types
+  // Cast to any to access it
+  const invoiceAny = invoice as any;
+  const subscriptionId = invoiceAny.subscription;
+  
+  if (subscriptionId) {
+    const subscription = await stripe.subscriptions.retrieve(
+      typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+    );
     
     // Reset usage for new billing period if needed
     const { data: team } = await supabase
@@ -219,8 +226,13 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   // Handle failed payment
-  if (invoice.subscription) {
-    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+  const invoiceAny = invoice as any;
+  const subscriptionId = invoiceAny.subscription;
+  
+  if (subscriptionId) {
+    const subscription = await stripe.subscriptions.retrieve(
+      typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+    );
     
     const { data: team } = await supabase
       .from('teams')
@@ -235,9 +247,5 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   }
 }
 
-// Disable body parsing for webhook
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Disable body parsing for webhook (Next.js App Router)
+// Body parsing is handled manually in the POST function
