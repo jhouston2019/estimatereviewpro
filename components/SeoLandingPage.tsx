@@ -68,9 +68,9 @@ export function SeoLandingPage({
           <p className="text-lg mb-10 text-slate-300 max-w-3xl mx-auto">{description}</p>
           <Link
             href="/upload"
-            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-full font-semibold text-lg hover:bg-[#1d4ed8] transition shadow-lg shadow-[#2563EB]/40"
+            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
-            {ctaLabel}
+            Start Structured Review
           </Link>
         </div>
       </section>
@@ -119,9 +119,9 @@ export function SeoLandingPage({
           </p>
           <Link
             href="/upload"
-            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-full font-semibold text-lg hover:bg-[#1d4ed8] transition shadow-lg shadow-[#2563EB]/40"
+            className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
-            {ctaLabel}
+            Start Structured Review
           </Link>
         </div>
       </section>

@@ -1,18 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Unified Design System Colors */
+  /* LOCKED DESIGN SYSTEM */
+  /* Primary Background */
   --background-primary: #0F172A;
+  
+  /* Surface */
   --surface: #F8FAFC;
+  
+  /* Primary Button */
   --accent-primary: #2563EB;
-  --accent-hover: #1d4ed8;
+  --accent-hover: #1E40AF;
+  
+  /* Warning */
   --warning: #F59E0B;
+  
+  /* Error */
   --error: #DC2626;
+  
+  /* Foreground */
   --foreground: #e2e8f0;
   
   /* Legacy support */
   --background: #0F172A;
-  --foreground: #e2e8f0;
 }
 
 @theme inline {
@@ -21,20 +31,56 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Unified brand colors */
+  /* Locked brand colors */
   --color-brand-primary: #2563EB;
-  --color-brand-hover: #1d4ed8;
+  --color-brand-hover: #1E40AF;
   --color-surface: #F8FAFC;
   --color-warning: #F59E0B;
   --color-error: #DC2626;
 }
 
+/* Typography System */
 body {
   background: #0F172A;
   color: var(--foreground);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 a {
   color: inherit;
 }
 
+/* Border Radius: 8px everywhere */
+button,
+input,
+select,
+textarea {
+  border-radius: 8px;
+}
+
+/* Spacing scale: 8px increments only */
+/* Use: gap-2 (8px), gap-4 (16px), gap-6 (24px), gap-8 (32px), etc. */
+
+/* Max content width: 1100px */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* No glow gradients */
+/* No neon edges */
+/* No inconsistent border shadows */
