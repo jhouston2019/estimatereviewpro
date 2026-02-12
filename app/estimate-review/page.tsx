@@ -60,8 +60,8 @@ export default function EstimateReviewPage() {
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/dashboard/upload"
-              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af]"
+              href="/upload"
+              className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
               Upload Estimate for Review
             </Link>
@@ -270,8 +270,8 @@ export default function EstimateReviewPage() {
               Upload your insurance estimate for expert-grade structural analysis.
             </p>
             <Link
-              href="/dashboard/upload"
-              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af]"
+              href="/upload"
+              className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
               Upload Estimate Now
             </Link>
