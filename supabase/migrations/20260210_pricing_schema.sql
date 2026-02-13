@@ -1,16 +1,11 @@
 -- Pricing & Billing Schema for Estimate Review Pro
+-- NOTE: Run 00_create_users_table.sql FIRST if users table doesn't exist
 
--- 1. Update users table
-ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_type TEXT CHECK (plan_type IN ('professional', 'enterprise'));
-ALTER TABLE users ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES teams(id);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT CHECK (role IN ('owner', 'member')) DEFAULT 'owner';
-
--- 2. Create teams table
+-- 1. Create teams table
 CREATE TABLE IF NOT EXISTS teams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   plan_type TEXT NOT NULL CHECK (plan_type IN ('professional', 'enterprise')),
   stripe_subscription_id TEXT UNIQUE,
   review_limit INTEGER NOT NULL,
@@ -19,10 +14,16 @@ CREATE TABLE IF NOT EXISTS teams (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Create reports table
+-- Add foreign key constraint to users.team_id (now that teams table exists)
+ALTER TABLE public.users 
+  DROP CONSTRAINT IF EXISTS users_team_id_fkey,
+  ADD CONSTRAINT users_team_id_fkey 
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE SET NULL;
+
+-- 2. Create reports table
 CREATE TABLE IF NOT EXISTS reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
   estimate_name TEXT NOT NULL,
   estimate_type TEXT,
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS reports (
   )
 );
 
--- 4. Create usage_tracking table
+-- 3. Create usage_tracking table
 CREATE TABLE IF NOT EXISTS usage_tracking (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
