@@ -40,7 +40,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="mb-20 text-center">
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-[48px]">
-            Structured Estimate Analysis<br />for Claims Teams
+            Structured Estimate Analysis
           </h1>
           <p className="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-slate-300 md:text-xl">
             Identify scope gaps, missing line items, and structural inconsistencies in under 2 minutes.
