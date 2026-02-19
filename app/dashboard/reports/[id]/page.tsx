@@ -6,14 +6,15 @@ import type { Report } from "@/lib/report-types";
 export default async function ReportDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const supabase = createSupabaseServerComponentClient();
 
   const { data } = await supabase
     .from("reports")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   const report = data as Report | null;

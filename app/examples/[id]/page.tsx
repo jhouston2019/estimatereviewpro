@@ -13,12 +13,14 @@ export const dynamic = 'force-dynamic';
 export default async function ExampleReportDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+  
   const { data } = await supabase
     .from("reports")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   const report = data as Report | null;
