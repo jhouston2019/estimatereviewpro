@@ -63,7 +63,7 @@ export default function Home() {
               href="/examples"
               className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-8 py-4 text-base font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
             >
-              See Example Reports
+              See Example Report
             </Link>
           </div>
 
