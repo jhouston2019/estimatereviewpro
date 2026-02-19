@@ -15,6 +15,12 @@ export default function Home() {
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium">
             <Link
+              href="/examples"
+              className="text-slate-200 hover:text-white transition"
+            >
+              Examples
+            </Link>
+            <Link
               href="/pricing"
               className="text-slate-200 hover:text-white transition"
             >
