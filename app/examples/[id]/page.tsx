@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
+import type { Report } from "@/lib/report-types";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,13 +15,15 @@ export default async function ExampleReportDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { data: report } = await supabase
+  const { data } = await supabase
     .from("reports")
     .select("*")
     .eq("id", params.id)
     .single();
 
-  if (!report) {
+  const report = data as Report | null;
+
+  if (!report || !report.result_json) {
     notFound();
   }
 

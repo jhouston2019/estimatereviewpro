@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import type { Report } from "@/lib/report-types";
 
 export default async function ReportsPage() {
   const supabase = createSupabaseServerComponentClient();
@@ -8,10 +9,12 @@ export default async function ReportsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: reports } = await supabase
+  const { data } = await supabase
     .from("reports")
     .select("*")
     .order("created_at", { ascending: false });
+
+  const reports = (data as Report[] | null) ?? [];
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat('en-US', {

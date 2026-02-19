@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import type { Report } from "@/lib/report-types";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,7 @@ const supabase = createClient(
 export const dynamic = 'force-dynamic';
 
 export default async function ExamplesPage() {
-  const { data: reports } = await supabase
+  const { data } = await supabase
     .from("reports")
     .select("*")
     .in('id', [
@@ -22,6 +23,8 @@ export default async function ExamplesPage() {
       '10000000-0000-0000-0000-000000000007',
     ])
     .order("created_at", { ascending: false });
+
+  const reports = (data as Report[] | null) ?? [];
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat('en-US', {
