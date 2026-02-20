@@ -6,6 +6,7 @@
  */
 
 const https = require('https');
+const pdfParse = require('pdf-parse');
 
 // Helper function to call other Netlify functions
 async function callFunction(functionName, data) {
@@ -48,11 +49,63 @@ async function callFunction(functionName, data) {
   });
 }
 
-// Extract text from PDF (simplified - in production use pdf-parse or similar)
-function extractTextFromPDF(pdfBuffer) {
-  // This is a placeholder. In production, use a proper PDF parsing library
-  // For now, we'll accept text directly
-  return pdfBuffer.toString('utf-8');
+// Extract text from PDF using pdf-parse
+async function extractTextFromPDF(pdfBuffer) {
+  try {
+    // Validate buffer
+    if (!Buffer.isBuffer(pdfBuffer)) {
+      throw new Error('Invalid PDF buffer');
+    }
+    
+    // Check size limit (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (pdfBuffer.length > maxSize) {
+      throw new Error(`PDF exceeds maximum size of ${maxSize / 1024 / 1024}MB`);
+    }
+    
+    console.log(`Parsing PDF: ${pdfBuffer.length} bytes`);
+    
+    // Parse PDF
+    const data = await pdfParse(pdfBuffer, {
+      max: 0, // Parse all pages
+      version: 'default'
+    });
+    
+    if (!data || !data.text) {
+      throw new Error('PDF parsing returned no text');
+    }
+    
+    console.log(`Extracted ${data.text.length} characters from ${data.numpages} pages`);
+    
+    // Check if text extraction was successful
+    if (data.text.trim().length < 50) {
+      console.warn('Low text extraction - possible scanned PDF');
+      return {
+        text: data.text,
+        pages: data.numpages,
+        warning: 'Low text content detected. PDF may be scanned or image-based.',
+        confidence: 'LOW'
+      };
+    }
+    
+    return {
+      text: data.text,
+      pages: data.numpages,
+      info: data.info || {},
+      confidence: 'HIGH'
+    };
+    
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+    
+    // Return structured error
+    return {
+      error: true,
+      message: error.message,
+      text: '',
+      confidence: 'FAILED'
+    };
+  }
 }
 
 // Parse line items from text
