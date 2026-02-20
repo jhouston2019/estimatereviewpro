@@ -33,7 +33,7 @@ export default function Home() {
               Log in
             </Link>
             <Link
-              href="/upload"
+              href="/pricing"
               className="rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1E40AF] transition"
             >
               Start Review
@@ -54,7 +54,7 @@ export default function Home() {
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/upload"
+              href="/pricing"
               className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-8 py-4 text-base font-semibold text-white hover:bg-[#1E40AF] transition"
             >
               Start Review

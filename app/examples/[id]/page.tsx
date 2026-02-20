@@ -122,7 +122,7 @@ export default async function ExampleReportDetailPage({
               Pricing
             </Link>
             <Link
-              href="/upload"
+              href="/pricing"
               className="rounded-full bg-[#2563EB] px-4 py-1.5 font-semibold text-white hover:bg-[#1E40AF]"
             >
               Start Review
