@@ -53,7 +53,6 @@ const TRADE_CODES: Record<string, string> = {
   'TMP': 'Temporary',
   'EQP': 'Equipment',
   'MIT': 'Mitigation',
-  'DRY': 'Drying',
   'DET': 'Detach/Reset',
   'STO': 'Storage',
   'PRO': 'Protection',
