@@ -50,11 +50,23 @@ export interface DeviationAnalysis {
 }
 
 /**
- * Compare estimate against report directives
+ * Calculate height from quantity rule
+ */
+function getHeightFromRule(rule: string): number {
+  if (rule === '2FT_CUT') return 2;
+  if (rule === '4FT_CUT') return 4;
+  if (rule === '6FT_CUT') return 6;
+  if (rule === 'FULL_HEIGHT') return 8; // Default ceiling height
+  return 8;
+}
+
+/**
+ * Compare estimate against report directives with TRUE GEOMETRY
  */
 function compareAgainstReport(
   estimate: StructuredEstimate,
-  report: ParsedReport
+  report: ParsedReport,
+  dimensions?: ExpectedQuantities
 ): Deviation[] {
   
   const deviations: Deviation[] = [];
@@ -73,8 +85,8 @@ function compareAgainstReport(
         tradeName: directive.tradeName,
         issue: `Expert report requires ${directive.tradeName} but trade not found in estimate`,
         reportDirective: directive.directive,
-        impactMin: 1000, // Conservative minimum
-        impactMax: 5000, // Conservative maximum
+        impactMin: 1000,
+        impactMax: 5000,
         severity: directive.priority === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
         calculation: 'Expert directive not addressed in estimate',
         source: 'REPORT'
@@ -82,8 +94,8 @@ function compareAgainstReport(
       continue;
     }
     
-    // Check quantity rule compliance
-    if (directive.quantityRule) {
+    // Check quantity rule compliance with TRUE GEOMETRY
+    if (directive.quantityRule && directive.trade === 'DRY') {
       const removalItems = tradeItems.filter(item => item.actionType === 'REMOVE');
       
       if (removalItems.length === 0 && directive.directiveType === 'REMOVE') {
@@ -100,35 +112,52 @@ function compareAgainstReport(
           calculation: 'Missing removal scope per expert directive',
           source: 'REPORT'
         });
+        continue;
       }
       
-      // Check cut height for drywall
-      if (directive.trade === 'DRY' && directive.quantityRule) {
+      // TRUE GEOMETRY CALCULATION
+      if (dimensions && dimensions.breakdown) {
         const totalRemovalQty = removalItems.reduce((sum, item) => sum + item.quantity, 0);
+        const reportHeight = getHeightFromRule(directive.quantityRule);
         
-        // Estimate expected quantity based on rule
-        let expectedMultiplier = 1.0;
-        if (directive.quantityRule === '2FT_CUT') expectedMultiplier = 0.25;
-        else if (directive.quantityRule === '4FT_CUT') expectedMultiplier = 0.50;
-        else if (directive.quantityRule === '6FT_CUT') expectedMultiplier = 0.75;
+        // Calculate perimeter from dimension data
+        const totalPerimeterLF = dimensions.breakdown.totals.totalPerimeterLF;
         
-        // If we have dimension data, we can be more precise
-        // For now, flag if quantity seems low
-        if (totalRemovalQty < 100 && directive.quantityRule !== '2FT_CUT') {
-          deviations.push({
-            deviationType: 'INSUFFICIENT_CUT_HEIGHT',
-            trade: 'DRY',
-            tradeName: 'Drywall',
-            issue: `Expert report requires ${directive.quantityRule} but estimate shows only ${totalRemovalQty} SF`,
-            reportDirective: directive.directive,
-            estimateValue: totalRemovalQty,
-            impactMin: 1500,
-            impactMax: 6000,
-            severity: 'HIGH',
-            calculation: `Insufficient scope based on ${directive.quantityRule} directive`,
-            source: 'REPORT'
-          });
+        // Estimate height from estimate quantity (reverse calculation)
+        // estimateSF = perimeter × height
+        const estimateHeight = totalPerimeterLF > 0 ? totalRemovalQty / totalPerimeterLF : 2;
+        
+        // Calculate expected SF based on report directive
+        const reportSF = totalPerimeterLF * reportHeight;
+        const estimateSF = totalPerimeterLF * estimateHeight;
+        const deltaSF = reportSF - estimateSF;
+        
+        if (deltaSF > 0) {
+          const costRange = calculateMissingItemExposure('DRY', deltaSF, 'SF', 'REPLACE_1/2');
+          
+          if (costRange) {
+            deviations.push({
+              deviationType: 'INSUFFICIENT_CUT_HEIGHT',
+              trade: 'DRY',
+              tradeName: 'Drywall',
+              issue: `Expert report requires ${reportHeight} ft height but estimate shows ${estimateHeight.toFixed(1)} ft`,
+              reportDirective: directive.directive,
+              estimateValue: totalRemovalQty,
+              expectedValue: reportSF,
+              impactMin: costRange.min,
+              impactMax: costRange.max,
+              severity: deltaSF > 400 ? 'CRITICAL' : 'HIGH',
+              calculation: `Perimeter ${totalPerimeterLF.toFixed(0)} LF × (${reportHeight} ft - ${estimateHeight.toFixed(1)} ft) = ${deltaSF.toFixed(0)} SF × $${COST_BASELINE['DRY_REPLACE_1/2'].min}-${COST_BASELINE['DRY_REPLACE_1/2'].max}/SF`,
+              source: 'REPORT'
+            });
+          }
         }
+      } else {
+        // NO DIMENSIONS - structured error
+        throw new Error(
+          'Cannot calculate height-based deviation without dimension data. ' +
+          'Provide room dimensions to enable deterministic height delta calculation.'
+        );
       }
     }
   }
@@ -137,7 +166,7 @@ function compareAgainstReport(
 }
 
 /**
- * Compare estimate against dimension measurements
+ * Compare estimate against dimension measurements with TRUE GEOMETRY
  */
 function compareAgainstDimensions(
   estimate: StructuredEstimate,
@@ -146,7 +175,7 @@ function compareAgainstDimensions(
   
   const deviations: Deviation[] = [];
   
-  // Compare drywall
+  // Compare drywall (walls + ceiling)
   const drywallItems = estimate.lineItems.filter(item => item.tradeCode === 'DRY');
   const estimateDrywallSF = drywallItems.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -154,7 +183,7 @@ function compareAgainstDimensions(
     const variance = dimensions.drywallSF - estimateDrywallSF;
     const variancePercent = (variance / dimensions.drywallSF) * 100;
     
-    if (variancePercent > 20) { // More than 20% shortfall
+    if (variancePercent > 20) {
       const costRange = calculateMissingItemExposure('DRY', variance, 'SF', 'REPLACE_1/2');
       
       if (costRange) {
@@ -169,10 +198,66 @@ function compareAgainstDimensions(
           impactMin: costRange.min,
           impactMax: costRange.max,
           severity: variancePercent > 40 ? 'CRITICAL' : 'HIGH',
-          calculation: `${variance.toFixed(0)} SF shortfall × $${COST_BASELINE['DRY_REPLACE_1/2'].min}-${COST_BASELINE['DRY_REPLACE_1/2'].max}/SF`,
+          calculation: `Wall SF ${dimensions.breakdown.totals.totalWallSF.toFixed(0)} + Ceiling SF ${dimensions.breakdown.totals.totalCeilingSF.toFixed(0)} = ${dimensions.drywallSF.toFixed(0)} SF expected, ${variance.toFixed(0)} SF shortfall × $${COST_BASELINE['DRY_REPLACE_1/2'].min}-${COST_BASELINE['DRY_REPLACE_1/2'].max}/SF`,
           source: 'DIMENSION'
         });
       }
+    }
+  }
+  
+  // Compare insulation (wall surface area)
+  const insulationItems = estimate.lineItems.filter(item => item.tradeCode === 'INS');
+  const estimateInsulationSF = insulationItems.reduce((sum, item) => sum + item.quantity, 0);
+  
+  if (dimensions.insulationSF > 0) {
+    const variance = dimensions.insulationSF - estimateInsulationSF;
+    const variancePercent = (variance / dimensions.insulationSF) * 100;
+    
+    if (variancePercent > 20) {
+      const costRange = calculateMissingItemExposure('INS', variance, 'SF', 'BATT_R13');
+      
+      if (costRange) {
+        deviations.push({
+          deviationType: 'DIMENSION_MISMATCH',
+          trade: 'INS',
+          tradeName: 'Insulation',
+          issue: `Estimate shows ${estimateInsulationSF} SF but dimensions indicate ${dimensions.insulationSF} SF needed`,
+          estimateValue: estimateInsulationSF,
+          expectedValue: dimensions.insulationSF,
+          dimensionBased: true,
+          impactMin: costRange.min,
+          impactMax: costRange.max,
+          severity: variancePercent > 40 ? 'HIGH' : 'MODERATE',
+          calculation: `Wall SF ${dimensions.breakdown.totals.totalWallSF.toFixed(0)} = ${dimensions.insulationSF.toFixed(0)} SF expected, ${variance.toFixed(0)} SF shortfall × $${COST_BASELINE['INS_BATT_R13'].min}-${COST_BASELINE['INS_BATT_R13'].max}/SF`,
+          source: 'DIMENSION'
+        });
+      }
+    }
+  }
+  
+  // Compare ceiling
+  const ceilingItems = estimate.lineItems.filter(item => item.tradeCode === 'CEI');
+  const estimateCeilingSF = ceilingItems.reduce((sum, item) => sum + item.quantity, 0);
+  
+  if (dimensions.ceilingSF > 0) {
+    const variance = dimensions.ceilingSF - estimateCeilingSF;
+    const variancePercent = (variance / dimensions.ceilingSF) * 100;
+    
+    if (variancePercent > 20) {
+      deviations.push({
+        deviationType: 'DIMENSION_MISMATCH',
+        trade: 'CEI',
+        tradeName: 'Ceiling',
+        issue: `Estimate shows ${estimateCeilingSF} SF but dimensions indicate ${dimensions.ceilingSF} SF needed`,
+        estimateValue: estimateCeilingSF,
+        expectedValue: dimensions.ceilingSF,
+        dimensionBased: true,
+        impactMin: variance * 3,
+        impactMax: variance * 6,
+        severity: variancePercent > 40 ? 'HIGH' : 'MODERATE',
+        calculation: `Ceiling SF ${dimensions.ceilingSF.toFixed(0)} expected, ${variance.toFixed(0)} SF shortfall × $3-6/SF`,
+        source: 'DIMENSION'
+      });
     }
   }
   
@@ -251,9 +336,9 @@ export function calculateDeviations(
   let reportDirectivesChecked = 0;
   let dimensionComparisonsPerformed = 0;
   
-  // Compare against report directives
+  // Compare against report directives (with dimensions for geometry)
   if (report && report.directives.length > 0) {
-    const reportDeviations = compareAgainstReport(estimate, report);
+    const reportDeviations = compareAgainstReport(estimate, report, dimensions);
     deviations.push(...reportDeviations);
     reportDirectivesChecked = report.directives.filter(d => d.measurable).length;
   }
