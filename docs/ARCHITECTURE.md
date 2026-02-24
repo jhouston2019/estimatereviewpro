@@ -1,528 +1,467 @@
-# 🏗️ ESTIMATE REVIEW PRO - SYSTEM ARCHITECTURE
+# ESTIMATE REVIEW PRO — ARCHITECTURE
 
-## OVERVIEW
-
-Estimate Review Pro is a serverless, procedural insurance estimate analysis system built on Netlify Functions with strict safety guardrails.
-
----
-
-## 🎯 DESIGN PRINCIPLES
-
-1. **Safety First** - Multiple layers of guardrails
-2. **Procedural, Not Conversational** - No free-form chat
-3. **Neutral Output** - Facts only, no opinions
-4. **Deterministic** - Temperature 0.2, consistent results
-5. **Fail-Safe** - Reject ambiguous or prohibited requests
+**Version:** 1.0.0  
+**Last Updated:** 2026-02-10  
+**Status:** Production-Ready
 
 ---
 
-## 📊 SYSTEM FLOW
+## SYSTEM OVERVIEW
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         USER INPUT                          │
-│  (upload-estimate.html - Structured form with dropdowns)   │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│              STEP 1: GUARDRAILS CHECK                       │
-│         (estimate-risk-guardrails.js)                       │
-│                                                             │
-│  • Block prohibited phrases (40+)                          │
-│  • Block negotiation requests                              │
-│  • Block coverage interpretation                           │
-│  • Block legal advice requests                             │
-│  • Pattern detection for sneaky attempts                   │
-│                                                             │
-│  ❌ FAIL → Return 403 Error                                │
-│  ✅ PASS → Continue to Step 2                              │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│              STEP 2: CLASSIFICATION                         │
-│            (estimate-classifier.js)                         │
-│                                                             │
-│  • Keyword-based scoring                                   │
-│  • Property / Auto / Commercial                            │
-│  • Minimum 3 keywords required                             │
-│  • Ambiguity detection (within 2 points)                   │
-│                                                             │
-│  ❌ FAIL → Return 400 Error (Unknown/Ambiguous)            │
-│  ✅ PASS → Continue to Step 3                              │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│           STEP 3: LINE ITEM ANALYSIS                        │
-│         (estimate-lineitem-analyzer.js)                     │
-│                                                             │
-│  • Check for expected categories                           │
-│  • Detect missing categories                               │
-│  • Detect zero-quantity items                              │
-│  • Detect under-scoped items                               │
-│  • Generate neutral observations                           │
-│                                                             │
-│  ✅ Always succeeds → Continue to Step 4                   │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│            STEP 4: OUTPUT FORMATTING                        │
-│          (estimate-output-formatter.js)                     │
-│                                                             │
-│  • Build 5-section report:                                 │
-│    1. Summary                                              │
-│    2. Included Items                                       │
-│    3. Potential Omissions                                  │
-│    4. Potential Under-Scoping                              │
-│    5. Limitations                                          │
-│                                                             │
-│  • Enforce neutral language                                │
-│  • Add disclaimers                                         │
-│                                                             │
-│  ✅ Always succeeds → Return to user                       │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    RESULTS DISPLAY                          │
-│         (upload-estimate.html - Results section)            │
-│                                                             │
-│  • Show classification                                     │
-│  • Show full report                                        │
-│  • Download button                                         │
-└─────────────────────────────────────────────────────────────┘
-```
+Estimate Review Pro (ERP) is an **enforcement-grade claim intelligence platform** that transforms multi-modal inputs (Xactimate estimates, dimension data, expert reports, photos) into **deterministic financial exposure analysis** with structured deviation detection.
+
+### Core Principle
+
+**Deterministic First, AI Overlay Optional**
+
+All financial calculations, geometry math, and deviation detection are **rule-based and reproducible**. AI is used only for:
+- Classification (photo damage types)
+- Executive summary generation (non-financial)
+- Fallback when deterministic parsing fails
 
 ---
 
-## 🔧 COMPONENT ARCHITECTURE
+## ARCHITECTURE LAYERS
 
-### Frontend Layer
+### 1. INPUT LAYER
 
+**Files:**
+- `lib/security-guards.ts` — File validation, sanitization, threat detection
+- `lib/validation-engine.ts` — Input structure validation
+
+**Responsibilities:**
+- File type/size/MIME validation
+- Filename sanitization (prevent directory traversal)
+- Executable content detection
+- CSV structure validation
+- Input gating (estimate required, reject standalone inputs)
+
+**Constraints:**
+- Max file size: 10 MB
+- Allowed types: PDF, TXT, CSV, JPG, PNG
+- Max rooms: 50
+- Max line items: 1,000
+- Max photos: 20
+
+---
+
+### 2. PARSING LAYER
+
+**Files:**
+- `lib/xactimate-structural-parser.ts` — Column-mapped estimate parsing
+- `lib/report-parser.ts` — Expert report directive extraction
+- `lib/matterport-adapter.ts` — Dimension data ingestion
+
+**Responsibilities:**
+- Convert raw text/CSV into structured JSON
+- Extract trade codes, quantities, units, prices
+- Parse expert directives with measurability flags
+- Map Matterport CSV to room dimensions
+
+**Output:**
+- `StructuredEstimate` (line items, totals, parse confidence)
+- `ParsedReport` (directives, priority, measurability)
+- `DimensionInput` (rooms with length/width/height)
+
+**Constraints:**
+- Parse confidence ≥ 75% required
+- Column alignment detection mandatory
+- No guessing of quantities
+- Reject malformed data
+
+---
+
+### 3. CALCULATION LAYER
+
+**Files:**
+- `lib/dimension-engine.ts` — Expected quantity calculations
+- `lib/per-room-deviation-engine.ts` — Per-room geometry deviation
+- `lib/height-extraction-engine.ts` — Height validation & extraction
+- `lib/exposure-engine.ts` — Financial exposure modeling
+- `lib/loss-expectation-engine.ts` — Severity-based loss modeling
+- `lib/trade-completeness-engine.ts` — Trade scope scoring
+- `lib/cost-baseline.ts` — Regional cost database
+
+**Responsibilities:**
+
+#### Dimension Engine
+- Calculate expected quantities from room dimensions
+- Wall SF = Perimeter × Height
+- Ceiling SF = Length × Width
+- Floor SF = Length × Width
+- Perimeter LF = 2 × (Length + Width)
+- Preserve per-room data (no aggregation loss)
+
+#### Per-Room Deviation Engine
+- **Per-room iteration** (not aggregate shortcuts)
+- Map estimate items to specific rooms
+- Calculate height delta per room: `Perimeter × (ReportHeight - EstimateHeight)`
+- Sum deltas across rooms
+- Validate extracted height ≤ room ceiling height
+- Handle unmapped items with aggregate fallback
+- Zero perimeter guard
+- Negative delta cap (no negative exposure)
+
+#### Height Extraction Engine
+- Extract height from description (e.g., "Remove drywall 4 ft")
+- Calculate height from quantity: `Height = Quantity SF ÷ Perimeter LF`
+- Validate extracted height ≤ room ceiling height
+- Reject if validation fails (structured error)
+- Confidence scoring (HIGH/MEDIUM/LOW)
+
+#### Exposure Engine
+- Calculate min/max cost ranges using `COST_BASELINE`
+- No static fallback values
+- Tie exposure to parsed quantities or dimension deltas
+- Reject if neither exists
+
+#### Cost Baseline
+- Version: 1.0.0 (2026-02-10)
+- Region: US_NATIONAL_AVERAGE
+- 30+ trade items with min/max costs
+- Logged in every report
+
+---
+
+### 4. INTELLIGENCE LAYER
+
+**Files:**
+- `lib/claim-intelligence-engine.ts` — Unified orchestration
+- `lib/photo-analysis-engine.ts` — GPT-4 Vision classification
+
+**Responsibilities:**
+- Orchestrate all engines
+- Combine deviation + exposure + code risk
+- Calculate consolidated risk score (0-100)
+- Generate executive summary (neutral tone)
+- Classify photo damage (no quantity inference)
+
+**Risk Score Formula:**
 ```
-public/upload-estimate.html
-├── Warning Banner (What tool does NOT do)
-├── Form Section
-│   ├── Estimate Type Dropdown (Property/Auto/Commercial)
-│   ├── Damage Type Dropdown (Water/Fire/Wind/etc)
-│   ├── Estimate Text Area (paste only, no file upload yet)
-│   └── Acknowledgement Checkbox
-├── Limitations Section
-└── Results Display Section
-```
+Base = (100 - StructuralIntegrity) × 0.30
+     + BaselineExposure% × 0.25
+     + DeviationExposure% × 0.30
+     + CodeRisk% × 0.15
 
-### Backend Layer (Netlify Functions)
+Multiplier = CriticalDeviations > 0 ? 1.2 : 1.0
 
-```
-netlify/functions/
-├── analyze-estimate.js (Orchestrator)
-│   ├── Calls: estimate-risk-guardrails.js
-│   ├── Calls: estimate-classifier.js
-│   ├── Calls: estimate-lineitem-analyzer.js
-│   └── Calls: estimate-output-formatter.js
-│
-├── estimate-risk-guardrails.js (Safety)
-│   ├── Prohibited phrases list
-│   ├── Prohibited requests list
-│   └── Pattern detection
-│
-├── estimate-classifier.js (Classification)
-│   ├── Property keywords
-│   ├── Auto keywords
-│   ├── Commercial keywords
-│   └── Scoring algorithm
-│
-├── estimate-lineitem-analyzer.js (Analysis)
-│   ├── Expected categories by type
-│   ├── Under-scoping patterns
-│   └── Observation generator
-│
-├── estimate-output-formatter.js (Formatting)
-│   ├── Report structure
-│   ├── Neutral language enforcement
-│   └── Limitations builder
-│
-├── generate-estimate-review.js (AI Alternative)
-│   ├── OpenAI GPT-4 integration
-│   ├── Temperature 0.2
-│   ├── Constrained system prompt
-│   └── Output safety scanning
-│
-└── test-safety.js (Testing)
-    ├── 10 test cases
-    └── Automated validation
+ConsolidatedRiskScore = min(Base × Multiplier, 100)
 ```
 
 ---
 
-## 🔒 SAFETY ARCHITECTURE
+### 5. OUTPUT LAYER
 
-### Multi-Layer Defense
+**Files:**
+- `lib/output-validator.ts` — Output structure validation
+- `lib/pdf-generator.ts` — Professional PDF reports
+- `lib/excel-export.ts` — Excel workbook generation
+- `lib/claim-letter-generator.ts` — Neutral claim letters
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    LAYER 1: INPUT                           │
-│                  Frontend Validation                        │
-│                                                             │
-│  • Required fields                                         │
-│  • Structured dropdowns only                               │
-│  • No free-form question fields                            │
-│  • Explicit warnings                                       │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    LAYER 2: GUARDRAILS                      │
-│                  Content Filtering                          │
-│                                                             │
-│  • 40+ prohibited phrases                                  │
-│  • Pattern detection                                       │
-│  • Request type validation                                 │
-│  • Immediate rejection (403)                               │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  LAYER 3: CLASSIFICATION                    │
-│                  Document Validation                        │
-│                                                             │
-│  • Keyword-based scoring                                   │
-│  • Minimum threshold (3 keywords)                          │
-│  • Ambiguity detection                                     │
-│  • Unknown type rejection (400)                            │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   LAYER 4: PROCESSING                       │
-│                  Neutral Analysis Only                      │
-│                                                             │
-│  • Factual observations only                               │
-│  • No pricing opinions                                     │
-│  • No recommendations                                      │
-│  • No coverage interpretation                              │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    LAYER 5: OUTPUT                          │
-│                  Language Filtering                         │
-│                                                             │
-│  • Neutral language only                                   │
-│  • Required limitations section                            │
-│  • No "should", "must", "entitled"                         │
-│  • Clear disclaimers                                       │
-└─────────────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   LAYER 6: AI SAFETY                        │
-│              (When using AI generation)                     │
-│                                                             │
-│  • Temperature 0.2 (deterministic)                         │
-│  • Constrained system prompt                               │
-│  • Output scanning for prohibited phrases                  │
-│  • Regeneration if violations found                        │
-└─────────────────────────────────────────────────────────────┘
-```
+**Responsibilities:**
+- Validate all numeric fields (no NaN, no undefined)
+- Validate exposure ranges (min ≤ max)
+- Validate risk score (0-100)
+- Lock PDF format (fixed layout, typography, sections)
+- Generate Excel with multiple sheets
+- Generate claim letter (fact-based, neutral)
+
+**Constraints:**
+- No undefined/NaN in output
+- Risk score capped at 100
+- Exposure ranges validated
+- PDF format locked (no dynamic changes)
 
 ---
 
-## 🗄️ DATA FLOW
+### 6. INFRASTRUCTURE LAYER
 
-### Request Flow
+**Files:**
+- `lib/audit-trail.ts` — Enterprise audit logging
+- `lib/telemetry.ts` — Performance tracking
+- `lib/performance-guards.ts` — Timeouts, rate limiting
+- `lib/structured-errors.ts` — Unified error handling
 
-```
-User Input (JSON)
-    │
-    ├─ estimateText: string
-    ├─ lineItems: string[] (optional)
-    ├─ userInput: string (optional)
-    └─ metadata: object
-        ├─ estimateType: string
-        └─ damageType: string
-    │
-    ▼
-Guardrails Check
-    │
-    ├─ PASS → Continue
-    └─ FAIL → 403 Error
-    │
-    ▼
-Classification
-    │
-    ├─ classification: "PROPERTY" | "AUTO" | "COMMERCIAL"
-    ├─ confidence: "HIGH" | "MEDIUM"
-    └─ scores: { property, auto, commercial }
-    │
-    ▼
-Line Item Analysis
-    │
-    ├─ includedCategories: array
-    ├─ missingCategories: array
-    ├─ zeroQuantityItems: array
-    ├─ potentialUnderScoping: array
-    └─ observations: array
-    │
-    ▼
-Output Formatting
-    │
-    ├─ summary: string
-    ├─ includedItems: string
-    ├─ potentialOmissions: string
-    ├─ potentialUnderScoping: string
-    └─ limitations: string
-    │
-    ▼
-Response (JSON)
-    │
-    ├─ status: "SUCCESS"
-    ├─ classification: object
-    ├─ analysis: object
-    ├─ report: object
-    └─ timestamp: string
-```
+**Responsibilities:**
+
+#### Audit Trail
+- Log parse confidence
+- Log room-level perimeter/heights
+- Log delta calculations with formulas
+- Log cost per unit
+- Log exposure math
+- Log risk score breakdown
+- Log AI retry count
+- Return full `auditTrail` object
+
+#### Telemetry
+- Track execution time per engine
+- Track parse success/rejection rates
+- Track deviation frequency
+- Track average exposure
+- Persist to `logs/telemetry/metrics.jsonl`
+- No silent failures
+
+#### Performance Guards
+- Max processing time: 30 seconds
+- Timeout wrapper for all async operations
+- Rate limiting: 10 requests/minute per IP
+- Graceful AI failure (fallback to deterministic)
+- Concurrent request guard
+
+#### Structured Errors
+- Unified format: `{ errorCode, errorType, message, remediation, timestamp }`
+- No raw stack traces in production
+- User-friendly remediation guidance
+- Error type classification
 
 ---
 
-## 🌐 DEPLOYMENT ARCHITECTURE
+## API ENDPOINTS
 
-### Netlify Serverless
+### POST `/api/claim-intelligence`
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      NETLIFY CDN                            │
-│                  (Global Edge Network)                      │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-         ┌───────────────┴───────────────┐
-         │                               │
-         ▼                               ▼
-┌──────────────────┐          ┌──────────────────┐
-│  Static Assets   │          │  Serverless      │
-│                  │          │  Functions       │
-│  • HTML          │          │                  │
-│  • CSS           │          │  • Node.js 20    │
-│  • JavaScript    │          │  • Auto-scaling  │
-│  • Images        │          │  • Pay-per-use   │
-└──────────────────┘          └────────┬─────────┘
-                                       │
-                         ┌─────────────┴─────────────┐
-                         │                           │
-                         ▼                           ▼
-              ┌────────────────────┐      ┌────────────────────┐
-              │  OpenAI API        │      │  Environment Vars  │
-              │  (GPT-4)           │      │                    │
-              │  Temperature: 0.2  │      │  • OPENAI_API_KEY  │
-              └────────────────────┘      │  • URL             │
-                                          │  • NODE_ENV        │
-                                          └────────────────────┘
+**Input:**
+```json
+{
+  "estimateText": "string (REQUIRED)",
+  "dimensions": {
+    "rooms": [
+      { "name": "string", "length": number, "width": number, "height": number }
+    ]
+  },
+  "expertReport": "string",
+  "photos": ["base64 string"]
+}
 ```
 
----
-
-## 📦 TECHNOLOGY STACK
-
-### Runtime
-- **Node.js 20** - JavaScript runtime
-- **Netlify Functions** - Serverless compute
-
-### Frontend
-- **HTML5** - Markup
-- **CSS3** - Styling (no frameworks)
-- **Vanilla JavaScript** - No React/Vue for upload page
-
-### Backend
-- **Next.js** - Framework (for existing app)
-- **OpenAI SDK** - AI integration
-- **HTTP/HTTPS** - Inter-function communication
-
-### Optional
-- **Supabase** - Authentication (not yet implemented)
-- **Stripe** - Payments (not yet implemented)
-
----
-
-## 🔄 FUNCTION ORCHESTRATION
-
-### Main Orchestrator (analyze-estimate.js)
-
-```javascript
-async function analyzeEstimate(input) {
-  // Step 1: Guardrails
-  const guardrails = await callFunction('estimate-risk-guardrails', {
-    text: input.estimateText,
-    userInput: input.userInput
-  });
-  
-  if (guardrails.statusCode !== 200) {
-    return error(403, guardrails.data);
+**Output:**
+```json
+{
+  "success": true,
+  "data": {
+    "parseConfidence": 0.95,
+    "structuralIntegrityScore": 72,
+    "consolidatedRiskScore": 68,
+    "baselineExposure": { "min": 5000, "max": 15000 },
+    "deviationExposure": { "min": 8000, "max": 20000 },
+    "codeRiskExposure": { "min": 2000, "max": 6000 },
+    "deviations": [...],
+    "classification": {...},
+    "auditTrail": {...},
+    "metadata": {...}
   }
-  
-  // Step 2: Classification
-  const classification = await callFunction('estimate-classifier', {
-    text: input.estimateText,
-    lineItems: input.lineItems
-  });
-  
-  if (classification.statusCode !== 200) {
-    return error(400, classification.data);
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "errorCode": "LOW_PARSE_CONFIDENCE",
+    "errorType": "VALIDATION_ERROR",
+    "message": "Parse confidence 68.5% below minimum threshold (75%)",
+    "remediation": "Verify estimate format is Xactimate standard...",
+    "timestamp": "2026-02-10T12:34:56.789Z"
   }
-  
-  // Step 3: Analysis
-  const analysis = await callFunction('estimate-lineitem-analyzer', {
-    lineItems: input.lineItems,
-    classification: classification.data.classification
-  });
-  
-  // Step 4: Formatting
-  const report = await callFunction('estimate-output-formatter', {
-    analysis: analysis.data.analysis,
-    classification: classification.data.classification
-  });
-  
-  return success(200, {
-    classification: classification.data,
-    analysis: analysis.data,
-    report: report.data.report
-  });
 }
 ```
 
 ---
 
-## 🧪 TESTING ARCHITECTURE
-
-### Test Suite (test-safety.js)
+## DATA FLOW
 
 ```
-Test Cases (10 total)
-├── Valid Estimates (2)
-│   ├── Property estimate → Should pass
-│   └── Auto estimate → Should pass
-│
-├── Prohibited Content (6)
-│   ├── Negotiation request → Should fail (403)
-│   ├── Coverage question → Should fail (403)
-│   ├── Legal advice → Should fail (403)
-│   ├── Pricing opinion → Should fail (403)
-│   ├── Demand letter → Should fail (403)
-│   └── Entitlement language → Should fail (403)
-│
-└── Invalid Documents (2)
-    ├── Unknown type → Should fail (400)
-    └── Ambiguous type → Should fail (400)
+1. REQUEST
+   ↓
+2. SECURITY VALIDATION (sanitize, MIME check, size limit)
+   ↓
+3. INPUT GATING (estimate required, validate structure)
+   ↓
+4. PARSING
+   ├─ Xactimate Parser → StructuredEstimate
+   ├─ Report Parser → ParsedReport
+   └─ Dimension Adapter → ExpectedQuantities
+   ↓
+5. VALIDATION (parse confidence ≥ 75%, no NaN, no zero perimeter)
+   ↓
+6. CALCULATION
+   ├─ Dimension Engine → Expected quantities per room
+   ├─ Per-Room Deviation Engine → Geometry-based deltas
+   ├─ Exposure Engine → Financial impact ranges
+   ├─ Loss Expectation Engine → Severity inference
+   ├─ Trade Completeness Engine → Scope scoring
+   └─ Photo Analysis Engine → Damage classification
+   ↓
+7. INTELLIGENCE SYNTHESIS
+   ├─ Consolidated Risk Score (0-100)
+   ├─ Executive Summary (neutral)
+   └─ Audit Trail (full transparency)
+   ↓
+8. OUTPUT VALIDATION (no NaN, ranges valid, score 0-100)
+   ↓
+9. RESPONSE (JSON, PDF, Excel, Claim Letter)
 ```
 
 ---
 
-## 📊 PERFORMANCE CHARACTERISTICS
+## PERFORMANCE CHARACTERISTICS
 
-### Function Execution Times (Estimated)
-
-| Function | Avg Time | Max Time |
-|----------|----------|----------|
-| estimate-classifier | 50ms | 200ms |
-| estimate-risk-guardrails | 30ms | 100ms |
-| estimate-lineitem-analyzer | 100ms | 500ms |
-| estimate-output-formatter | 50ms | 200ms |
-| analyze-estimate (total) | 500ms | 2s |
-| generate-estimate-review (AI) | 3s | 10s |
-
-### Resource Usage
-
-- **Memory:** 128MB - 256MB per function
-- **CPU:** Auto-scaled by Netlify
-- **Bandwidth:** ~50KB per request (without AI)
-- **Bandwidth:** ~5KB per request (with AI, due to tokens)
+| Metric | Target | Enforcement |
+|--------|--------|-------------|
+| Max processing time | 30 seconds | Hard timeout |
+| Parse time | < 10 seconds | Timeout wrapper |
+| Dimension calculation | < 5 seconds | Timeout wrapper |
+| Deviation calculation | < 10 seconds | Timeout wrapper |
+| AI vision (per photo) | < 15 seconds | Graceful fallback |
+| Rate limit | 10 req/min per IP | Enforced |
+| Max file size | 10 MB | Rejected |
+| Max rooms | 50 | Rejected |
 
 ---
 
-## 🔐 SECURITY ARCHITECTURE
+## SECURITY POSTURE
+
+### Threat Model
+
+1. **Malicious File Upload**
+   - Mitigation: MIME validation, executable detection, size limits
+2. **Directory Traversal**
+   - Mitigation: Filename sanitization, path.basename()
+3. **Injection Attacks**
+   - Mitigation: Input sanitization, no eval(), no shell commands
+4. **DoS via Large Files**
+   - Mitigation: Size limits, timeout wrappers, rate limiting
+5. **Data Exfiltration**
+   - Mitigation: No file writes to user-controlled paths
+
+### Security Controls
+
+- File type whitelist
+- MIME type validation
+- Executable content detection
+- Filename sanitization
+- Rate limiting per IP
+- Timeout enforcement
+- Input size limits
+- CSV structure validation
+
+---
+
+## SCALABILITY
+
+### Current Limits
+- Single-threaded Node.js
+- In-memory processing
+- File-based telemetry
+
+### Scaling Path
+1. **Horizontal:** Deploy multiple instances behind load balancer
+2. **Async Processing:** Queue large files for background processing
+3. **Database:** Migrate telemetry to PostgreSQL/TimescaleDB
+4. **Caching:** Cache parsed estimates by hash
+5. **CDN:** Serve static assets (PDFs, Excel) via CDN
+
+---
+
+## DEPLOYMENT
 
 ### Environment Variables
-- Stored in Netlify (encrypted)
-- Never exposed to client
-- Rotated regularly
+```
+OPENAI_API_KEY=sk-...
+SUPABASE_URL=https://...
+SUPABASE_ANON_KEY=...
+NODE_ENV=production
+```
 
-### API Keys
-- OpenAI API key (backend only)
-- No client-side API keys
-- Rate limiting recommended
+### Build
+```bash
+npm run build
+```
 
-### HTTPS
-- Enforced by Netlify
-- Auto SSL certificates
-- TLS 1.2+
+### Run
+```bash
+npm start
+```
 
-### CORS
-- Configured per function
-- Restrictive by default
-- No wildcard origins in production
-
----
-
-## 💰 COST ARCHITECTURE
-
-### Netlify Free Tier
-- 100GB bandwidth/month
-- 125k function invocations/month
-- 100 hours function runtime/month
-
-### OpenAI Costs
-- ~$0.03 per analysis (GPT-4)
-- ~$0.01 per analysis (GPT-3.5-turbo)
-
-### Scaling Costs
-- 1,000 analyses/month = ~$30 (OpenAI only)
-- 10,000 analyses/month = ~$300 + Netlify Pro ($19)
+### Health Check
+```
+GET /api/health
+```
 
 ---
 
-## 🚀 SCALABILITY
+## MONITORING
 
-### Horizontal Scaling
-- Netlify auto-scales functions
-- No server management
-- Pay per invocation
+### Key Metrics
+- Parse success rate
+- Parse rejection rate
+- Average processing time
+- Deviation detection rate
+- Average exposure
+- Average risk score
+- Error rate by type
 
-### Vertical Scaling
-- Increase function memory if needed
-- Optimize function code
-- Cache responses (future enhancement)
+### Logs
+- `logs/telemetry/metrics.jsonl` — Request metrics
+- `logs/telemetry/events.jsonl` — Detailed events
 
-### Bottlenecks
-- OpenAI API rate limits (primary)
-- Function cold starts (minimal)
-- Network latency (minimal)
-
----
-
-## 🔮 FUTURE ENHANCEMENTS
-
-### Phase 5 (Planned)
-- PDF upload support
-- Multi-page estimates
-- Comparison mode
-- PDF export
-- Usage analytics
-- API authentication
-- Rate limiting
-- Batch processing
+### Alerts
+- Processing time > 25 seconds
+- Parse success rate < 80%
+- Error rate > 5%
 
 ---
 
-## 📚 REFERENCES
+## MAINTENANCE
 
-- [Netlify Functions Docs](https://docs.netlify.com/functions/overview/)
-- [OpenAI API Docs](https://platform.openai.com/docs)
-- [Next.js Docs](https://nextjs.org/docs)
+### Cost Baseline Updates
+1. Edit `lib/cost-baseline.ts`
+2. Increment `COST_BASELINE_VERSION`
+3. Update `COST_BASELINE_DATE`
+4. Run regression tests
+5. Deploy
+
+### Adding New Trade Codes
+1. Add to `TRADE_CODE_MAP` in `xactimate-structural-parser.ts`
+2. Add cost baseline in `cost-baseline.ts`
+3. Update deviation engine if geometry-based
+4. Add test cases
+5. Update documentation
 
 ---
 
-**Architecture designed for safety, scalability, and simplicity.** 🏗️
+## DEPENDENCIES
 
+### Core
+- Next.js 14
+- React 18
+- TypeScript 5
+- Tailwind CSS
 
+### Parsing
+- pdf-parse (PDF extraction)
+- Zod (schema validation)
+
+### AI
+- OpenAI GPT-4 Turbo Preview
+- OpenAI GPT-4 Vision Preview
+
+### Infrastructure
+- Supabase (database, auth)
+- Stripe (payments)
+
+---
+
+## VERSION HISTORY
+
+### 1.0.0 (2026-02-10)
+- Enterprise hardening complete
+- Per-room geometry validation
+- Height extraction with validation
+- Structured error handling
+- Performance guards
+- Security hardening
+- Telemetry system
+- Comprehensive documentation

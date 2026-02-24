@@ -1,8 +1,12 @@
 /**
  * COST BASELINE DATABASE
  * Regional min/max costs for exposure calculations
- * Version: 2026.02
+ * Version: 1.0.0 (2026.02)
  */
+
+export const COST_BASELINE_VERSION = '1.0.0';
+export const COST_BASELINE_DATE = '2026-02-10';
+export const COST_BASELINE_REGION = 'US_NATIONAL_AVERAGE';
 
 export interface CostRange {
   min: number;
