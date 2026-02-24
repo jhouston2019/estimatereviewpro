@@ -35,7 +35,8 @@ export interface ExpectedQuantities {
   ceilingSF: number;
   insulationSF: number;
   breakdown: {
-    byRoom: RoomQuantities[];
+    rooms: RoomQuantities[]; // Primary field
+    byRoom: RoomQuantities[]; // Alias for backward compatibility
     totals: {
       totalWallSF: number;
       totalCeilingSF: number;
@@ -51,6 +52,9 @@ export interface RoomQuantities {
   ceilingSF: number;
   floorSF: number;
   perimeterLF: number;
+  height: number; // Preserve actual room height
+  length: number;
+  width: number;
 }
 
 export interface ScopeAdjustment {
@@ -92,7 +96,10 @@ function calculateRoomQuantities(room: Room): RoomQuantities {
     wallSF: Math.round(wallSF * 100) / 100,
     ceilingSF: Math.round(ceilingSF * 100) / 100,
     floorSF: Math.round(floorSF * 100) / 100,
-    perimeterLF: Math.round(perimeterLF * 100) / 100
+    perimeterLF: Math.round(perimeterLF * 100) / 100,
+    height: room.height,
+    length: room.length,
+    width: room.width
   };
 }
 
@@ -213,7 +220,8 @@ export function calculateExpectedQuantities(
     ceilingSF: Math.round(ceilingSF * 100) / 100,
     insulationSF: Math.round(insulationSF * 100) / 100,
     breakdown: {
-      byRoom: adjusted,
+      rooms: adjusted, // Changed from byRoom to rooms for consistency
+      byRoom: adjusted, // Keep both for backward compatibility
       totals: {
         totalWallSF: Math.round(totalWallSF * 100) / 100,
         totalCeilingSF: Math.round(totalCeilingSF * 100) / 100,

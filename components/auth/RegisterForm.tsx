@@ -39,7 +39,7 @@ export function RegisterForm() {
         return;
       }
 
-      const plan = searchParams.get("plan");
+      const plan = searchParams?.get("plan");
       const redirectTo = plan ? `/dashboard?plan=${plan}` : "/dashboard";
       router.push(redirectTo);
       router.refresh();

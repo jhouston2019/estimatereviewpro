@@ -6,9 +6,12 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { generateStructuralReport } from '../../lib/structural-unified-report-engine';
+import { normalizeInput } from '../../lib/input-normalizer';
+import { detectFormat } from '../../lib/format-detector';
+import { parseStructuredEstimate } from '../../lib/xactimate-structural-parser';
 import { calculateExpectedQuantities, validateDimensionInput, DimensionInput } from '../../lib/dimension-engine';
 import { parseExpertReport, ParsedReport } from '../../lib/report-parser';
-import { calculateDeviations } from '../../lib/deviation-engine';
+import { calculateRoomAwareDeviations } from '../../lib/room-aware-deviation-engine';
 import { analyzePhotos } from '../../lib/photo-analysis-engine';
 import { generateClaimIntelligence } from '../../lib/claim-intelligence-engine';
 
@@ -34,10 +37,10 @@ interface ClaimIntelligenceResponse {
     };
     tradeScores: any;
     codeRisks: any;
-    dimensionVariances: any;
-    reportDeviations: any;
-    photoFlags: any;
+    deviations: any; // Room-aware deviation details
     consolidatedRiskScore: number;
+    classification: any;
+    photoAnalysis?: any;
     auditTrail: any;
   };
   error?: {
@@ -120,25 +123,32 @@ export default async function handler(
     // ========================================
     
     console.log('[1/7] Parsing estimate...');
-    const structuredReport = await generateStructuralReport(estimateText, {
-      includeAI: false, // Deterministic only
-      maxProcessingTime: 20000
-    });
+    
+    // Parse estimate directly for deviation engine
+    const normalized = normalizeInput(estimateText, 'TEXT');
+    const formatDetection = detectFormat(normalized);
+    const structuredEstimate = parseStructuredEstimate(normalized, formatDetection);
     
     // Reject if parse confidence too low
-    if (structuredReport.findings.parseConfidence < 0.85) {
+    if (structuredEstimate.parseConfidence < 0.85) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'LOW_PARSE_CONFIDENCE',
-          message: `Parse confidence ${(structuredReport.findings.parseConfidence * 100).toFixed(1)}% below threshold (85%)`,
+          message: `Parse confidence ${(structuredEstimate.parseConfidence * 100).toFixed(1)}% below threshold (85%)`,
           details: {
-            parseConfidence: structuredReport.findings.parseConfidence,
-            parsedLineItems: structuredReport.findings.parsedLineItems
+            parseConfidence: structuredEstimate.parseConfidence,
+            parsedLineItems: structuredEstimate.lineItems.length
           }
         }
       });
     }
+    
+    // Also generate full structural report for unified output
+    const structuredReport = await generateStructuralReport(estimateText, {
+      includeAI: false, // Deterministic only
+      maxProcessingTime: 20000
+    });
     
     // ========================================
     // PHASE 3: DIMENSION ENGINE (IF PROVIDED)
@@ -190,21 +200,21 @@ export default async function handler(
     }
     
     // ========================================
-    // PHASE 5: DEVIATION ENGINE (DETERMINISTIC)
+    // PHASE 5: DEVIATION ENGINE (ROOM-AWARE, DETERMINISTIC)
     // ========================================
     
-    console.log('[4/7] Calculating deviations...');
+    console.log('[4/7] Calculating deviations (room-aware)...');
     let deviationAnalysis;
     
     try {
-      deviationAnalysis = calculateDeviations(
-        structuredReport.estimate,
+      deviationAnalysis = calculateRoomAwareDeviations(
+        structuredEstimate,
         expertReport,
         expectedQuantities
       );
     } catch (error: any) {
       // If deviation calculation requires dimensions and they're missing
-      if (error.message.includes('dimension data')) {
+      if (error.message.includes('Dimension data required')) {
         return res.status(400).json({
           success: false,
           error: {
@@ -233,21 +243,41 @@ export default async function handler(
     }
     
     // ========================================
-    // PHASE 7: UNIFIED CLAIM INTELLIGENCE
+    // PHASE 7: CALCULATE CONSOLIDATED RISK SCORE
     // ========================================
     
-    console.log('[6/7] Generating unified claim intelligence...');
-    const claimIntelligence = generateClaimIntelligence({
-      estimate: structuredReport.estimate,
-      exposureAnalysis: structuredReport.exposureRange.breakdown,
-      completenessAnalysis: structuredReport.tradeScores,
-      lossExpectation: structuredReport.lossExpectation,
-      codeAnalysis: structuredReport.codeRisks,
-      deviationAnalysis,
-      dimensions: expectedQuantities,
-      expertReport,
-      photoAnalysis
-    });
+    console.log('[6/7] Calculating consolidated risk score...');
+    
+    // Base components
+    const structuralIntegrityScore = structuredReport.structuralIntegrityScore;
+    const totalRCV = structuredEstimate.totals.rcv || 1;
+    
+    const baselineExposurePercent = Math.min(
+      (structuredReport.totalExposureMax / totalRCV) * 100,
+      100
+    );
+    const deviationExposurePercent = Math.min(
+      (deviationAnalysis.totalDeviationExposureMax / totalRCV) * 100,
+      100
+    );
+    const codeRiskPercent = Math.min(
+      (structuredReport.codeRisks.totalCodeRiskMax / totalRCV) * 100,
+      100
+    );
+    
+    // Critical multiplier
+    const criticalMultiplier = deviationAnalysis.criticalCount > 0 ? 1.2 : 1.0;
+    
+    // Weighted score
+    let consolidatedRiskScore = (
+      (100 - structuralIntegrityScore) * 0.30 +
+      baselineExposurePercent * 0.25 +
+      deviationExposurePercent * 0.30 +
+      codeRiskPercent * 0.15
+    ) * criticalMultiplier;
+    
+    // Cap at 100
+    consolidatedRiskScore = Math.min(Math.round(consolidatedRiskScore), 100);
     
     // ========================================
     // PHASE 8: AUDIT TRAIL
@@ -256,23 +286,35 @@ export default async function handler(
     console.log('[7/7] Compiling audit trail...');
     const auditTrail = {
       processingTimeMs: Date.now() - startTime,
-      parseConfidence: structuredReport.findings.parseConfidence,
+      parseConfidence: structuredEstimate.parseConfidence,
       dimensionsProvided: !!dimensions,
       expertReportProvided: !!expertReport,
       photosProvided: !!photos,
-      enginesExecuted: claimIntelligence.metadata.enginesUsed,
+      enginesExecuted: [
+        'input-normalizer',
+        'format-detector',
+        'structural-parser',
+        'dimension-engine',
+        'report-parser',
+        'room-aware-deviation-engine',
+        'photo-analysis-engine'
+      ],
       deviationCalculations: deviationAnalysis.deviations.map(d => ({
         type: d.deviationType,
         trade: d.trade,
-        calculation: d.calculation
+        calculation: d.calculation,
+        geometryUsed: !!d.geometryDetails
       })),
+      geometryCalculations: deviationAnalysis.auditTrail.geometryCalculations,
       riskScoreBreakdown: {
-        structuralIntegrity: claimIntelligence.structuralIntegrityScore,
-        baselineExposure: claimIntelligence.exposureRange,
-        deviationExposure: claimIntelligence.deviationExposureRange,
-        codeRisks: claimIntelligence.codeUpgradeFlags.codeRisks.length,
-        consolidatedScore: claimIntelligence.consolidatedRiskScore
-      }
+        structuralIntegrity: structuralIntegrityScore,
+        baselineExposurePercent: Math.round(baselineExposurePercent * 100) / 100,
+        deviationExposurePercent: Math.round(deviationExposurePercent * 100) / 100,
+        codeRiskPercent: Math.round(codeRiskPercent * 100) / 100,
+        criticalMultiplier,
+        consolidatedScore: consolidatedRiskScore
+      },
+      costBaselineVersion: deviationAnalysis.auditTrail.costBaselineVersion
     };
     
     // ========================================
@@ -282,22 +324,22 @@ export default async function handler(
     return res.status(200).json({
       success: true,
       data: {
-        parseConfidence: structuredReport.findings.parseConfidence,
-        structuralIntegrityScore: claimIntelligence.structuralIntegrityScore,
+        parseConfidence: structuredEstimate.parseConfidence,
+        structuralIntegrityScore,
         deviationExposure: {
-          min: claimIntelligence.deviationExposureRange.min,
-          max: claimIntelligence.deviationExposureRange.max
+          min: deviationAnalysis.totalDeviationExposureMin,
+          max: deviationAnalysis.totalDeviationExposureMax
         },
         baselineExposure: {
-          min: claimIntelligence.exposureRange.min,
-          max: claimIntelligence.exposureRange.max
+          min: structuredReport.totalExposureMin,
+          max: structuredReport.totalExposureMax
         },
-        tradeScores: claimIntelligence.tradeScores,
-        codeRisks: claimIntelligence.codeUpgradeFlags,
-        dimensionVariances: claimIntelligence.dimensionVariances,
-        reportDeviations: claimIntelligence.reportDeviations,
-        photoFlags: claimIntelligence.photoFlags,
-        consolidatedRiskScore: claimIntelligence.consolidatedRiskScore,
+        tradeScores: structuredReport.tradeScores,
+        codeRisks: structuredReport.codeRisks,
+        deviations: deviationAnalysis.deviations,
+        consolidatedRiskScore,
+        classification: structuredReport.classification,
+        photoAnalysis,
         auditTrail
       }
     });

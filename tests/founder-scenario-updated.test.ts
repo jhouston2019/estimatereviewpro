@@ -1,5 +1,5 @@
 /**
- * FOUNDER SCENARIO TEST
+ * FOUNDER SCENARIO TEST (ROOM-AWARE)
  * Tests enforcement-grade deterministic calculation
  * NO STATIC FALLBACKS - TRUE GEOMETRY ONLY
  */
@@ -57,7 +57,7 @@ const DIMENSIONS = {
 
 export async function runFounderScenario() {
   console.log('='.repeat(80));
-  console.log('FOUNDER SCENARIO TEST');
+  console.log('FOUNDER SCENARIO TEST (ROOM-AWARE)');
   console.log('='.repeat(80));
   console.log('');
   
@@ -92,6 +92,7 @@ export async function runFounderScenario() {
     console.log(`  ✓ Total perimeter: ${expectedQuantities.breakdown.totals.totalPerimeterLF.toFixed(0)} LF`);
     console.log(`  ✓ Expected drywall (full height): ${expectedQuantities.drywallSF.toFixed(0)} SF`);
     console.log(`  ✓ Expected insulation: ${expectedQuantities.insulationSF.toFixed(0)} SF`);
+    console.log(`  ✓ Rooms processed: ${expectedQuantities.breakdown.rooms.length}`);
     
     results.checks.dimensionsCalculated = true;
     results.expectedDrywallSF = expectedQuantities.drywallSF;
@@ -219,6 +220,13 @@ export async function runFounderScenario() {
       results.checks.ceilingHeightFromDimensions = true; // Still pass if different
     }
     
+    // Check 7: Wall/Ceiling separation
+    if (drywallDeviation && drywallDeviation.geometryDetails) {
+      const ceilingIncluded = drywallDeviation.geometryDetails.ceilingIncluded;
+      console.log(`  ✓ Wall/Ceiling separation tracked: ${ceilingIncluded ? 'Ceiling included' : 'Wall only'}`);
+      results.checks.wallCeilingSeparation = true;
+    }
+    
     // ========================================
     // FINAL VERDICT
     // ========================================
@@ -234,10 +242,13 @@ export async function runFounderScenario() {
       results.checks.drywallDeviationDetected &&
       results.checks.insulationMissingDetected &&
       results.checks.usesGeometry &&
-      results.checks.noStaticFallback;
+      results.checks.noStaticFallback &&
+      results.checks.geometryAuditTrail &&
+      results.checks.ceilingHeightFromDimensions &&
+      results.checks.wallCeilingSeparation;
     
     if (allChecksPassed) {
-      console.log('✅ ALL CHECKS PASSED - ENFORCEMENT GRADE');
+      console.log('✅ ALL CHECKS PASSED - ENFORCEMENT GRADE (ROOM-AWARE)');
       results.passed = true;
     } else {
       console.log('❌ SOME CHECKS FAILED - NOT ENFORCEMENT GRADE');
