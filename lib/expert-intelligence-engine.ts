@@ -559,7 +559,7 @@ function extractRoomMapping(text: string, dimensions?: ExpectedQuantities): Room
       }));
     
     return {
-      mapped: affectedRooms && affectedRooms.length > 0,
+      mapped: Boolean(affectedRooms?.length),
       roomNames,
       scopeDescription: roomNames.join(', '),
       affectedRooms
@@ -618,7 +618,7 @@ function extractDirectives(
         // Calculate extraction confidence
         let confidence = 70;
         if (trade) confidence += 10;
-        if (measurementRule.value) confidence += 10;
+        if ('value' in measurementRule && measurementRule.value) confidence += 10;
         if (roomMapping.mapped) confidence += 5;
         if (complianceRefs.length > 0) confidence += 5;
         
