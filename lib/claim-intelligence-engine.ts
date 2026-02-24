@@ -13,6 +13,7 @@ import { ExpectedQuantities } from './dimension-engine';
 import { ParsedReport } from './report-parser';
 import { DeviationAnalysis } from './deviation-engine';
 import { PhotoAnalysisResult } from './photo-analysis-engine';
+import { ExpertIntelligenceReport } from './expert-intelligence-engine';
 
 export interface ClaimIntelligenceReport {
   // Core estimate analysis
@@ -33,7 +34,23 @@ export interface ClaimIntelligenceReport {
   // Code compliance
   codeUpgradeFlags: CodeUpgradeAnalysis;
   
-  // Report comparison
+  // Expert Intelligence (Enhanced)
+  expertIntelligence: {
+    present: boolean;
+    engineUsed: 'LEGACY' | 'ENTERPRISE';
+    directives: number;
+    measurableDirectives: number;
+    variances: number;
+    unaddressedMandatory: number;
+    exposureMin: number;
+    exposureMax: number;
+    complianceReferences: number;
+    authorityType: string;
+    confidence: number;
+    summary: string;
+  };
+  
+  // Report comparison (Legacy - kept for backward compatibility)
   reportDeviations: {
     present: boolean;
     directives: number;
@@ -85,7 +102,8 @@ export interface ClaimIntelligenceInput {
   codeAnalysis: CodeUpgradeAnalysis;
   deviationAnalysis?: DeviationAnalysis;
   dimensions?: ExpectedQuantities;
-  expertReport?: ParsedReport;
+  expertReport?: ParsedReport; // Legacy
+  expertIntelligence?: ExpertIntelligenceReport; // Enterprise
   photoAnalysis?: PhotoAnalysisResult;
 }
 
@@ -201,7 +219,40 @@ export function generateClaimIntelligence(
   // Calculate consolidated risk score
   const consolidatedRiskScore = calculateConsolidatedRiskScore(input);
   
-  // Report deviations summary
+  // Expert Intelligence summary (Enterprise)
+  const expertIntelligence = input.expertIntelligence
+    ? {
+        present: true,
+        engineUsed: 'ENTERPRISE' as const,
+        directives: input.expertIntelligence.directives.length,
+        measurableDirectives: input.expertIntelligence.measurableDirectives,
+        variances: input.expertIntelligence.variances.length,
+        unaddressedMandatory: input.expertIntelligence.varianceSummary.unaddressedMandatory,
+        exposureMin: input.expertIntelligence.varianceSummary.totalExposureMin,
+        exposureMax: input.expertIntelligence.varianceSummary.totalExposureMax,
+        complianceReferences: input.expertIntelligence.complianceReferences.length,
+        authorityType: input.expertIntelligence.primaryAuthorityType,
+        confidence: input.expertIntelligence.expertEngineConfidence,
+        summary: input.expertIntelligence.variances.length > 0
+          ? `Expert Intelligence: ${input.expertIntelligence.variances.length} variance(s) identified, ${input.expertIntelligence.varianceSummary.unaddressedMandatory} mandatory unaddressed, $${input.expertIntelligence.varianceSummary.totalExposureMin.toLocaleString()}-${input.expertIntelligence.varianceSummary.totalExposureMax.toLocaleString()} exposure`
+          : 'Expert Intelligence: All directives addressed in estimate'
+      }
+    : {
+        present: false,
+        engineUsed: 'LEGACY' as const,
+        directives: 0,
+        measurableDirectives: 0,
+        variances: 0,
+        unaddressedMandatory: 0,
+        exposureMin: 0,
+        exposureMax: 0,
+        complianceReferences: 0,
+        authorityType: 'NONE',
+        confidence: 0,
+        summary: 'No expert intelligence analysis performed'
+      };
+  
+  // Report deviations summary (Legacy - kept for backward compatibility)
   const reportDeviations = input.deviationAnalysis && input.expertReport
     ? {
         present: true,
@@ -254,6 +305,7 @@ export function generateClaimIntelligence(
   
   if (input.deviationAnalysis) enginesUsed.push('deviation-engine');
   if (input.dimensions) enginesUsed.push('dimension-engine');
+  if (input.expertIntelligence) enginesUsed.push('expert-intelligence-engine');
   if (input.expertReport) enginesUsed.push('report-parser');
   if (input.photoAnalysis) enginesUsed.push('photo-analysis-engine');
   
@@ -302,6 +354,7 @@ export function generateClaimIntelligence(
     
     codeUpgradeFlags: input.codeAnalysis,
     
+    expertIntelligence,
     reportDeviations,
     dimensionVariances,
     photoFlags,
