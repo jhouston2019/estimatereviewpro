@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
 
     const permission = permissionData as any;
 
+    // Check if user is not allowed to create review
+    if (!permission.allowed) {
+      return NextResponse.json(
+        { error: permission.message || 'Not allowed to create review' },
+        { status: 403 }
+      );
+    }
+
     // If preview only, create report but don't increment usage
     if (permission.preview_only) {
       // Create report (unpaid)
@@ -71,13 +79,59 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // User has subscription - check usage
+    // Get user info
     const { data: user } = await supabase
       .from('users')
       .select('team_id, plan_type')
       .eq('id', userId)
       .single();
 
+    // Handle single plan users
+    if (user?.plan_type === 'single') {
+      // Create report for single plan user
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .insert({
+          user_id: userId,
+          estimate_name: estimateName,
+          estimate_type: estimateType,
+          damage_type: damageType,
+          result_json: {
+            // Placeholder - actual AI analysis would go here
+            status: 'complete',
+            plan_type: 'single',
+          },
+          paid_single_use: true,
+          expires_at: expiresAt.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (reportError) {
+        return NextResponse.json(
+          { error: 'Failed to create report' },
+          { status: 500 }
+        );
+      }
+
+      // Remove single plan access after use
+      await supabase
+        .from('users')
+        .update({ plan_type: null })
+        .eq('id', userId);
+
+      return NextResponse.json({
+        success: true,
+        reportId: report.id,
+        previewOnly: false,
+        planType: 'single',
+      });
+    }
+
+    // User has subscription - check usage
     if (!user?.team_id) {
       return NextResponse.json(
         { error: 'No active subscription' },

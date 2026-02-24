@@ -179,6 +179,7 @@ DECLARE
   user_plan TEXT;
   user_team UUID;
   usage_data RECORD;
+  single_review_count INTEGER;
   result JSONB;
 BEGIN
   -- Get user plan and team
@@ -190,6 +191,29 @@ BEGIN
       'allowed', true,
       'preview_only', true,
       'requires_payment', true
+    );
+  END IF;
+  
+  -- Single plan = check if they've already used their one review
+  IF user_plan = 'single' THEN
+    SELECT COUNT(*) INTO single_review_count
+    FROM reports
+    WHERE user_id = p_user_id AND paid_single_use = true;
+    
+    IF single_review_count >= 1 THEN
+      RETURN jsonb_build_object(
+        'allowed', false,
+        'preview_only', false,
+        'requires_payment', true,
+        'message', 'Single review already used. Please upgrade to a subscription plan.'
+      );
+    END IF;
+    
+    RETURN jsonb_build_object(
+      'allowed', true,
+      'preview_only', false,
+      'plan_type', 'single',
+      'reviews_remaining', 1
     );
   END IF;
   

@@ -79,7 +79,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!metadata) return;
 
-  // Handle single review payment
+  // Handle single plan payment (grants access to create one review)
+  if (metadata.type === 'single_plan') {
+    const userId = metadata.user_id;
+
+    if (!userId) return;
+
+    // Grant single review access by setting plan_type
+    // This allows the user to access /upload and create one review
+    await supabase
+      .from('users')
+      .update({
+        plan_type: 'single',
+      })
+      .eq('id', userId);
+
+    console.log(`Single plan payment completed for user ${userId}`);
+  }
+
+  // Handle single review payment (legacy - for individual report payment)
   if (metadata.type === 'single_review') {
     const reportId = metadata.report_id;
     const userId = metadata.user_id;

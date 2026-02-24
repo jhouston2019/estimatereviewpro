@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   stripe_customer_id TEXT,
-  plan_type TEXT CHECK (plan_type IN ('professional', 'enterprise')),
+  plan_type TEXT CHECK (plan_type IN ('single', 'professional', 'enterprise')),
   team_id UUID,
   role TEXT CHECK (role IN ('owner', 'member')) DEFAULT 'owner',
   created_at TIMESTAMPTZ DEFAULT NOW(),

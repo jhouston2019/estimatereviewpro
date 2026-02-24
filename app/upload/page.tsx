@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { useSearchParams } from "next/navigation";
 
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "processing" | "results">("upload");
@@ -9,6 +11,16 @@ export default function UploadPage() {
   const [estimateType, setEstimateType] = useState("");
   const [damageType, setDamageType] = useState("");
   const [platform, setPlatform] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      setPaymentSuccess(true);
+      // Clear the query param after showing message
+      setTimeout(() => setPaymentSuccess(false), 5000);
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
@@ -37,6 +49,14 @@ export default function UploadPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-12">
+        {paymentSuccess && (
+          <div className="mb-6 rounded-lg border border-emerald-500/50 bg-emerald-950/30 p-4 text-center">
+            <p className="text-base font-semibold text-emerald-300">
+              Payment successful! You can now upload your estimate for review.
+            </p>
+          </div>
+        )}
+        
         {step === "upload" && (
           <UploadForm
             estimateText={estimateText}

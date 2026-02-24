@@ -52,7 +52,7 @@ export function SeoLandingPage({
             <span className="text-white font-semibold">Estimate Review Pro</span>
           </Link>
           <Link 
-            href="/upload"
+            href="/pricing"
             className="rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4ed8] transition"
           >
             Start Review
@@ -67,7 +67,7 @@ export function SeoLandingPage({
           <p className="text-xl md:text-2xl mb-6 text-slate-200">{subtitle}</p>
           <p className="text-lg mb-10 text-slate-300 max-w-3xl mx-auto">{description}</p>
           <Link
-            href="/upload"
+            href="/pricing"
             className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
             Start Structured Review
@@ -118,7 +118,7 @@ export function SeoLandingPage({
             Structured analysis in under 2 minutes. No credit card required for preview.
           </p>
           <Link
-            href="/upload"
+            href="/pricing"
             className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
             Start Structured Review

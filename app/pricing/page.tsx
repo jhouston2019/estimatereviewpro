@@ -1,35 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+    checkAuth();
+  }, []);
 
   const handleCheckout = async (planType: 'single' | 'professional' | 'enterprise') => {
     setLoading(planType);
 
-    if (planType === 'single') {
-      // Redirect to upload for single review
-      window.location.href = '/upload';
+    // Check if user is authenticated
+    if (!userId) {
+      // Redirect to login with return URL
+      const returnUrl = encodeURIComponent(`/pricing?plan=${planType}`);
+      window.location.href = `/login?redirectedFrom=${returnUrl}`;
       return;
     }
 
     try {
-      const response = await fetch('/api/checkout-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planType,
-          userId: 'USER_ID_HERE', // Replace with actual user ID from auth
-          teamName: `${planType} Team`,
-        }),
-      });
+      if (planType === 'single') {
+        // Create single review checkout session
+        const response = await fetch('/api/checkout-single-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.url) {
-        window.location.href = data.url;
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
+      } else {
+        // Create subscription checkout session
+        const response = await fetch('/api/checkout-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            planType,
+            userId,
+            teamName: `${planType} Team`,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error(data.error || 'Failed to create checkout session');
+        }
       }
     } catch (error) {
       console.error('Checkout error:', error);
@@ -60,12 +93,6 @@ export default function PricingPage() {
               className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
             >
               Log in
-            </Link>
-            <Link
-              href="/upload"
-              className="rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1E40AF] transition"
-            >
-              Start Review
             </Link>
           </nav>
         </div>

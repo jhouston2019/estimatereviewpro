@@ -60,13 +60,13 @@ export default function EstimateReviewPage() {
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link
-              href="/upload"
+              href="/pricing"
               className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
               Upload Estimate for Review
             </Link>
             <span className="text-sm text-slate-400">
-              $149 one-time • No subscription • Deterministic results
+              Starting at $49 • Multiple plans available
             </span>
           </div>
         </section>
@@ -270,7 +270,7 @@ export default function EstimateReviewPage() {
               Upload your insurance estimate for expert-grade structural analysis.
             </p>
             <Link
-              href="/upload"
+              href="/pricing"
               className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
               Upload Estimate Now

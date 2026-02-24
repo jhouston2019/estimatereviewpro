@@ -531,7 +531,7 @@ export default async function ExampleReportDetailPage({
             </p>
             <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
-                href="/upload"
+                href="/pricing"
                 className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-8 py-3 text-sm font-semibold text-white hover:bg-[#1E40AF] transition"
               >
                 Start Your Review
