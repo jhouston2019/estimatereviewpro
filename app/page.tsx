@@ -168,7 +168,7 @@ export default function Home() {
         {/* Final CTA */}
         <section className="text-center">
           <Link
-            href="/upload"
+            href="/pricing"
             className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-10 py-4 text-lg font-semibold text-white hover:bg-[#1E40AF] transition"
           >
             Run Your First Review
