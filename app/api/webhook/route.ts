@@ -76,25 +76,68 @@ export async function POST(request: NextRequest) {
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const metadata = session.metadata;
+  const customerEmail = session.customer_email || session.customer_details?.email;
 
-  if (!metadata) return;
+  if (!customerEmail) {
+    console.error('No customer email found in checkout session');
+    return;
+  }
 
-  // Handle single plan payment (grants access to create one review)
-  if (metadata.type === 'single_plan') {
-    const userId = metadata.user_id;
+  // Create or get user account
+  let userId: string;
+  
+  // Check if user already exists
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', customerEmail)
+    .single();
 
-    if (!userId) return;
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
+    // Create new user in auth.users (this will trigger the handle_new_user function)
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: customerEmail,
+      email_confirm: true,
+    });
 
-    // Grant single review access by setting plan_type
-    // This allows the user to access /upload and create one review
+    if (authError || !authUser.user) {
+      console.error('Failed to create auth user:', authError);
+      return;
+    }
+
+    userId = authUser.user.id;
+  }
+
+  // Update Stripe customer ID
+  if (session.customer) {
     await supabase
       .from('users')
-      .update({
-        plan_type: 'single',
-      })
+      .update({ stripe_customer_id: session.customer as string })
+      .eq('id', userId);
+  }
+
+  // Handle single plan payment
+  if (metadata?.plan_type === 'single') {
+    await supabase
+      .from('users')
+      .update({ plan_type: 'single' })
       .eq('id', userId);
 
     console.log(`Single plan payment completed for user ${userId}`);
+  }
+
+  // Handle legacy single_plan type
+  if (metadata?.type === 'single_plan') {
+    const legacyUserId = metadata.user_id;
+    if (legacyUserId) {
+      await supabase
+        .from('users')
+        .update({ plan_type: 'single' })
+        .eq('id', legacyUserId);
+      console.log(`Single plan payment completed for user ${legacyUserId}`);
+    }
   }
 
   // Handle single review payment (legacy - for individual report payment)
@@ -130,13 +173,42 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const metadata = subscription.metadata;
-  const userId = metadata.user_id;
   const planType = metadata.plan_type;
-  const teamName = metadata.team_name;
   const reviewLimit = parseInt(metadata.review_limit || '0');
   const overagePrice = parseInt(metadata.overage_price || '0');
 
-  if (!userId || !planType) return;
+  if (!planType) return;
+
+  // Get customer email to find/create user
+  const customer = await stripe.customers.retrieve(subscription.customer as string);
+  if (!customer || customer.deleted) return;
+
+  const customerEmail = customer.email;
+  if (!customerEmail) return;
+
+  // Find or create user
+  let userId: string;
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('email', customerEmail)
+    .single();
+
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: customerEmail,
+      email_confirm: true,
+    });
+
+    if (authError || !authUser.user) {
+      console.error('Failed to create auth user:', authError);
+      return;
+    }
+
+    userId = authUser.user.id;
+  }
 
   // Check if team already exists
   const { data: existingTeam } = await supabase
@@ -160,9 +232,9 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     const { data: team, error: teamError } = await supabase
       .from('teams')
       .insert({
-        name: teamName || `${planType} Team`,
+        name: `${planType.charAt(0).toUpperCase() + planType.slice(1)} Team`,
         owner_id: userId,
-        plan_type: planType,
+        plan_type: planType as 'professional' | 'enterprise',
         stripe_subscription_id: subscription.id,
         review_limit: reviewLimit,
         overage_price: overagePrice,

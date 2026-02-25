@@ -1,68 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { useState } from "react";
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
-    };
-    checkAuth();
-  }, []);
 
   const handleCheckout = async (planType: 'single' | 'professional' | 'enterprise') => {
     setLoading(planType);
 
-    // Check if user is authenticated
-    if (!userId) {
-      // Redirect to login with return URL
-      const returnUrl = encodeURIComponent(`/pricing?plan=${planType}`);
-      window.location.href = `/login?redirectedFrom=${returnUrl}`;
-      return;
-    }
-
     try {
-      if (planType === 'single') {
-        // Create single review checkout session
-        const response = await fetch('/api/checkout-single-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId }),
-        });
+      // Create checkout session without requiring login first
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          throw new Error(data.error || 'Failed to create checkout session');
-        }
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        // Create subscription checkout session
-        const response = await fetch('/api/checkout-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            planType,
-            userId,
-            teamName: `${planType} Team`,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          throw new Error(data.error || 'Failed to create checkout session');
-        }
+        throw new Error(data.error || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Checkout error:', error);

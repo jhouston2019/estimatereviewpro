@@ -49,13 +49,16 @@ export async function middleware(req: NextRequest) {
 
     const user = data as UserPaymentStatus | null;
 
-    // If user has no plan and no team, redirect to pricing
-    if (!user?.plan_type && !user?.team_id) {
+    // If user exists but has no plan and no team, redirect to pricing
+    if (user && !user.plan_type && !user.team_id) {
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = "/pricing";
       redirectUrl.searchParams.set("message", "payment_required");
       return NextResponse.redirect(redirectUrl);
     }
+    
+    // If user doesn't exist in our database yet (just paid), allow access
+    // The webhook will create their account shortly
   }
 
   return res;

@@ -8,10 +8,37 @@ function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) =>
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams?.get('payment') === 'success') {
-      onSuccess(true);
-      setTimeout(() => onSuccess(false), 5000);
-    }
+    const handlePaymentSuccess = async () => {
+      if (searchParams?.get('payment') === 'success') {
+        const sessionId = searchParams.get('session_id');
+        
+        if (sessionId) {
+          try {
+            // Verify payment and get login link
+            const response = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId }),
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.loginUrl) {
+              // Auto-login the user
+              window.location.href = data.loginUrl;
+              return;
+            }
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+          }
+        }
+
+        onSuccess(true);
+        setTimeout(() => onSuccess(false), 5000);
+      }
+    };
+
+    handlePaymentSuccess();
   }, [searchParams, onSuccess]);
 
   return null;
@@ -24,6 +51,12 @@ export default function UploadPage() {
   const [damageType, setDamageType] = useState("");
   const [platform, setPlatform] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  
+  // Claim information fields
+  const [claimNumber, setClaimNumber] = useState("");
+  const [propertyAddress, setPropertyAddress] = useState("");
+  const [dateOfLoss, setDateOfLoss] = useState("");
+  const [insuranceCarrier, setInsuranceCarrier] = useState("");
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
@@ -73,6 +106,14 @@ export default function UploadPage() {
             setDamageType={setDamageType}
             platform={platform}
             setPlatform={setPlatform}
+            claimNumber={claimNumber}
+            setClaimNumber={setClaimNumber}
+            propertyAddress={propertyAddress}
+            setPropertyAddress={setPropertyAddress}
+            dateOfLoss={dateOfLoss}
+            setDateOfLoss={setDateOfLoss}
+            insuranceCarrier={insuranceCarrier}
+            setInsuranceCarrier={setInsuranceCarrier}
             onSubmit={() => setStep("processing")}
           />
         )}
@@ -98,6 +139,14 @@ function UploadForm({
   setDamageType,
   platform,
   setPlatform,
+  claimNumber,
+  setClaimNumber,
+  propertyAddress,
+  setPropertyAddress,
+  dateOfLoss,
+  setDateOfLoss,
+  insuranceCarrier,
+  setInsuranceCarrier,
   onSubmit,
 }: {
   estimateText: string;
@@ -108,6 +157,14 @@ function UploadForm({
   setDamageType: (v: string) => void;
   platform: string;
   setPlatform: (v: string) => void;
+  claimNumber: string;
+  setClaimNumber: (v: string) => void;
+  propertyAddress: string;
+  setPropertyAddress: (v: string) => void;
+  dateOfLoss: string;
+  setDateOfLoss: (v: string) => void;
+  insuranceCarrier: string;
+  setInsuranceCarrier: (v: string) => void;
   onSubmit: () => void;
 }) {
   const [dragActive, setDragActive] = useState(false);
@@ -220,11 +277,80 @@ PNT - Paint walls - 200 SF"
           </div>
         </div>
 
-        {/* Step 2: Classification */}
+        {/* Step 2: Claim Information */}
         <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              Step 2 – Classification
+              Step 2 – Claim Information
+            </h2>
+            <p className="text-sm text-slate-600">
+              Optional but recommended for report header
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label htmlFor="claimNumber" className="block text-base font-semibold text-slate-900 mb-3">
+                Claim Number
+              </label>
+              <input
+                type="text"
+                id="claimNumber"
+                value={claimNumber}
+                onChange={(e) => setClaimNumber(e.target.value)}
+                placeholder="e.g., CLM-2024-12345"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="insuranceCarrier" className="block text-base font-semibold text-slate-900 mb-3">
+                Insurance Carrier
+              </label>
+              <input
+                type="text"
+                id="insuranceCarrier"
+                value={insuranceCarrier}
+                onChange={(e) => setInsuranceCarrier(e.target.value)}
+                placeholder="e.g., State Farm"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="propertyAddress" className="block text-base font-semibold text-slate-900 mb-3">
+                Property Address
+              </label>
+              <input
+                type="text"
+                id="propertyAddress"
+                value={propertyAddress}
+                onChange={(e) => setPropertyAddress(e.target.value)}
+                placeholder="e.g., 123 Main St, City, ST 12345"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="dateOfLoss" className="block text-base font-semibold text-slate-900 mb-3">
+                Date of Loss
+              </label>
+              <input
+                type="date"
+                id="dateOfLoss"
+                value={dateOfLoss}
+                onChange={(e) => setDateOfLoss(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3: Classification */}
+        <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Step 3 – Classification
             </h2>
           </div>
 
