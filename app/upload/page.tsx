@@ -15,7 +15,7 @@ export default function UploadPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get('payment') === 'success') {
+    if (searchParams?.get('payment') === 'success') {
       setPaymentSuccess(true);
       // Clear the query param after showing message
       setTimeout(() => setPaymentSuccess(false), 5000);
