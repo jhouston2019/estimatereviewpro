@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useSearchParams } from "next/navigation";
-
-export const dynamic = 'force-dynamic';
 
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "processing" | "results">("upload");

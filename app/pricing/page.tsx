@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
-export const dynamic = 'force-dynamic';
-
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
