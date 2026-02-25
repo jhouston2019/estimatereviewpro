@@ -1,8 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+
+function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams?.get('payment') === 'success') {
+      onSuccess(true);
+      setTimeout(() => onSuccess(false), 5000);
+    }
+  }, [searchParams, onSuccess]);
+
+  return null;
+}
 
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "processing" | "results">("upload");
@@ -11,18 +24,12 @@ export default function UploadPage() {
   const [damageType, setDamageType] = useState("");
   const [platform, setPlatform] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams?.get('payment') === 'success') {
-      setPaymentSuccess(true);
-      // Clear the query param after showing message
-      setTimeout(() => setPaymentSuccess(false), 5000);
-    }
-  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
+      <Suspense fallback={null}>
+        <PaymentSuccessHandler onSuccess={setPaymentSuccess} />
+      </Suspense>
       <header className="border-b border-slate-800/50 bg-[#0F172A]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
