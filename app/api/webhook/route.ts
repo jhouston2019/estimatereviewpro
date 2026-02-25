@@ -141,7 +141,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Handle single review payment (legacy - for individual report payment)
-  if (metadata.type === 'single_review') {
+  if (metadata?.type === 'single_review') {
     const reportId = metadata.report_id;
     const userId = metadata.user_id;
 
