@@ -36,11 +36,18 @@ export async function middleware(req: NextRequest) {
 
   // Check payment status for upload/estimate-review pages
   if ((pathname.startsWith("/upload") || pathname.startsWith("/estimate-review")) && session) {
-    const { data: user } = await supabase
+    type UserPaymentStatus = {
+      plan_type: string | null;
+      team_id: string | null;
+    };
+
+    const { data } = await supabase
       .from('users')
       .select('plan_type, team_id')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
+
+    const user = data as UserPaymentStatus | null;
 
     // If user has no plan and no team, redirect to pricing
     if (!user?.plan_type && !user?.team_id) {
