@@ -52,11 +52,12 @@ export default function UploadPage() {
   const [platform, setPlatform] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   
-  // Claim information fields
+  // Claim/Project information fields
   const [claimNumber, setClaimNumber] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
   const [dateOfLoss, setDateOfLoss] = useState("");
   const [insuranceCarrier, setInsuranceCarrier] = useState("");
+  const [reportId, setReportId] = useState<string | null>(null);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
@@ -114,16 +115,22 @@ export default function UploadPage() {
             setDateOfLoss={setDateOfLoss}
             insuranceCarrier={insuranceCarrier}
             setInsuranceCarrier={setInsuranceCarrier}
-            onSubmit={() => setStep("processing")}
+            onSubmit={(id: string) => {
+              setReportId(id);
+              setStep("processing");
+            }}
           />
         )}
 
         {step === "processing" && (
-          <ProcessingState onComplete={() => setStep("results")} />
+          <ProcessingState 
+            reportId={reportId}
+            onComplete={() => setStep("results")} 
+          />
         )}
 
         {step === "results" && (
-          <ResultsView />
+          <ResultsView reportId={reportId} />
         )}
       </main>
     </div>
@@ -165,9 +172,11 @@ function UploadForm({
   setDateOfLoss: (v: string) => void;
   insuranceCarrier: string;
   setInsuranceCarrier: (v: string) => void;
-  onSubmit: () => void;
+  onSubmit: (reportId: string) => void;
 }) {
   const [dragActive, setDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -186,9 +195,60 @@ function UploadForm({
     // Handle file drop logic here
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Get user from Supabase
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setError('Please log in to submit an estimate');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Call API with claim/project information
+      const response = await fetch('/api/create-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          estimateName: 'Estimate Review',
+          estimateType: estimateType || 'insurance_claim',
+          damageType: damageType || 'water',
+          estimateText,
+          // Claim/Project information
+          claimNumber: claimNumber || '',
+          propertyAddress: propertyAddress || '',
+          dateOfLoss: dateOfLoss || '',
+          insuranceCarrier: insuranceCarrier || '',
+          platform: platform || 'UNKNOWN'
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create review');
+      }
+      
+      // Pass report ID to parent
+      onSubmit(result.reportId);
+      
+    } catch (err: any) {
+      console.error('Submit error:', err);
+      setError(err.message || 'Failed to submit estimate');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -277,49 +337,49 @@ PNT - Paint walls - 200 SF"
           </div>
         </div>
 
-        {/* Step 2: Claim Information */}
+        {/* Step 2: Claim/Project Information */}
         <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              Step 2 – Claim Information
+              Step 2 – Claim/Project Information
             </h2>
             <p className="text-sm text-slate-600">
-              Optional but recommended for report header
+              Optional but recommended for report watermarks and identification
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label htmlFor="claimNumber" className="block text-base font-semibold text-slate-900 mb-3">
-                Claim Number
+                Claim/Project Number
               </label>
               <input
                 type="text"
                 id="claimNumber"
                 value={claimNumber}
                 onChange={(e) => setClaimNumber(e.target.value)}
-                placeholder="e.g., CLM-2024-12345"
+                placeholder="e.g., WD-2024-8847 or PROJECT-001"
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               />
             </div>
 
             <div>
               <label htmlFor="insuranceCarrier" className="block text-base font-semibold text-slate-900 mb-3">
-                Insurance Carrier
+                Insurance Carrier / Client Name
               </label>
               <input
                 type="text"
                 id="insuranceCarrier"
                 value={insuranceCarrier}
                 onChange={(e) => setInsuranceCarrier(e.target.value)}
-                placeholder="e.g., State Farm"
+                placeholder="e.g., State Farm or ABC Construction"
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               />
             </div>
 
             <div>
               <label htmlFor="propertyAddress" className="block text-base font-semibold text-slate-900 mb-3">
-                Property Address
+                Property/Project Address
               </label>
               <input
                 type="text"
@@ -333,7 +393,7 @@ PNT - Paint walls - 200 SF"
 
             <div>
               <label htmlFor="dateOfLoss" className="block text-base font-semibold text-slate-900 mb-3">
-                Date of Loss
+                Date of Loss / Project Date
               </label>
               <input
                 type="date"
@@ -412,13 +472,23 @@ PNT - Paint walls - 200 SF"
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="rounded-lg border border-red-500/50 bg-red-950/30 p-4 text-center">
+            <p className="text-base font-semibold text-red-300">
+              {error}
+            </p>
+          </div>
+        )}
+
         {/* Primary Button */}
         <div className="text-center space-y-4">
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-12 py-4 text-lg font-semibold text-white hover:bg-[#1E40AF] transition"
+            disabled={isSubmitting || !estimateText}
+            className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-12 py-4 text-lg font-semibold text-white hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Run Review
+            {isSubmitting ? 'Submitting...' : 'Run Review'}
           </button>
           <p className="text-sm text-slate-400">
             Structured findings only. No advisory or legal interpretation.

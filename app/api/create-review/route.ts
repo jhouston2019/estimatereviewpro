@@ -13,7 +13,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, estimateName, estimateType, damageType, estimateText } = await request.json();
+    const { 
+      userId, 
+      estimateName, 
+      estimateType, 
+      damageType, 
+      estimateText,
+      claimNumber,
+      propertyAddress,
+      dateOfLoss,
+      insuranceCarrier,
+      platform
+    } = await request.json();
 
     if (!userId || !estimateName || !estimateText) {
       return NextResponse.json(
@@ -58,6 +69,19 @@ export async function POST(request: NextRequest) {
             // Placeholder - actual AI analysis would go here
             status: 'preview',
             message: 'Preview mode - payment required for full export',
+            property_details: {
+              claim_number: claimNumber || '',
+              address: propertyAddress || '',
+              date_of_loss: dateOfLoss || '',
+              adjuster: insuranceCarrier || '',
+              total_estimate_value: 0,
+              affected_areas: []
+            },
+            classification: {
+              platform: platform || 'UNKNOWN',
+              estimate_type: estimateType || 'insurance_claim',
+              confidence: 0
+            }
           },
           paid_single_use: false,
         })
@@ -103,6 +127,19 @@ export async function POST(request: NextRequest) {
             // Placeholder - actual AI analysis would go here
             status: 'complete',
             plan_type: 'single',
+            property_details: {
+              claim_number: claimNumber || '',
+              address: propertyAddress || '',
+              date_of_loss: dateOfLoss || '',
+              adjuster: insuranceCarrier || '',
+              total_estimate_value: 0,
+              affected_areas: []
+            },
+            classification: {
+              platform: platform || 'UNKNOWN',
+              estimate_type: estimateType || 'insurance_claim',
+              confidence: 0
+            }
           },
           paid_single_use: true,
           expires_at: expiresAt.toISOString(),
@@ -165,6 +202,19 @@ export async function POST(request: NextRequest) {
           reviewCount: permission.review_count + 1,
           reviewLimit: permission.review_limit,
           isOverage: isOverage,
+          property_details: {
+            claim_number: claimNumber || '',
+            address: propertyAddress || '',
+            date_of_loss: dateOfLoss || '',
+            adjuster: insuranceCarrier || '',
+            total_estimate_value: 0,
+            affected_areas: []
+          },
+          classification: {
+            platform: platform || 'UNKNOWN',
+            estimate_type: estimateType || 'insurance_claim',
+            confidence: 0
+          }
         },
         paid_single_use: false, // Subscription, not single use
       })
