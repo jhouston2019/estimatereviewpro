@@ -85,7 +85,12 @@ export function generatePDFHeader(data: PDFHeaderData): string {
 /**
  * Generate PDF footer HTML with watermark and confidentiality notice
  */
-export function generatePDFFooter(pageNumber: number, totalPages: number): string {
+export function generatePDFFooter(
+  pageNumber: number, 
+  totalPages: number,
+  claimNumber?: string,
+  propertyAddress?: string
+): string {
   return `
     <div style="padding: 20px 30px; border-top: 2px solid #e5e7eb; margin-top: 30px; font-size: 11px; color: #6b7280;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -98,6 +103,13 @@ export function generatePDFFooter(pageNumber: number, totalPages: number): strin
           <p style="margin: 5px 0 0 0;">Page ${pageNumber} of ${totalPages}</p>
         </div>
       </div>
+      ${claimNumber || propertyAddress ? `
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af;">
+          ${claimNumber ? `<strong>CLAIM:</strong> ${claimNumber}` : ''} 
+          ${claimNumber && propertyAddress ? ' | ' : ''}
+          ${propertyAddress ? `<strong>PROPERTY:</strong> ${propertyAddress}` : ''}
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -110,6 +122,15 @@ export function generatePDFHTML(
   contentHTML: string,
   totalPages: number = 1
 ): string {
+  // Create watermark text with claim information
+  const watermarkText = headerData.claimNumber 
+    ? `${headerData.claimNumber} - CONFIDENTIAL`
+    : 'ESTIMATE REVIEW PRO - CONFIDENTIAL';
+  
+  const watermarkSubtext = headerData.propertyAddress 
+    ? headerData.propertyAddress.substring(0, 50)
+    : '';
+
   return `
     <!DOCTYPE html>
     <html>
@@ -130,19 +151,71 @@ export function generatePDFHTML(
           line-height: 1.6;
           color: #1f2937;
           background: white;
+          position: relative;
         }
         
+        /* Main diagonal watermark with claim info */
         .watermark-page {
           position: fixed;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%) rotate(-45deg);
-          font-size: 120px;
+          font-size: 72px;
           font-weight: bold;
-          color: rgba(37, 99, 235, 0.05);
+          color: rgba(37, 99, 235, 0.08);
           white-space: nowrap;
           pointer-events: none;
-          z-index: -1;
+          z-index: 0;
+          text-align: center;
+        }
+        
+        /* Secondary watermark with property address */
+        .watermark-subtext {
+          position: fixed;
+          top: 60%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 24px;
+          font-weight: 600;
+          color: rgba(37, 99, 235, 0.06);
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 0;
+          margin-top: 60px;
+        }
+        
+        /* Header watermark - top right corner */
+        .watermark-header {
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          font-size: 10px;
+          font-weight: 600;
+          color: rgba(37, 99, 235, 0.3);
+          pointer-events: none;
+          z-index: 1000;
+          text-align: right;
+          line-height: 1.4;
+        }
+        
+        /* Footer watermark - bottom center */
+        .watermark-footer {
+          position: fixed;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 9px;
+          font-weight: 600;
+          color: rgba(37, 99, 235, 0.3);
+          pointer-events: none;
+          z-index: 1000;
+          text-align: center;
+        }
+        
+        /* Content wrapper with higher z-index */
+        .content {
+          position: relative;
+          z-index: 1;
         }
         
         h1, h2, h3, h4, h5, h6 {
@@ -155,6 +228,8 @@ export function generatePDFHTML(
           width: 100%;
           border-collapse: collapse;
           margin: 16px 0;
+          position: relative;
+          z-index: 1;
         }
         
         th, td {
@@ -187,6 +262,8 @@ export function generatePDFHTML(
         .section {
           margin-bottom: 32px;
           page-break-inside: avoid;
+          position: relative;
+          z-index: 1;
         }
         
         .highlight-box {
@@ -196,10 +273,31 @@ export function generatePDFHTML(
           margin: 16px 0;
           border-radius: 4px;
         }
+        
+        /* Print-specific watermarks */
+        @media print {
+          .watermark-page, .watermark-subtext, .watermark-header, .watermark-footer {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
       </style>
     </head>
     <body>
-      <div class="watermark-page">ESTIMATE REVIEW PRO - CONFIDENTIAL</div>
+      <!-- Main diagonal watermark -->
+      <div class="watermark-page">${watermarkText}</div>
+      ${watermarkSubtext ? `<div class="watermark-subtext">${watermarkSubtext}</div>` : ''}
+      
+      <!-- Header corner watermark -->
+      <div class="watermark-header">
+        ${headerData.claimNumber ? `CLAIM: ${headerData.claimNumber}<br/>` : ''}
+        CONFIDENTIAL
+      </div>
+      
+      <!-- Footer watermark -->
+      <div class="watermark-footer">
+        ${headerData.claimNumber || 'N/A'} | ${headerData.propertyAddress || 'Property Address Not Specified'} | Estimate Review Pro
+      </div>
       
       ${generatePDFHeader(headerData)}
       
@@ -207,7 +305,7 @@ export function generatePDFHTML(
         ${contentHTML}
       </div>
       
-      ${generatePDFFooter(1, totalPages)}
+      ${generatePDFFooter(1, totalPages, headerData.claimNumber, headerData.propertyAddress)}
     </body>
     </html>
   `;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
 import { notFound } from "next/navigation";
 import type { Report } from "@/lib/report-types";
+import ExportControls from "./ExportControls";
 
 export default async function ReportDetailPage({
   params,
@@ -85,7 +86,92 @@ export default async function ReportDetailPage({
   const infoCount = missingItems.filter((i: any) => i.severity === 'info').length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950">
+    <>
+      <style jsx global>{`
+        @media print {
+          body {
+            background: white !important;
+            position: relative;
+          }
+          
+          /* Hide navigation and buttons */
+          header, nav, .no-print, button {
+            display: none !important;
+          }
+          
+          /* Print watermark - diagonal across page */
+          body::before {
+            content: "${propertyDetails.claim_number || 'CONFIDENTIAL'} - ${propertyDetails.address?.substring(0, 30) || 'ESTIMATE REVIEW PRO'}";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 48px;
+            font-weight: bold;
+            color: rgba(37, 99, 235, 0.08);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+          }
+          
+          /* Print header - top of every page */
+          body::after {
+            content: "CONFIDENTIAL | Claim: ${propertyDetails.claim_number || 'N/A'} | ${propertyDetails.address?.substring(0, 40) || 'N/A'}";
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 9px;
+            font-weight: 600;
+            color: rgba(37, 99, 235, 0.4);
+            pointer-events: none;
+            z-index: 1000;
+          }
+          
+          .print-section {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            position: relative;
+            z-index: 1;
+          }
+          
+          /* Color adjustments for print */
+          .bg-slate-950, .bg-slate-900 {
+            background: white !important;
+          }
+          .text-slate-50, .text-slate-100, .text-slate-200 {
+            color: #000 !important;
+          }
+          .text-slate-400, .text-slate-500 {
+            color: #666 !important;
+          }
+          .border-slate-800, .border-slate-700 {
+            border-color: #ddd !important;
+          }
+          
+          /* Table styling */
+          table {
+            border-collapse: collapse;
+            position: relative;
+            z-index: 1;
+          }
+          th, td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+          }
+          
+          /* Print footer on every page */
+          @page {
+            margin-bottom: 40px;
+          }
+          
+          /* Ensure watermarks print */
+          * {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+        }
+      `}</style>
+      <div className="flex min-h-screen flex-col bg-slate-950">
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
@@ -123,6 +209,36 @@ export default async function ReportDetailPage({
           </Link>
         </div>
 
+        {/* Watermark Info Bar - Visible on screen and print */}
+        <div className="rounded-lg border-2 border-blue-500/40 bg-blue-500/5 px-4 py-3">
+          <div className="flex items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-slate-400">Claim:</span>
+                <span className="ml-2 font-semibold text-blue-300">
+                  {propertyDetails.claim_number || 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400">Property:</span>
+                <span className="ml-2 font-semibold text-slate-200">
+                  {propertyDetails.address || 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400">Date of Loss:</span>
+                <span className="ml-2 font-semibold text-slate-200">
+                  {propertyDetails.date_of_loss || 'N/A'}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-semibold text-red-400">CONFIDENTIAL</div>
+              <div className="text-slate-400">Report ID: {report.id.substring(0, 8)}</div>
+            </div>
+          </div>
+        </div>
+
         <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -133,6 +249,7 @@ export default async function ReportDetailPage({
                 {propertyDetails.claim_number || 'No claim number'}
               </p>
             </div>
+            <ExportControls reportId={report.id} />
             <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getRiskColor(riskLevel)}`}>
               {riskLevel.toUpperCase()} RISK
             </span>
@@ -465,5 +582,6 @@ export default async function ReportDetailPage({
         </div>
       </main>
     </div>
+    </>
   );
 }

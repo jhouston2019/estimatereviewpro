@@ -139,16 +139,17 @@ export default async function ReportsPage() {
               const warningCount = missingItems.filter((i: any) => i.severity === 'warning').length;
 
               return (
-                <Link
+                <div
                   key={report.id}
-                  href={`/dashboard/reports/${report.id}`}
                   className="group rounded-2xl border border-slate-800 bg-slate-950/70 p-5 shadow-lg transition-all hover:border-slate-700 hover:shadow-xl"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-slate-50 group-hover:text-blue-300">
-                        {report.estimate_name}
-                      </h3>
+                      <Link href={`/dashboard/reports/${report.id}`}>
+                        <h3 className="text-sm font-semibold text-slate-50 hover:text-blue-300 cursor-pointer">
+                          {report.estimate_name}
+                        </h3>
+                      </Link>
                       <p className="mt-1 text-[11px] text-slate-400">
                         {propertyDetails.claim_number || 'No claim number'}
                       </p>
@@ -198,14 +199,48 @@ export default async function ReportsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 text-[11px] text-slate-400">
-                    {new Date(report.created_at).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
+                    <div className="text-[11px] text-slate-400">
+                      {new Date(report.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/reports/${report.id}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/50 px-3 py-1 text-[10px] font-medium text-slate-200 hover:border-blue-500 hover:text-blue-300 transition-colors"
+                      >
+                        View
+                      </Link>
+                      <a
+                        href={`/api/reports/${report.id}/export?format=pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/50 px-3 py-1 text-[10px] font-medium text-slate-200 hover:border-green-500 hover:text-green-300 transition-colors"
+                        title="Download PDF"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PDF
+                      </a>
+                      <a
+                        href={`/api/reports/${report.id}/export?format=excel`}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/50 px-3 py-1 text-[10px] font-medium text-slate-200 hover:border-yellow-500 hover:text-yellow-300 transition-colors"
+                        title="Download Excel"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Excel
+                      </a>
+                    </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </section>
