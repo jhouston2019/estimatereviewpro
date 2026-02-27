@@ -153,14 +153,14 @@ export async function generateEnhancedUnifiedReport(
     engines.push('pricing-validation-engine');
     const region = options.region || 'DEFAULT';
     const pricingAnalysis = await validatePricing(
-      parsedEstimate.lineItems.map(item => ({
-        lineNumber: item.lineNumber || 0,
-        tradeCode: item.tradeCode,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.rcv / item.quantity,
-        total: item.rcv,
+      parsedEstimate.lineItems.map((item: any, index: number) => ({
+        lineNumber: item.lineNumber ?? index + 1,
+        tradeCode: item.tradeCode ?? '',
+        description: item.description ?? '',
+        quantity: item.quantity ?? 0,
+        unit: item.unit ?? '',
+        unitPrice: (item.quantity ?? 0) > 0 ? (item.rcv ?? 0) / (item.quantity ?? 1) : 0,
+        total: item.rcv ?? 0,
       })),
       region
     );
@@ -169,13 +169,13 @@ export async function generateEnhancedUnifiedReport(
     console.log('[7/12] Validating depreciation...');
     engines.push('depreciation-validator');
     const depreciationAnalysis = validateDepreciation(
-      parsedEstimate.lineItems.map(item => ({
-        lineNumber: item.lineNumber || 0,
-        description: item.description,
-        rcv: item.rcv,
-        acv: item.acv,
-        quantity: item.quantity,
-        unit: item.unit,
+      parsedEstimate.lineItems.map((item: any, index: number) => ({
+        lineNumber: item.lineNumber ?? index + 1,
+        description: item.description ?? '',
+        rcv: item.rcv ?? 0,
+        acv: item.acv ?? 0,
+        quantity: item.quantity ?? 0,
+        unit: item.unit ?? '',
       }))
     );
     
@@ -183,13 +183,13 @@ export async function generateEnhancedUnifiedReport(
     console.log('[8/12] Validating labor rates...');
     engines.push('labor-rate-validator');
     const laborAnalysis = await validateLaborRates(
-      parsedEstimate.lineItems.map(item => ({
-        lineNumber: item.lineNumber || 0,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.rcv / item.quantity,
-        total: item.rcv,
+      parsedEstimate.lineItems.map((item: any, index: number) => ({
+        lineNumber: item.lineNumber ?? index + 1,
+        description: item.description ?? '',
+        quantity: item.quantity ?? 0,
+        unit: item.unit ?? '',
+        unitPrice: (item.quantity ?? 0) > 0 ? (item.rcv ?? 0) / (item.quantity ?? 1) : 0,
+        total: item.rcv ?? 0,
       })),
       region
     );
@@ -198,8 +198,18 @@ export async function generateEnhancedUnifiedReport(
     console.log('[9/12] Detecting carrier tactics...');
     engines.push('carrier-tactic-detector');
     const carrierTactics = detectCarrierTactics({
-      lineItems: parsedEstimate.lineItems,
-      codeUpgradeFlags: codeAnalysis.missingItems.map(item => ({
+      lineItems: parsedEstimate.lineItems.map((item: any, index: number) => ({
+        lineNumber: item.lineNumber ?? index + 1,
+        tradeCode: item.tradeCode ?? '',
+        description: item.description ?? '',
+        quantity: item.quantity ?? 0,
+        unit: item.unit ?? '',
+        rcv: item.rcv ?? 0,
+        acv: item.acv ?? 0,
+        depreciation: item.depreciation ?? 0,
+        actionType: item.actionType,
+      })),
+      codeUpgradeFlags: codeAnalysis.missingItems.map((item: any) => ({
         code: item.code,
         missing: true,
       })),
