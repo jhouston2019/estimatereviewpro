@@ -300,7 +300,7 @@ export async function generateEnhancedUnifiedReport(
       totalRCV: parsedEstimate.totals.rcv,
       totalACV: parsedEstimate.totals.acv,
       totalDepreciation: parsedEstimate.totals.depreciation,
-      missingCriticalTrades: lossExpectation.missingCriticalTrades.map(t => t.trade),
+      missingCriticalTrades: lossExpectation.missingCriticalTrades.map((t: any) => t.tradeName || t.tradeCode),
       scopeGaps: completenessAnalysis.issues
         .filter(i => i.severity === 'CRITICAL')
         .map(i => i.description),
