@@ -301,9 +301,10 @@ export async function generateEnhancedUnifiedReport(
       totalACV: parsedEstimate.totals.acv,
       totalDepreciation: parsedEstimate.totals.depreciation,
       missingCriticalTrades: lossExpectation.missingCriticalTrades.map((t: any) => t.tradeName || t.tradeCode),
-      scopeGaps: completenessAnalysis.issues
-        .filter(i => i.severity === 'CRITICAL')
-        .map(i => i.description),
+      scopeGaps: (completenessAnalysis.tradeScores || [])
+        .flatMap((trade: any) => trade.issues || [])
+        .filter((i: any) => i.severity === 'CRITICAL')
+        .map((i: any) => i.description),
       integrityIssues: [
         ...depreciationAnalysis.improperDepreciation.map(i => i.issue),
         ...carrierTactics.tacticsDetected
