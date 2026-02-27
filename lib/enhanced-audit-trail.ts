@@ -332,7 +332,7 @@ export async function loadAuditTrail(reportId: string, supabaseClient: any): Pro
     console.error('[AUDIT] Failed to load AI decisions:', decisionsError);
   }
   
-  const auditEvents: AuditEvent[] = (events || []).map(e => ({
+  const auditEvents: AuditEvent[] = (events || []).map((e: any) => ({
     id: e.id,
     reportId: e.report_id,
     eventType: e.event_type,
@@ -345,7 +345,7 @@ export async function loadAuditTrail(reportId: string, supabaseClient: any): Pro
     metadata: e.metadata,
   }));
   
-  const aiDecisions: AIDecision[] = (decisions || []).map(d => ({
+  const aiDecisions: AIDecision[] = (decisions || []).map((d: any) => ({
     id: d.id,
     reportId: d.report_id,
     decisionType: d.decision_type,
@@ -360,9 +360,9 @@ export async function loadAuditTrail(reportId: string, supabaseClient: any): Pro
     costUsd: d.cost_usd,
   }));
   
-  const enginesUsed = [...new Set(auditEvents.map(e => e.engineName))];
-  const totalProcessingTime = auditEvents.reduce((sum, e) => sum + e.processingTimeMs, 0);
-  const aiCostTotal = aiDecisions.reduce((sum, d) => sum + (d.costUsd || 0), 0);
+  const enginesUsed = [...new Set(auditEvents.map((e: AuditEvent) => e.engineName))];
+  const totalProcessingTime = auditEvents.reduce((sum: number, e: AuditEvent) => sum + e.processingTimeMs, 0);
+  const aiCostTotal = aiDecisions.reduce((sum: number, d: AIDecision) => sum + (d.costUsd || 0), 0);
   
   return {
     events: auditEvents,
