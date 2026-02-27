@@ -5,10 +5,10 @@
  */
 
 import { parseMultiFormat, ParsedEstimate, FormatDetection } from './multi-format-parser';
-import { calculateExposure, ExposureAnalysis } from './structural-exposure-engine';
-import { calculateLossExpectation, LossExpectation } from './structural-loss-expectation-engine';
-import { calculateTradeCompleteness, CompletenessAnalysis } from './structural-completeness-engine';
-import { analyzeCodeUpgrades, CodeUpgradeAnalysis } from './structural-code-upgrade-engine';
+import { calculateExposure, ExposureAnalysis } from './exposure-engine';
+import { calculateLossExpectation, LossExpectation } from './loss-expectation-engine';
+import { calculateTradeCompleteness, CompletenessAnalysis } from './trade-completeness-engine';
+import { analyzeCodeUpgrades, CodeUpgradeAnalysis } from './code-upgrade-engine';
 import { validatePricing, PricingValidationResult } from './pricing-validation-engine';
 import { validateDepreciation, DepreciationAnalysis } from './depreciation-validator';
 import { validateLaborRates, LaborAnalysis } from './labor-rate-validator';
@@ -339,7 +339,7 @@ export async function generateEnhancedUnifiedReport(
         severityLevel: lossExpectation.severityLevel,
         confidence: parsedEstimate.metadata.confidence,
       },
-      structuralIntegrityScore: completenessAnalysis.structuralIntegrityScore,
+      structuralIntegrityScore: completenessAnalysis.overallIntegrityScore,
       financialExposureRange: {
         min: exposureAnalysis.totalExposureMin,
         max: exposureAnalysis.totalExposureMax,
@@ -381,7 +381,7 @@ function calculateOverallScores(data: {
   carrierTactics: CarrierTacticsAnalysis;
 }): EnhancedUnifiedReport['overallScores'] {
   
-  const structuralIntegrity = data.completenessAnalysis.structuralIntegrityScore;
+  const structuralIntegrity = data.completenessAnalysis.overallIntegrityScore;
   const pricingAccuracy = 100 - Math.min(100, Math.abs(data.pricingAnalysis.variancePercentage));
   const depreciationFairness = data.depreciationAnalysis.depreciationScore;
   const laborFairness = data.laborAnalysis.laborScore;
@@ -425,7 +425,7 @@ Estimate Summary:
 - Severity: ${data.lossExpectation.severityLevel}
 
 Key Findings:
-- Structural integrity: ${data.completenessAnalysis.structuralIntegrityScore}/100
+- Structural integrity: ${data.completenessAnalysis.overallIntegrityScore}/100
 - Pricing variance: ${data.pricingAnalysis.variancePercentage.toFixed(1)}%
 - Depreciation score: ${data.depreciationAnalysis.depreciationScore}/100
 - Labor score: ${data.laborAnalysis.laborScore}/100
