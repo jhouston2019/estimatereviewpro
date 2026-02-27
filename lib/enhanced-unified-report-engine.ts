@@ -381,7 +381,7 @@ function calculateOverallScores(data: {
   carrierTactics: CarrierTacticsAnalysis;
 }): EnhancedUnifiedReport['overallScores'] {
   
-  const structuralIntegrity = data.completenessAnalysis.overallScore;
+  const structuralIntegrity = data.completenessAnalysis.structuralIntegrityScore;
   const pricingAccuracy = 100 - Math.min(100, Math.abs(data.pricingAnalysis.variancePercentage));
   const depreciationFairness = data.depreciationAnalysis.depreciationScore;
   const laborFairness = data.laborAnalysis.laborScore;
@@ -421,11 +421,11 @@ Estimate Summary:
 - Line items: ${data.parsedEstimate.lineItems.length}
 - Total RCV: $${data.parsedEstimate.totals.rcv.toFixed(2)}
 - Total ACV: $${data.parsedEstimate.totals.acv.toFixed(2)}
-- Loss type: ${data.lossExpectation.detectedLossType}
+- Loss type: ${data.lossExpectation.lossType}
 - Severity: ${data.lossExpectation.severityLevel}
 
 Key Findings:
-- Structural integrity: ${data.completenessAnalysis.overallScore}/100
+- Structural integrity: ${data.completenessAnalysis.structuralIntegrityScore}/100
 - Pricing variance: ${data.pricingAnalysis.variancePercentage.toFixed(1)}%
 - Depreciation score: ${data.depreciationAnalysis.depreciationScore}/100
 - Labor score: ${data.laborAnalysis.laborScore}/100
