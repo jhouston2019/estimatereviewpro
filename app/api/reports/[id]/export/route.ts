@@ -194,7 +194,7 @@ async function generatePDFFromRenderer(report: Report, analysis: any, auditMetad
       estimateName: report.estimate_name || 'Carrier Estimate'
     };
     
-    const htmlContent = generatePDFHTML(contentHTML, headerData, 1);
+    const htmlContent = generatePDFHTML(headerData, contentHTML, 1);
     
     return new NextResponse(htmlContent, {
       headers: {
