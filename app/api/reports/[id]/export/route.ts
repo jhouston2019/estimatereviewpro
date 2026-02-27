@@ -294,7 +294,7 @@ function generateLegacyPDFExport(report: Report, analysis: any, auditMetadata: a
         and includes version tags and timestamps for complete audit trail. Hash ${auditMetadata.exportHash} can be used to verify document integrity.
       </p>
     </div>
-`;
+
     <!-- Executive Summary -->
     <div class="section">
       <h2>Executive Summary</h2>
