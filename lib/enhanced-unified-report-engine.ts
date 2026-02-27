@@ -223,9 +223,21 @@ export async function generateEnhancedUnifiedReport(
     if (options.comparisonEstimate) {
       console.log('[10/12] Performing multi-phase matching...');
       engines.push('matching-engine');
+      
+      // Normalize line items to ensure lineNumber is always present
+      const normalizedSourceItems = parsedEstimate.lineItems.map((item: any, index: number) => ({
+        ...item,
+        lineNumber: item.lineNumber ?? index + 1,
+      }));
+      
+      const normalizedTargetItems = options.comparisonEstimate.lineItems.map((item: any, index: number) => ({
+        ...item,
+        lineNumber: item.lineNumber ?? index + 1,
+      }));
+      
       matchingAnalysis = await performMultiPhaseMatching(
-        parsedEstimate.lineItems,
-        options.comparisonEstimate.lineItems,
+        normalizedSourceItems,
+        normalizedTargetItems,
         {
           includeAI: options.includeAI,
           openaiApiKey: options.openaiApiKey,
