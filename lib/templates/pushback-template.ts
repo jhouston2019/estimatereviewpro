@@ -129,9 +129,10 @@ function buildExpertAuthoritySummary(input: StructuredAnalysisInput): FormattedS
   const { expertDirectives, deviations, analysis } = input;
   const expertIntelligence = (analysis as any).expertIntelligence;
   
-  const unaddressed = expertDirectives?.filter(dir => 
-    deviations.some(d => d.reportDirective === dir.directive)
-  ) || [];
+  const unaddressed = expertDirectives?.filter(dir => {
+    const directiveText = (dir as any).directive ?? dir.sourceParagraph ?? '';
+    return deviations.some(d => d.reportDirective === directiveText);
+  }) || [];
   
   let content = '\nEXPERT AUTHORITY SUMMARY\n\n';
   
@@ -146,9 +147,11 @@ function buildExpertAuthoritySummary(input: StructuredAnalysisInput): FormattedS
   if (unaddressed.length > 0) {
     content += 'Unaddressed Mandatory Directives:\n\n';
     unaddressed.forEach((dir, idx) => {
-      content += `${idx + 1}. "${dir.directive.substring(0, 100)}..."\n`;
-      if (dir.complianceReferences && dir.complianceReferences.length > 0) {
-        content += `   Compliance: ${dir.complianceReferences[0].standard}\n`;
+      const directiveText = (dir as any).directive ?? dir.sourceParagraph ?? 'Expert directive';
+      content += `${idx + 1}. "${directiveText.substring(0, 100)}..."\n`;
+      const complianceRef = dir.complianceBasis;
+      if (complianceRef) {
+        content += `   Compliance: ${complianceRef.standard}\n`;
       }
       content += '\n';
     });
@@ -170,7 +173,7 @@ function buildStructuredFinancialReconciliation(input: StructuredAnalysisInput):
   // Categorize by source
   const reportBased = deviations.filter(d => d.source === 'REPORT' || d.source === 'BOTH');
   const dimensionBased = deviations.filter(d => d.source === 'DIMENSION');
-  const codeBased = deviations.filter(d => d.source === 'CODE' || d.complianceReference);
+  const codeBased = deviations.filter(d => d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code') || (d as any).complianceReference);
   
   const reportMin = reportBased.reduce((sum, d) => sum + d.impactMin, 0);
   const reportMax = reportBased.reduce((sum, d) => sum + d.impactMax, 0);

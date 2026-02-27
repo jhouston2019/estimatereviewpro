@@ -209,9 +209,10 @@ export function generateSettlementJustificationReport(
   
   // Section 4: Expert Directive Compliance Matrix
   const directiveComplianceMatrix = expertDirectives?.map(dir => {
-    const deviation = deviations.find(d => d.reportDirective === dir.directive);
+    const directiveText = dir.directive?.substring(0, 80) ?? dir.sourceParagraph?.substring(0, 80) ?? 'Expert directive';
+    const deviation = deviations.find(d => d.reportDirective === directiveText);
     return {
-      directive: dir.directive.substring(0, 80),
+      directive: directiveText,
       addressed: !deviation,
       partial: false, // TODO: Implement partial detection
       unaddressed: !!deviation,
@@ -221,7 +222,7 @@ export function generateSettlementJustificationReport(
   }) || [];
   
   // Section 5: Geometry Variance Summary
-  const geometryVariance = dimensions ? {
+  const geometryVariance = dimensions?.rooms ? {
     rooms: dimensions.rooms.map(room => {
       const deviation = deviations.find(d => 
         d.dimensionBased && d.issue.includes(room.name)

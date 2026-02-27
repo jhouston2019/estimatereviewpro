@@ -117,7 +117,7 @@ function buildCompleteFinancialBreakdown(input: StructuredAnalysisInput): Format
   // Categorize by source
   const reportBased = deviations.filter(d => d.source === 'REPORT' || d.source === 'BOTH');
   const dimensionBased = deviations.filter(d => d.source === 'DIMENSION');
-  const codeBased = deviations.filter(d => d.source === 'CODE' || d.complianceReference);
+  const codeBased = deviations.filter(d => d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code') || (d as any).complianceReference);
   
   const reportMin = reportBased.reduce((sum, d) => sum + d.impactMin, 0);
   const reportMax = reportBased.reduce((sum, d) => sum + d.impactMax, 0);
@@ -246,13 +246,13 @@ function buildDimensionAnalysis(input: StructuredAnalysisInput): FormattedSectio
   const content = `
 DIMENSION ANALYSIS
 
-Source: ${dimensions.sourceType}
-Rooms Measured: ${dimensions.rooms.length}
-Total Drywall Expected: ${dimensions.totalDrywallSF} SF
-Total Baseboard Expected: ${dimensions.totalBaseboardLF} LF
-Total Flooring Expected: ${dimensions.totalFlooringSF} SF
-Total Ceiling Expected: ${dimensions.totalCeilingSF} SF
-Total Perimeter: ${dimensions.totalPerimeterLF} LF
+Source: ${(dimensions as any).sourceType || 'Structured Dimension Data'}
+Rooms Measured: ${(dimensions as any).rooms?.length || 0}
+Total Drywall Expected: ${(dimensions as any).totalDrywallSF || dimensions.drywallSF || 0} SF
+Total Baseboard Expected: ${dimensions.baseboardLF || 0} LF
+Total Flooring Expected: ${dimensions.flooringSF || 0} SF
+Total Ceiling Expected: ${(dimensions as any).totalCeilingSF || dimensions.ceilingSF || 0} SF
+Total Perimeter: ${(dimensions as any).totalPerimeterLF || 0} LF
 
 All expected quantities calculated using deterministic geometry formulas.
   `.trim();

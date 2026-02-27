@@ -93,8 +93,12 @@ function buildExhibitA_FinancialVariance(input: StructuredAnalysisInput): Format
   // Categorize by source
   const reportBased = deviations.filter(d => d.source === 'REPORT' || d.source === 'BOTH');
   const dimensionBased = deviations.filter(d => d.source === 'DIMENSION');
-  const codeBased = deviations.filter(d => d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code'));
+  const codeBased = deviations.filter(d => d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code') || d.issue.toLowerCase().includes('compliance'));
   const photoBased: any[] = []; // Photos don't create deviations directly
+  
+  // Silence type error for source comparison
+  const _codeCheck = (d: any) => d.source === 'CODE';
+  const _photoCheck = (d: any) => d.source === 'PHOTOS';
   
   const reportMin = reportBased.reduce((sum, d) => sum + d.impactMin, 0);
   const reportMax = reportBased.reduce((sum, d) => sum + d.impactMax, 0);
@@ -230,8 +234,9 @@ Directive                                    Priority    Status        Exposure
 `;
   
   expertDirectives?.forEach(dir => {
-    const deviation = deviations.find(d => d.reportDirective === dir.directive);
-    const directiveShort = dir.directive.substring(0, 42).padEnd(42);
+    const directiveText = (dir as any).directive ?? dir.sourceParagraph?.substring(0, 42) ?? 'Expert directive';
+    const deviation = deviations.find(d => d.reportDirective === directiveText);
+    const directiveShort = directiveText.substring(0, 42).padEnd(42);
     const priority = (dir.priority || 'UNKNOWN').padEnd(11);
     const status = deviation ? 'UNADDRESSED' : 'ADDRESSED';
     const exposure = deviation 
@@ -240,9 +245,10 @@ Directive                                    Priority    Status        Exposure
     content += `${directiveShort}  ${priority}  ${status.padEnd(12)}  ${exposure}\n`;
   });
   
-  const unaddressedMandatory = expertDirectives?.filter(dir => 
-    dir.priority === 'MANDATORY' && deviations.some(d => d.reportDirective === dir.directive)
-  ).length || 0;
+  const unaddressedMandatory = expertDirectives?.filter(dir => {
+    const directiveText = (dir as any).directive ?? dir.sourceParagraph ?? '';
+    return dir.priority === 'MANDATORY' && deviations.some(d => d.reportDirective === directiveText);
+  }).length || 0;
   
   content += `\nUnaddressed Mandatory Directives: ${unaddressedMandatory}\n`;
   content += `Total Directives Analyzed: ${expertDirectives?.length || 0}\n`;
@@ -261,7 +267,7 @@ function buildExhibitD_CodeCompliance(input: StructuredAnalysisInput): Formatted
   const codeAnalysis = (analysis as any).codeUpgradeFlags;
   
   const codeDeviations = deviations.filter(d => 
-    d.source === 'CODE' || d.complianceReference
+    d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code') || (d as any).complianceReference
   );
   
   let content = `
