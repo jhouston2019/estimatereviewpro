@@ -7,10 +7,16 @@
  */
 
 import { Report, ReportAnalysis } from './report-types';
-import { Deviation } from './deviation-engine';
+import { Deviation as BaseDeviation } from './deviation-engine';
 import { ExpertDirective } from './expert-intelligence-engine';
 import { ExpectedQuantities } from './dimension-engine';
 import { PhotoAnalysisResult } from './photo-analysis-engine';
+
+// Extended types for settlement generation
+interface Deviation extends BaseDeviation {
+  complianceReference?: string;
+  unit?: string;
+}
 import { COST_BASELINE_VERSION, COST_BASELINE_DATE, COST_BASELINE_REGION } from './cost-baseline';
 
 export interface SettlementJustificationReport {
@@ -142,8 +148,8 @@ export function generateSettlementJustificationReport(
   report: Report,
   analysis: ReportAnalysis,
   deviations: Deviation[],
-  expertDirectives?: ExpertDirective[],
-  dimensions?: ExpectedQuantities,
+  expertDirectives?: (ExpertDirective & { directive?: string })[],
+  dimensions?: ExpectedQuantities & { rooms?: any[]; sourceType?: string; totalDrywallSF?: number },
   photoAnalysis?: PhotoAnalysisResult
 ): SettlementJustificationReport {
   
@@ -251,8 +257,8 @@ export function generateSettlementJustificationReport(
   const directiveComplianceScore = expertIntelligence 
     ? Math.round((1 - (unaddressedMandatory / Math.max(expertIntelligence.directives, 1))) * 100)
     : 100;
-  const geometryConsistencyScore = dimensions
-    ? Math.round((1 - (geometryShortfalls / Math.max(dimensions.totalDrywallSF, 1))) * 100)
+  const geometryConsistencyScore = dimensions && dimensions.totalDrywallSF
+    ? Math.round((1 - (geometryShortfalls / Math.max(dimensions.totalDrywallSF || 1, 1))) * 100)
     : 100;
   const codeExposureScore = 100 - Math.min(100, Math.round((codeComplianceGaps.min / Math.max(totalVarianceMin, 1)) * 100));
   

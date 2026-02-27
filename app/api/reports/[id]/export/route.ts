@@ -187,11 +187,12 @@ async function generatePDFFromRenderer(report: Report, analysis: any, auditMetad
     
     const propertyDetails = analysis.property_details || {};
     const headerData = {
+      reportId: report.id.substring(0, 8),
+      dateReviewed: report.created_at,
+      estimateName: report.estimate_name || 'Carrier Estimate',
       claimNumber: propertyDetails.claim_number || 'Not specified',
       propertyAddress: propertyDetails.address || 'Not specified',
-      dateOfLoss: propertyDetails.date_of_loss || 'Not specified',
-      reportDate: new Date(report.created_at).toLocaleDateString('en-US'),
-      estimateName: report.estimate_name || 'Carrier Estimate'
+      dateOfLoss: propertyDetails.date_of_loss || 'Not specified'
     };
     
     const htmlContent = generatePDFHTML(headerData, contentHTML, 1);
@@ -616,6 +617,13 @@ function generateExcelExport(report: Report, analysis: any, auditMetadata: any) 
   const quantityIssues = analysis.quantity_issues || [];
   const structuralGaps = analysis.structural_gaps || [];
   const detectedTrades = analysis.detected_trades || [];
+  
+  // Extract expert intelligence, deviations, and dimension data
+  const expertIntelligence = (analysis as any).expertIntelligence || null;
+  const deviationAnalysis = (analysis as any).deviationExposureRange?.breakdown || null;
+  const reportDeviations = (analysis as any).reportDeviations || null;
+  const dimensionVariances = (analysis as any).dimensionVariances || null;
+  const photoFlags = (analysis as any).photoFlags || null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -871,16 +879,16 @@ function generateExcelExport(report: Report, analysis: any, auditMetadata: any) 
         <br/><br/>
       ` : ''}
       
-      ${photoAnalysis ? `
+      ${photoFlags && photoFlags.present ? `
         <h2 style="background-color: #a855f7; color: white; padding: 10px;">📸 PHOTO & VISUAL DAMAGE ANALYSIS</h2>
         <table border="1" style="background-color: #f3e8ff;">
-          <tr><td><b>Photos Analyzed</b></td><td>${photoAnalysis.photosAnalyzed}</td></tr>
-          <tr><td><b>Critical Flags</b></td><td style="color: ${photoAnalysis.criticalFlags > 0 ? '#dc2626' : '#16a34a'}; font-weight: bold;">${photoAnalysis.criticalFlags}</td></tr>
-          <tr><td colspan="2"><b>AI-Powered Assessment:</b> ${photoAnalysis.summary}</td></tr>
-          ${photoAnalysis.criticalFlags > 0 ? `
+          <tr><td><b>Photos Analyzed</b></td><td>${photoFlags.photosAnalyzed || 0}</td></tr>
+          <tr><td><b>Critical Flags</b></td><td style="color: ${(photoFlags.criticalFlags || 0) > 0 ? '#dc2626' : '#16a34a'}; font-weight: bold;">${photoFlags.criticalFlags || 0}</td></tr>
+          <tr><td colspan="2"><b>AI-Powered Assessment:</b> ${photoFlags.summary || 'No summary available'}</td></tr>
+          ${(photoFlags.criticalFlags || 0) > 0 ? `
             <tr style="background-color: #fee2e2;">
               <td colspan="2" style="color: #991b1b; font-weight: bold;">
-                ⚠️ Visual damage assessment flagged ${photoAnalysis.criticalFlags} critical concern(s). 
+                ⚠️ Visual damage assessment flagged ${photoFlags.criticalFlags} critical concern(s). 
                 Photos show damage indicators that should be cross-referenced with estimate scope.
               </td>
             </tr>
@@ -943,6 +951,13 @@ function generateCSVExport(report: Report, analysis: any, auditMetadata: any) {
   const missingItems = analysis.missing_items || [];
   const quantityIssues = analysis.quantity_issues || [];
   const structuralGaps = analysis.structural_gaps || [];
+  
+  // Extract expert intelligence, deviations, and dimension data
+  const expertIntelligence = (analysis as any).expertIntelligence || null;
+  const deviationAnalysis = (analysis as any).deviationExposureRange?.breakdown || null;
+  const reportDeviations = (analysis as any).reportDeviations || null;
+  const dimensionVariances = (analysis as any).dimensionVariances || null;
+  const photoFlags = (analysis as any).photoFlags || null;
 
   const escapeCsv = (value: any) => {
     if (value === null || value === undefined) return '';
@@ -1089,15 +1104,15 @@ function generateCSVExport(report: Report, analysis: any, auditMetadata: any) {
   }
 
   // PHOTO & VISUAL DAMAGE ANALYSIS
-  if (photoAnalysis) {
+  if (photoFlags && photoFlags.present) {
     csv += '=================================================================\n';
     csv += 'PHOTO & VISUAL DAMAGE ANALYSIS\n';
     csv += '=================================================================\n';
-    csv += `Photos Analyzed,${photoAnalysis.photosAnalyzed}\n`;
-    csv += `Critical Flags,${photoAnalysis.criticalFlags}\n`;
-    csv += `AI-Powered Assessment,${escapeCsv(photoAnalysis.summary)}\n`;
-    if (photoAnalysis.criticalFlags > 0) {
-      csv += `\nWARNING: Visual damage assessment flagged ${photoAnalysis.criticalFlags} critical concern(s)\n`;
+    csv += `Photos Analyzed,${photoFlags.photosAnalyzed || 0}\n`;
+    csv += `Critical Flags,${photoFlags.criticalFlags || 0}\n`;
+    csv += `AI-Powered Assessment,${escapeCsv(photoFlags.summary || 'No summary available')}\n`;
+    if ((photoFlags.criticalFlags || 0) > 0) {
+      csv += `\nWARNING: Visual damage assessment flagged ${photoFlags.criticalFlags} critical concern(s)\n`;
       csv += `Photos show damage indicators that should be cross-referenced with estimate scope.\n`;
       csv += `Verify all visible damage is addressed in line items.\n`;
     }
@@ -1144,20 +1159,24 @@ async function generateExportAllZIP(report: Report, analysis: any, auditMetadata
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     
+    // Extract data from analysis
+    const deviationAnalysis = (analysis as any).deviationExposureRange?.breakdown || null;
+    const photoFlags = (analysis as any).photoFlags || null;
+    
     // Prepare structured input for renderer
     const { renderAllReports } = await import('@/lib/report-renderer');
     const structuredInput = {
       report,
       analysis,
       deviations: deviationAnalysis?.deviations || [],
-      expertDirectives: undefined, // TODO: Extract from analysis
-      dimensions: undefined, // TODO: Extract from analysis
-      photoAnalysis: photoAnalysis ? {
-        metadata: { photosAnalyzed: photoAnalysis.photosAnalyzed, aiModel: 'gpt-4-vision-preview', processingTimeMs: 0 },
+      expertDirectives: undefined,
+      dimensions: undefined,
+      photoAnalysis: photoFlags && photoFlags.present ? {
+        metadata: { photosAnalyzed: photoFlags.photosAnalyzed || 0, aiModel: 'gpt-4-vision-preview', processingTimeMs: 0 },
         classifications: [],
         overallSeverity: 'MINIMAL' as const,
         criticalFlags: [],
-        summary: photoAnalysis.summary
+        summary: photoFlags.summary || 'No summary available'
       } : undefined
     };
     
@@ -1183,7 +1202,7 @@ async function generateExportAllZIP(report: Report, analysis: any, auditMetadata
     // Generate ZIP
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
     
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(zipBuffer as any, {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="estimate-review-complete-${report.id.substring(0, 8)}.zip"`

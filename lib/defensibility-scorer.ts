@@ -58,14 +58,10 @@ export function scoreDefensibility(
   if (expertDirective) {
     if (expertDirective.priority === 'MANDATORY') {
       score += 2;
-      supportingFactors.push(`Mandatory ${expertDirective.authorityType.replace(/_/g, ' ')} directive`);
-      
-      if (expertDirective.licenseNumber) {
-        supportingFactors.push(`Licensed professional (${expertDirective.licenseNumber})`);
-      }
+      supportingFactors.push(`Mandatory expert directive`);
     } else if (expertDirective.priority === 'RECOMMENDED') {
       score += 1;
-      supportingFactors.push(`${expertDirective.authorityType.replace(/_/g, ' ')} recommendation`);
+      supportingFactors.push(`Expert recommendation`);
       potentialArguments.push('"This is recommended, not mandated"');
       strengtheningStrategy.push('Obtain explicit mandate from expert or cite compliance standard requiring this scope');
     } else {
@@ -85,12 +81,9 @@ export function scoreDefensibility(
   }
   
   // Compliance standard
-  if (deviation.complianceReference) {
+  if (expertDirective?.complianceBasis) {
     score += 1;
-    supportingFactors.push(`Compliance standard cited (${deviation.complianceReference})`);
-  } else if (expertDirective?.complianceReferences && expertDirective.complianceReferences.length > 0) {
-    score += 1;
-    supportingFactors.push(`Compliance standard referenced (${expertDirective.complianceReferences[0].standard})`);
+    supportingFactors.push(`Compliance standard cited (${expertDirective.complianceBasis.standard})`);
   } else {
     potentialArguments.push('"No compliance standard requires this"');
     strengtheningStrategy.push('Identify applicable compliance standard (IICRC, ANSI, IRC, etc.)');
@@ -119,41 +112,42 @@ export function scoreDefensibility(
   score += 1;
   supportingFactors.push('Industry-standard pricing (Cost Baseline v1.0.0)');
   
-  // Cap at 5
-  score = Math.min(5, score) as 1 | 2 | 3 | 4 | 5;
+  // Cap at 5 and ensure minimum of 1
+  const clampedScore = Math.max(1, Math.min(5, score));
+  const finalScore = (clampedScore === 1 ? 1 : clampedScore === 2 ? 2 : clampedScore === 3 ? 3 : clampedScore === 4 ? 4 : 5) as 1 | 2 | 3 | 4 | 5;
   
   // Determine level
-  const level = score >= 5 ? 'BULLETPROOF'
-    : score >= 4 ? 'STRONG'
-    : score >= 3 ? 'MEDIUM'
-    : score >= 2 ? 'FAIR'
+  const level = finalScore >= 5 ? 'BULLETPROOF'
+    : finalScore >= 4 ? 'STRONG'
+    : finalScore >= 3 ? 'MEDIUM'
+    : finalScore >= 2 ? 'FAIR'
     : 'WEAK';
   
   // Determine risk
-  const carrierDisputeRisk = score >= 4 ? 'LOW'
-    : score >= 3 ? 'MODERATE'
+  const carrierDisputeRisk = finalScore >= 4 ? 'LOW'
+    : finalScore >= 3 ? 'MODERATE'
     : 'HIGH';
   
-  const documentationStrength = score >= 4 ? 'STRONG'
-    : score >= 2 ? 'FAIR'
+  const documentationStrength = finalScore >= 4 ? 'STRONG'
+    : finalScore >= 2 ? 'FAIR'
     : 'WEAK';
   
   // Generate recommendation
   let recommendation: string;
-  if (score >= 5) {
+  if (finalScore >= 5) {
     recommendation = 'PUSH HARD – This is bulletproof. Multiple authoritative sources confirm this variance.';
-  } else if (score >= 4) {
+  } else if (finalScore >= 4) {
     recommendation = 'STRONG POSITION – Well-documented finding with expert backing and verification.';
-  } else if (score >= 3) {
+  } else if (finalScore >= 3) {
     recommendation = 'SUPPORT WITH ADDITIONAL DOCUMENTATION – Fair finding but needs strengthening.';
-  } else if (score >= 2) {
+  } else if (finalScore >= 2) {
     recommendation = 'STRENGTHEN BEFORE PRESENTING – Weak documentation, high dispute risk.';
   } else {
     recommendation = 'DO NOT PRESENT – Insufficient support. Obtain additional documentation first.';
   }
   
   return {
-    score,
+    score: finalScore,
     level,
     supportingFactors,
     riskAssessment: {
@@ -161,7 +155,7 @@ export function scoreDefensibility(
       documentationStrength,
       recommendation
     },
-    potentialCarrierArguments,
+    potentialCarrierArguments: potentialArguments,
     strengtheningStrategy: strengtheningStrategy.length > 0 ? strengtheningStrategy : undefined
   };
 }
@@ -181,7 +175,8 @@ export function scoreAllDeviations(
   deviations.forEach((deviation, idx) => {
     // Find matching expert directive
     const expertDirective = expertDirectives?.find(dir => 
-      deviation.reportDirective === dir.directive
+      dir.sourceParagraph && deviation.reportDirective && 
+      dir.sourceParagraph.includes(deviation.reportDirective)
     );
     
     // Check if dimension verification

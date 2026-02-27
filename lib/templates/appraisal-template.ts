@@ -93,8 +93,8 @@ function buildExhibitA_FinancialVariance(input: StructuredAnalysisInput): Format
   // Categorize by source
   const reportBased = deviations.filter(d => d.source === 'REPORT' || d.source === 'BOTH');
   const dimensionBased = deviations.filter(d => d.source === 'DIMENSION');
-  const codeBased = deviations.filter(d => d.source === 'CODE' || d.complianceReference);
-  const photoBased = deviations.filter(d => d.source === 'PHOTOS');
+  const codeBased = deviations.filter(d => d.deviationType === 'MISSING_DECKING' || d.issue.toLowerCase().includes('code'));
+  const photoBased: any[] = []; // Photos don't create deviations directly
   
   const reportMin = reportBased.reduce((sum, d) => sum + d.impactMin, 0);
   const reportMax = reportBased.reduce((sum, d) => sum + d.impactMax, 0);
@@ -132,7 +132,7 @@ High-Priority Deviations: ${deviations.filter(d => d.severity === 'HIGH').length
 Moderate Deviations: ${deviations.filter(d => d.severity === 'MODERATE').length}
 Low-Priority Deviations: ${deviations.filter(d => d.severity === 'LOW').length}
 
-All calculations use Cost Baseline v${metadata.costBaselineVersion} (${metadata.costBaselineDate}).
+All calculations use Cost Baseline v${input.analysis.metadata?.model_version || '1.0.0'}.
   `.trim();
   
   return {
@@ -165,8 +165,8 @@ function buildExhibitB_GeometryCalculations(input: StructuredAnalysisInput): For
 EXHIBIT B – GEOMETRY CALCULATIONS
 ═══════════════════════════════════════════════════════════════
 
-Measurement Source: ${dimensions.sourceType === 'MATTERPORT' ? 'Matterport 3D Scan CSV Export' : dimensions.sourceType}
-Total Rooms Measured: ${dimensions.rooms.length}
+Measurement Source: Structured Dimension Data
+Total Rooms Measured: ${(dimensions as any).rooms?.length || 0}
 
 Room-by-Room Geometry:
 
@@ -174,7 +174,8 @@ Room Name           Length  Width  Height  Perimeter  Wall Area  Floor Area
 ─────────────────────────────────────────────────────────────────────────
 `;
   
-  dimensions.rooms.forEach(room => {
+  const rooms = (dimensions as any).rooms || [];
+  rooms.forEach((room: any) => {
     const name = room.name.substring(0, 18).padEnd(18);
     const length = String(room.length).padStart(6);
     const width = String(room.width).padStart(6);

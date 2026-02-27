@@ -9,10 +9,16 @@
  */
 
 import { Report, ReportAnalysis } from './report-types';
-import { Deviation } from './deviation-engine';
+import { Deviation as BaseDeviation } from './deviation-engine';
 import { ExpertDirective } from './expert-intelligence-engine';
 import { ExpectedQuantities } from './dimension-engine';
 import { PhotoAnalysisResult } from './photo-analysis-engine';
+
+// Extended deviation type for template rendering (adds optional display fields)
+export interface Deviation extends BaseDeviation {
+  unit?: string;
+  complianceReference?: string;
+}
 
 export type ReportType = 
   | 'NEGOTIATION'

@@ -499,7 +499,7 @@ PNT - Paint walls - 200 SF"
   );
 }
 
-function ProcessingState({ onComplete }: { onComplete: () => void }) {
+function ProcessingState({ reportId, onComplete }: { reportId: string | null; onComplete: () => void }) {
   const [currentMessage, setCurrentMessage] = useState(0);
   
   const messages = [
@@ -545,7 +545,7 @@ function ProcessingState({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-function ResultsView() {
+function ResultsView({ reportId }: { reportId: string | null }) {
   const [activeTab, setActiveTab] = useState("overview");
 
   return (
