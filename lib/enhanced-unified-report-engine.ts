@@ -209,8 +209,8 @@ export async function generateEnhancedUnifiedReport(
         depreciation: item.depreciation ?? 0,
         actionType: item.actionType,
       })),
-      codeUpgradeFlags: codeAnalysis.missingItems.map((item: any) => ({
-        code: item.code,
+      codeUpgradeFlags: (codeAnalysis.codeUpgradeRisks || []).map((item: any) => ({
+        code: item.itemType,
         missing: true,
       })),
       pricingAnalysis,
