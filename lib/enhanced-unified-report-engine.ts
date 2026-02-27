@@ -335,14 +335,14 @@ export async function generateEnhancedUnifiedReport(
       },
       classification: {
         estimateType: parsedEstimate.metadata.detectedFormat,
-        lossType: lossExpectation.detectedLossType,
+        lossType: lossExpectation.lossType,
         severityLevel: lossExpectation.severityLevel,
         confidence: parsedEstimate.metadata.confidence,
       },
-      structuralIntegrityScore: completenessAnalysis.overallScore,
+      structuralIntegrityScore: completenessAnalysis.structuralIntegrityScore,
       financialExposureRange: {
-        min: exposureAnalysis.totalExposure.min,
-        max: exposureAnalysis.totalExposure.max,
+        min: exposureAnalysis.totalExposureMin,
+        max: exposureAnalysis.totalExposureMax,
         riskScore: exposureAnalysis.riskScore,
       },
       tradeScores: completenessAnalysis,
