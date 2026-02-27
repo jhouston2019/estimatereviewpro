@@ -10,7 +10,11 @@
 **Solution:** Mapped all LineItem fields with proper null coalescing for optional fields  
 **Commit:** `37251e9`
 
-**Status:** Pushed to GitHub - Netlify is rebuilding now (attempt #3)
+**Issue 3:** `Property 'missingItems' does not exist on type 'CodeUpgradeAnalysis'`  
+**Solution:** Changed to use `codeUpgradeRisks` property which actually exists  
+**Commit:** `e90e7cc`
+
+**Status:** Pushed to GitHub - Netlify is rebuilding now (attempt #4)
 
 ---
 
