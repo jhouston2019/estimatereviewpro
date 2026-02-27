@@ -14,7 +14,11 @@
 **Solution:** Changed to use `codeUpgradeRisks` property which actually exists  
 **Commit:** `e90e7cc`
 
-**Status:** Pushed to GitHub - Netlify is rebuilding now (attempt #4)
+**Issue 4:** `Type 'number | undefined' is not assignable to type 'number'` for matching engine  
+**Solution:** Normalized lineNumber fields before passing to performMultiPhaseMatching  
+**Commit:** `a2ac8e9`
+
+**Status:** Pushed to GitHub - Netlify is rebuilding now (attempt #5)
 
 ---
 
