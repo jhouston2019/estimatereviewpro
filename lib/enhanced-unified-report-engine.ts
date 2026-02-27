@@ -5,10 +5,10 @@
  */
 
 import { parseMultiFormat, ParsedEstimate, FormatDetection } from './multi-format-parser';
-import { calculateExposure, ExposureAnalysis } from './exposure-engine';
-import { calculateLossExpectation, LossExpectation } from './loss-expectation-engine';
-import { calculateTradeCompleteness, CompletenessAnalysis } from './trade-completeness-engine';
-import { analyzeCodeUpgrades, CodeUpgradeAnalysis } from './code-upgrade-engine';
+import { calculateExposure, ExposureAnalysis } from './structural-exposure-engine';
+import { calculateLossExpectation, LossExpectation } from './structural-loss-expectation-engine';
+import { calculateTradeCompleteness, CompletenessAnalysis } from './structural-completeness-engine';
+import { analyzeCodeUpgrades, CodeUpgradeAnalysis } from './structural-code-upgrade-engine';
 import { validatePricing, PricingValidationResult } from './pricing-validation-engine';
 import { validateDepreciation, DepreciationAnalysis } from './depreciation-validator';
 import { validateLaborRates, LaborAnalysis } from './labor-rate-validator';
