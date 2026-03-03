@@ -791,6 +791,27 @@ export function parseXactimateEstimate(text: string): ParsedEstimate {
 }
 
 /**
+ * Parse with validation (recommended for production)
+ */
+export function parseXactimateEstimateWithValidation(text: string): ParsedEstimate {
+  // Import validation layer dynamically to avoid circular dependencies
+  const { validateParsedEstimate } = require('./parser-validation-layer');
+  
+  // Parse estimate
+  const estimate = parseXactimateEstimate(text);
+  
+  // If parsing failed, return as-is
+  if (estimate.metadata.confidence === 'FAILED') {
+    return estimate;
+  }
+  
+  // Validate and correct
+  const validationResult = validateParsedEstimate(estimate);
+  
+  return validationResult.correctedEstimate;
+}
+
+/**
  * Export types
  */
 export type { ColumnPattern, ColumnBoundary, EstimateFormat };
