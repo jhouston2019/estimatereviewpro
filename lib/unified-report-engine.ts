@@ -4,7 +4,7 @@
  * Combines: parsing, exposure, loss expectation, completeness, code upgrades, AI insights
  */
 
-import { parseXactimateEstimate, ParsedEstimate } from './xactimate-parser';
+import { parseXactimateEstimateWithValidation as parseXactimateEstimate, ParsedEstimate } from './advanced-xactimate-parser';
 import { calculateExposure, ExposureAnalysis } from './exposure-engine';
 import { calculateLossExpectation, LossExpectation } from './loss-expectation-engine';
 import { calculateTradeCompleteness, CompletenessAnalysis } from './trade-completeness-engine';
