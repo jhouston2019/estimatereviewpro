@@ -4,7 +4,7 @@
  * Produces min/max ranges based on regional averages and severity
  */
 
-import { ParsedEstimate, LineItem } from './xactimate-parser';
+import { ParsedEstimate, LineItem } from './advanced-xactimate-parser';
 
 type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW' | 'MINIMAL';
 

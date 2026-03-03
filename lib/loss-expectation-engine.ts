@@ -4,7 +4,7 @@
  * Infers severity from trade density, quantity scale, and structural indicators
  */
 
-import { ParsedEstimate } from './xactimate-parser';
+import { ParsedEstimate } from './advanced-xactimate-parser';
 
 type LossType = 'WATER' | 'FIRE' | 'WIND' | 'HAIL' | 'OTHER';
 type SeverityLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'CATEGORY_3' | 'LIGHT' | 'MODERATE' | 'HEAVY' | 'MINOR' | 'MAJOR';

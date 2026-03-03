@@ -4,7 +4,7 @@
  * Supports: Standard, Xactimate, Tabular, Compact
  */
 
-import { parseXactimateEstimate, ParsedEstimate } from './xactimate-parser';
+import { parseXactimateEstimateWithValidation as parseXactimateEstimate, ParsedEstimate } from './advanced-xactimate-parser';
 
 export type EstimateFormat = 'XACTIMATE' | 'STANDARD' | 'TABULAR' | 'COMPACT' | 'UNKNOWN';
 

@@ -4,7 +4,7 @@
  * AFCI, drip edge, ice & water shield, smoke detectors, permits, detach/reset
  */
 
-import { ParsedEstimate } from './xactimate-parser';
+import { ParsedEstimate } from './advanced-xactimate-parser';
 
 type CodeItemType = 
   | 'AFCI_BREAKER'

@@ -4,7 +4,7 @@
  * Checks for removal, replacement, finish layers, material+labor, quantity consistency
  */
 
-import { ParsedEstimate, LineItem } from './xactimate-parser';
+import { ParsedEstimate, LineItem } from './advanced-xactimate-parser';
 
 interface TradeIssue {
   type: 'MISSING_REMOVAL' | 'MISSING_REPLACEMENT' | 'MISSING_FINISH' | 'MISSING_LABOR' | 'QUANTITY_MISMATCH' | 'ZERO_QUANTITY';
