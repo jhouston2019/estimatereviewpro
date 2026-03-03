@@ -361,6 +361,7 @@ function parseStandardEstimate(text: string): ParsedEstimate {
         description,
         quantity,
         unit: unit || 'EA',
+        unitPrice: quantity > 0 ? price / quantity : 0,
         rcv: price,
         acv: price,
         depreciation: 0,
@@ -370,6 +371,7 @@ function parseStandardEstimate(text: string): ParsedEstimate {
         actionType: detectActionType(description),
         lineNumber: i + 1,
         rawLine: line,
+        parseConfidence: 0.80
       });
     }
   }
@@ -382,10 +384,13 @@ function parseStandardEstimate(text: string): ParsedEstimate {
     metadata: {
       confidence: 'MEDIUM',
       validationScore: 75,
-      detectedFormat: 'STANDARD',
+      detectedFormat: 'XACTIMATE_TEXT',
       lineCount: lines.length,
       parsedCount: lineItems.length,
+      rejectedCount: 0,
+      avgLineConfidence: 0.80,
       warnings: lineItems.length === 0 ? ['No line items parsed'] : [],
+      columnPattern: null
     },
   };
 }
@@ -425,6 +430,7 @@ function parseTabularEstimate(text: string): ParsedEstimate {
           description,
           quantity,
           unit: unit || 'EA',
+          unitPrice: quantity > 0 ? price / quantity : 0,
           rcv: price,
           acv: price,
           depreciation: 0,
@@ -434,6 +440,7 @@ function parseTabularEstimate(text: string): ParsedEstimate {
           actionType: detectActionType(description),
           lineNumber: i + 1,
           rawLine: line,
+          parseConfidence: 0.80
         });
       }
     }
@@ -447,10 +454,13 @@ function parseTabularEstimate(text: string): ParsedEstimate {
     metadata: {
       confidence: 'HIGH',
       validationScore: 85,
-      detectedFormat: 'TABULAR',
+      detectedFormat: 'XACTIMATE_TABULAR',
       lineCount: lines.length,
       parsedCount: lineItems.length,
+      rejectedCount: 0,
+      avgLineConfidence: 0.85,
       warnings: lineItems.length === 0 ? ['No line items parsed'] : [],
+      columnPattern: null
     },
   };
 }
@@ -486,6 +496,7 @@ function parseCompactEstimate(text: string): ParsedEstimate {
         description: description.trim(),
         quantity,
         unit: unit.toUpperCase(),
+        unitPrice: quantity > 0 ? price / quantity : 0,
         rcv: price,
         acv: price,
         depreciation: 0,
@@ -495,6 +506,7 @@ function parseCompactEstimate(text: string): ParsedEstimate {
         actionType: detectActionType(description),
         lineNumber: i + 1,
         rawLine: line,
+        parseConfidence: 0.75
       });
     }
   }
@@ -507,10 +519,13 @@ function parseCompactEstimate(text: string): ParsedEstimate {
     metadata: {
       confidence: 'MEDIUM',
       validationScore: 70,
-      detectedFormat: 'COMPACT',
+      detectedFormat: 'XACTIMATE_COMPACT',
       lineCount: lines.length,
       parsedCount: lineItems.length,
+      rejectedCount: 0,
+      avgLineConfidence: 0.70,
       warnings: lineItems.length === 0 ? ['No line items parsed'] : [],
+      columnPattern: null
     },
   };
 }
@@ -545,6 +560,7 @@ function parseGenericEstimate(text: string): ParsedEstimate {
           description,
           quantity,
           unit,
+          unitPrice: quantity > 0 ? price / quantity : 0,
           rcv: price,
           acv: price,
           depreciation: 0,
@@ -554,6 +570,7 @@ function parseGenericEstimate(text: string): ParsedEstimate {
           actionType: detectActionType(description),
           lineNumber: i + 1,
           rawLine: line,
+          parseConfidence: 0.70
         });
       }
     }
@@ -567,10 +584,13 @@ function parseGenericEstimate(text: string): ParsedEstimate {
     metadata: {
       confidence: 'LOW',
       validationScore: 50,
-      detectedFormat: 'GENERIC',
+      detectedFormat: 'UNKNOWN',
       lineCount: lines.length,
       parsedCount: lineItems.length,
+      rejectedCount: 0,
+      avgLineConfidence: 0.50,
       warnings: ['Format not recognized - using generic parser', 'Results may be incomplete'],
+      columnPattern: null
     },
   };
 }
@@ -661,6 +681,8 @@ function calculateTotals(lineItems: ParsedEstimate['lineItems']): ParsedEstimate
     acv: lineItems.reduce((sum, item) => sum + item.acv, 0),
     depreciation: lineItems.reduce((sum, item) => sum + item.depreciation, 0),
     tax: lineItems.reduce((sum, item) => sum + item.tax, 0),
+    overhead: lineItems.filter(item => item.overhead).reduce((sum, item) => sum + item.rcv, 0),
+    profit: lineItems.filter(item => item.profit).reduce((sum, item) => sum + item.rcv, 0),
   };
 }
 

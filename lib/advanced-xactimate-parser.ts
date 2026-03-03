@@ -478,9 +478,9 @@ function parseFixedOrTabLine(
     quantity: quantity || 1,
     unit: unit?.toUpperCase() || 'EA',
     unitPrice: unitPrice || 0,
-    rcv,
-    acv,
-    depreciation: rcv - acv,
+    rcv: rcv || 0,
+    acv: acv || rcv || 0,
+    depreciation: (rcv || 0) - (acv || rcv || 0),
     tax: 0,
     overhead: description.toLowerCase().includes('o&p') || description.toLowerCase().includes('overhead'),
     profit: description.toLowerCase().includes('o&p') || description.toLowerCase().includes('profit'),
@@ -812,7 +812,6 @@ export function parseXactimateEstimateWithValidation(text: string): ParsedEstima
 }
 
 /**
- * Export types
+ * Export constants
  */
-export type { ColumnPattern, ColumnBoundary, EstimateFormat };
 export { TRADE_CODES, XACTIMATE_UNITS };

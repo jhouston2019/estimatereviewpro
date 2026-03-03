@@ -470,7 +470,3 @@ export function validateParsedEstimate(estimate: ParsedEstimate): ValidationResu
   };
 }
 
-/**
- * Export types
- */
-export type { ValidationIssue };
