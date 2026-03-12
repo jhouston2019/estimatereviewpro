@@ -153,7 +153,7 @@ CREATE POLICY "Service role can manage transactions"
 INSERT INTO subscription_plans (plan_name, price, reviews_per_month, plan_type, features) VALUES
   (
     'Single Review',
-    149.00,
+    49.00,
     1,
     'one-time',
     '["Comprehensive estimate analysis", "Issue detection", "Recovery calculation", "Litigation evidence", "Recovery guarantee"]'::jsonb

@@ -66,7 +66,7 @@ export default function PricingPage() {
             In Minutes. Guaranteed.
           </p>
           <p className="text-lg text-slate-400">
-            Pay $149 → Potentially recover $10K–$40K
+            Pay $49 → Potentially recover $10K–$40K
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function PricingPage() {
                 Single Review
               </h2>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-slate-900">$149</span>
+                <span className="text-5xl font-bold text-slate-900">$49</span>
                 <span className="text-slate-600">per estimate</span>
               </div>
               <p className="text-sm text-green-700 font-semibold mb-2">

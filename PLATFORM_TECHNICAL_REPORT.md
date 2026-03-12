@@ -658,7 +658,7 @@ Every analyzed estimate contributes structured data to 7 intelligence tables:
 
 ### Pricing Tiers
 
-**Single Review**: $149
+**Single Review**: $49
 - 1 estimate review
 - Full 12-engine analysis
 - Recovery calculation

@@ -114,7 +114,7 @@ export default function RecoveryValueCard({
                   </p>
                   <p className="text-blue-800 text-sm">
                     We found ${recoveryOpportunity.toLocaleString()} in potential recovery (below our $1,000 guarantee threshold). 
-                    A full refund of ${refundAmount ? `$${refundAmount.toFixed(2)}` : '$149.00'} has been issued to your payment method.
+                    A full refund of ${refundAmount ? `$${refundAmount.toFixed(2)}` : '$49.00'} has been issued to your payment method.
                   </p>
                 </div>
               ) : (

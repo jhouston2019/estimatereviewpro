@@ -220,7 +220,7 @@ npm run test:safety
 
 ### Three Plans
 
-**One-Time Review**: $149 per estimate
+**One-Time Review**: $49 per estimate
 - Full 12-engine analysis
 - 47-page report with litigation exhibits
 - Recovery guarantee (refund if recovery < $1,000)
@@ -245,27 +245,27 @@ If identified recovery is less than $1,000, **automatic refund** is issued. No q
 ### ROI Examples
 
 **Public Adjuster**:
-- Cost: $149 per analysis
+- Cost: $49 per analysis
 - Average recovery identified: $29,300
 - PA fee (10%): $2,930
-- ROI: 1,866%
+- ROI: 5,880%
 
 **Attorney**:
-- Cost: $149 per analysis
+- Cost: $49 per analysis
 - Replaces: $5,000-$10,000 expert witness fee
-- Savings: $4,851-$9,851 per case
+- Savings: $4,951-$9,951 per case
 
 **Contractor**:
-- Cost: $149 per analysis
+- Cost: $49 per analysis
 - Average recovery: $29,300
 - Avoids eating costs on underpaid estimate
-- ROI: 19,564%
+- ROI: 59,696%
 
 **Property Owner**:
-- Cost: $149 per analysis
+- Cost: $49 per analysis
 - Average recovery: $29,300
 - Avoids 10% PA fee: $2,930
-- Net benefit: $27,021
+- Net benefit: $27,121
 
 ---
 

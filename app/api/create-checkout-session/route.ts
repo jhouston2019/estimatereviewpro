@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
                 name: 'Single Estimate Review',
                 description: 'Find $10,000-$40,000 in missed claim value. Recovery guarantee: Free if we find less than $1,000.',
               },
-              unit_amount: 14900, // $149.00
+              unit_amount: 4900, // $49.00
             },
             quantity: 1,
           },

@@ -228,7 +228,7 @@ export async function checkRecoveryGuarantee(
   // Issue refund
   const refundResult = await issueStripeRefund(
     paymentIntentId,
-    149.00, // Full review price
+    49.00, // Full review price
     `Recovery guarantee: Found only $${recoveryValue.toFixed(2)} (threshold: $${GUARANTEE_THRESHOLD})`
   );
   
@@ -276,7 +276,7 @@ export async function checkRecoveryGuarantee(
     true,
     {
       refundIssued: true,
-      refundAmount: 149.00,
+      refundAmount: 49.00,
       stripeRefundId: refundResult.refundId,
     }
   );
