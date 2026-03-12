@@ -341,6 +341,175 @@ export function runOPGapDetection(estimate: StandardizedEstimate): EngineResult 
 }
 
 /**
+ * Adapter for Trade Dependency Engine
+ */
+export async function runTradeDependencyAnalysis(estimate: StandardizedEstimate): Promise<EngineResult> {
+  const startTime = Date.now();
+  const issues: ClaimIssue[] = [];
+  const audit: AuditEvent[] = [];
+  
+  try {
+    const { detectTradeDependencies } = await import('../engines/tradeDependencyEngine');
+    const result = await detectTradeDependencies(estimate);
+    
+    // Convert violations to issues
+    for (const violation of result.violations) {
+      issues.push({
+        id: `trade-dependency-${violation.trade.toLowerCase()}`,
+        type: 'trade_dependency_violation',
+        severity: violation.missingItems.length >= 3 ? 'high' : 'medium',
+        title: `Missing ${violation.trade} System Components`,
+        description: `${violation.trade} work detected (${violation.triggerFound}) but missing ${violation.missingItems.length} required components`,
+        financialImpact: violation.totalFinancialImpact,
+        recommendation: `Add required ${violation.trade} components: ${violation.missingItems.map(i => i.item).join(', ')}`,
+      });
+    }
+    
+    audit.push({
+      engine: 'trade-dependency',
+      decision: `Found ${result.totalViolations} trade dependency violations across ${result.tradesAnalyzed.length} trades`,
+      confidence: 0.95,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    
+    return { issues, audit };
+    
+  } catch (error) {
+    console.error('[TRADE-DEPENDENCY-ADAPTER] Error:', error);
+    audit.push({
+      engine: 'trade-dependency',
+      decision: 'Failed with error',
+      confidence: 0,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    return { issues: [], audit };
+  }
+}
+
+/**
+ * Adapter for Code Compliance Engine
+ */
+export async function runCodeComplianceAnalysis(estimate: StandardizedEstimate): Promise<EngineResult> {
+  const startTime = Date.now();
+  const issues: ClaimIssue[] = [];
+  const audit: AuditEvent[] = [];
+  
+  try {
+    const { detectCodeViolations } = await import('../engines/codeComplianceEngine');
+    const result = await detectCodeViolations(estimate);
+    
+    // Convert violations to issues
+    for (const violation of result.violations) {
+      issues.push({
+        id: `code-violation-${violation.missingItem.toLowerCase().replace(/\s+/g, '-')}`,
+        type: 'code_violation',
+        severity: violation.severity === 'CRITICAL' ? 'critical' : violation.severity === 'HIGH' ? 'high' : 'medium',
+        title: `Code Violation: ${violation.missingItem}`,
+        description: `${violation.requirement} (${violation.codeReference}). Evidence: ${violation.evidence}`,
+        financialImpact: violation.financialImpact,
+        recommendation: `Add ${violation.missingItem} to comply with ${violation.codeReference}`,
+      });
+    }
+    
+    audit.push({
+      engine: 'code-compliance',
+      decision: `Found ${result.totalViolations} code violations (${result.criticalViolations} critical) in ${result.jurisdiction}`,
+      confidence: 0.98,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    
+    return { issues, audit };
+    
+  } catch (error) {
+    console.error('[CODE-COMPLIANCE-ADAPTER] Error:', error);
+    audit.push({
+      engine: 'code-compliance',
+      decision: 'Failed with error',
+      confidence: 0,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    return { issues: [], audit };
+  }
+}
+
+/**
+ * Adapter for Estimate Manipulation Engine
+ */
+export async function runManipulationDetection(estimate: StandardizedEstimate): Promise<EngineResult> {
+  const startTime = Date.now();
+  const issues: ClaimIssue[] = [];
+  const audit: AuditEvent[] = [];
+  
+  try {
+    const { detectEstimateManipulation } = await import('../engines/estimateManipulationEngine');
+    const result = await detectEstimateManipulation(estimate);
+    
+    // Convert quantity suppressions to issues
+    for (const suppression of result.quantitySuppressions) {
+      issues.push({
+        id: `quantity-suppression-${suppression.lineNumber}`,
+        type: 'quantity_suppression',
+        severity: suppression.suppressionPercentage > 30 ? 'high' : 'medium',
+        title: 'Quantity Suppression Detected',
+        description: `Line ${suppression.lineNumber}: "${suppression.item}" shows ${suppression.suppressionPercentage.toFixed(1)}% quantity suppression (${suppression.estimatedQuantity} vs expected ${suppression.expectedQuantity})`,
+        financialImpact: suppression.financialImpact,
+        lineItemsAffected: [suppression.lineNumber],
+      });
+    }
+    
+    // Convert labor suppressions to issues
+    for (const suppression of result.laborSuppressions) {
+      issues.push({
+        id: `labor-manipulation-${suppression.lineNumber}`,
+        type: 'labor_manipulation',
+        severity: suppression.suppressionPercentage > 25 ? 'high' : 'medium',
+        title: 'Labor Rate Manipulation',
+        description: `Line ${suppression.lineNumber}: "${suppression.item}" uses $${suppression.estimateRate.toFixed(2)}/hr vs regional rate $${suppression.regionalRate.toFixed(2)}/hr (${suppression.suppressionPercentage.toFixed(1)}% suppression)`,
+        financialImpact: suppression.financialImpact,
+        lineItemsAffected: [suppression.lineNumber],
+      });
+    }
+    
+    // Convert fragmentations to issues
+    for (const frag of result.fragmentations) {
+      issues.push({
+        id: `fragmentation-${frag.trade.toLowerCase()}`,
+        type: 'scope_fragmentation',
+        severity: frag.severity === 'HIGH' ? 'high' : 'medium',
+        title: `${frag.trade} Scope Fragmentation`,
+        description: frag.reason,
+        lineItemsAffected: frag.lineNumbers,
+      });
+    }
+    
+    audit.push({
+      engine: 'estimate-manipulation',
+      decision: `Manipulation score: ${result.manipulationScore}/100. ${result.summary}`,
+      confidence: result.manipulationScore > 0 ? 0.85 : 1.0,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    
+    return { issues, audit };
+    
+  } catch (error) {
+    console.error('[MANIPULATION-ADAPTER] Error:', error);
+    audit.push({
+      engine: 'estimate-manipulation',
+      decision: 'Failed with error',
+      confidence: 0,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    return { issues: [], audit };
+  }
+}
+
+/**
  * Convert parsed estimate to standardized format
  */
 export function standardizeEstimate(parsedEstimate: any): StandardizedEstimate {

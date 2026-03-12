@@ -11,6 +11,9 @@ import {
   runLaborValidation,
   runCarrierTacticDetection,
   runOPGapDetection,
+  runTradeDependencyAnalysis,
+  runCodeComplianceAnalysis,
+  runManipulationDetection,
   standardizeEstimate,
 } from '../adapters/engine-adapters';
 import { reconstructScope, ScopeReconstructionResult } from '../engines/scopeReconstructionEngine';
@@ -141,7 +144,7 @@ export async function runClaimIntelligencePipeline(
     
     // ENGINE 5: O&P Gap Detection
     if (!options.enabledEngines || options.enabledEngines.includes('op-gaps')) {
-      console.log('[PIPELINE] [5/8] Running O&P gap detection...');
+      console.log('[PIPELINE] [5/11] Running O&P gap detection...');
       try {
         const result = runOPGapDetection(standardizedEstimate);
         allIssues.push(...result.issues);
@@ -152,9 +155,48 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 6: Scope Gap Reconstruction
+    // ENGINE 6: Trade Dependency Analysis
+    if (!options.enabledEngines || options.enabledEngines.includes('trade-dependency')) {
+      console.log('[PIPELINE] [6/11] Running trade dependency analysis...');
+      try {
+        const result = await runTradeDependencyAnalysis(standardizedEstimate);
+        allIssues.push(...result.issues);
+        allAuditEvents.push(...result.audit);
+        enginesExecuted.push('trade-dependency');
+      } catch (error) {
+        console.error('[PIPELINE] Trade dependency analysis failed (non-blocking):', error);
+      }
+    }
+    
+    // ENGINE 7: Code Compliance Analysis
+    if (!options.enabledEngines || options.enabledEngines.includes('code-compliance')) {
+      console.log('[PIPELINE] [7/11] Running code compliance analysis...');
+      try {
+        const result = await runCodeComplianceAnalysis(standardizedEstimate);
+        allIssues.push(...result.issues);
+        allAuditEvents.push(...result.audit);
+        enginesExecuted.push('code-compliance');
+      } catch (error) {
+        console.error('[PIPELINE] Code compliance analysis failed (non-blocking):', error);
+      }
+    }
+    
+    // ENGINE 8: Estimate Manipulation Detection
+    if (!options.enabledEngines || options.enabledEngines.includes('manipulation-detection')) {
+      console.log('[PIPELINE] [8/11] Running manipulation detection...');
+      try {
+        const result = await runManipulationDetection(standardizedEstimate);
+        allIssues.push(...result.issues);
+        allAuditEvents.push(...result.audit);
+        enginesExecuted.push('manipulation-detection');
+      } catch (error) {
+        console.error('[PIPELINE] Manipulation detection failed (non-blocking):', error);
+      }
+    }
+    
+    // ENGINE 9: Scope Gap Reconstruction
     if (!options.enabledEngines || options.enabledEngines.includes('scope-reconstruction')) {
-      console.log('[PIPELINE] [6/8] Running scope reconstruction...');
+      console.log('[PIPELINE] [9/11] Running scope reconstruction...');
       try {
         reconstructionResult = await reconstructScope(standardizedEstimate);
         enginesExecuted.push('scope-reconstruction');
@@ -170,9 +212,9 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 7: Recovery Calculator
+    // ENGINE 10: Recovery Calculator
     if (!options.enabledEngines || options.enabledEngines.includes('recovery-calculator')) {
-      console.log('[PIPELINE] [7/8] Running recovery calculator...');
+      console.log('[PIPELINE] [10/11] Running recovery calculator...');
       try {
         recoveryResult = calculateRecovery(
           allIssues,
@@ -192,9 +234,9 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 8: Litigation Evidence Generator
+    // ENGINE 11: Litigation Evidence Generator
     if (!options.enabledEngines || options.enabledEngines.includes('litigation-evidence')) {
-      console.log('[PIPELINE] [8/8] Generating litigation evidence...');
+      console.log('[PIPELINE] [11/11] Generating litigation evidence...');
       try {
         if (options.reportId && options.carrier && options.claimType) {
           litigationReport = await generateLitigationEvidence(
