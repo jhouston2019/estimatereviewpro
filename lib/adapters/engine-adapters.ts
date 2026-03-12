@@ -510,6 +510,55 @@ export async function runManipulationDetection(estimate: StandardizedEstimate): 
 }
 
 /**
+ * Adapter for Geometry Validation Engine
+ */
+export function runGeometryValidation(estimate: StandardizedEstimate): EngineResult {
+  const startTime = Date.now();
+  const issues: ClaimIssue[] = [];
+  const audit: AuditEvent[] = [];
+  
+  try {
+    const { validateGeometry } = require('../engines/geometryValidator');
+    const result = validateGeometry(estimate);
+    
+    // Convert inconsistencies to issues
+    for (const inconsistency of result.inconsistencies) {
+      issues.push({
+        id: `geometry-${inconsistency.inconsistencyType}-${inconsistency.lineNumber}`,
+        type: 'geometric_inconsistency',
+        severity: inconsistency.severity,
+        title: `Geometric Inconsistency: ${inconsistency.item}`,
+        description: inconsistency.evidence,
+        financialImpact: inconsistency.financialImpact,
+        lineItemsAffected: [inconsistency.lineNumber],
+        recommendation: `Verify ${inconsistency.item} quantity. Expected: ${inconsistency.expectedQuantity} ${inconsistency.unit}, Found: ${inconsistency.estimatedQuantity} ${inconsistency.unit}`,
+      });
+    }
+    
+    audit.push({
+      engine: 'geometry-validation',
+      decision: result.summary,
+      confidence: 0.90,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    
+    return { issues, audit };
+    
+  } catch (error) {
+    console.error('[GEOMETRY-ADAPTER] Error:', error);
+    audit.push({
+      engine: 'geometry-validation',
+      decision: 'Failed with error',
+      confidence: 0,
+      timestamp: Date.now(),
+      processingTimeMs: Date.now() - startTime,
+    });
+    return { issues: [], audit };
+  }
+}
+
+/**
  * Convert parsed estimate to standardized format
  */
 export function standardizeEstimate(parsedEstimate: any): StandardizedEstimate {

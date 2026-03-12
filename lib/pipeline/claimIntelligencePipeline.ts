@@ -14,6 +14,7 @@ import {
   runTradeDependencyAnalysis,
   runCodeComplianceAnalysis,
   runManipulationDetection,
+  runGeometryValidation,
   standardizeEstimate,
 } from '../adapters/engine-adapters';
 import { reconstructScope, ScopeReconstructionResult } from '../engines/scopeReconstructionEngine';
@@ -183,7 +184,7 @@ export async function runClaimIntelligencePipeline(
     
     // ENGINE 8: Estimate Manipulation Detection
     if (!options.enabledEngines || options.enabledEngines.includes('manipulation-detection')) {
-      console.log('[PIPELINE] [8/11] Running manipulation detection...');
+      console.log('[PIPELINE] [8/12] Running manipulation detection...');
       try {
         const result = await runManipulationDetection(standardizedEstimate);
         allIssues.push(...result.issues);
@@ -194,9 +195,22 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 9: Scope Gap Reconstruction
+    // ENGINE 9: Geometry Validation
+    if (!options.enabledEngines || options.enabledEngines.includes('geometry-validation')) {
+      console.log('[PIPELINE] [9/12] Running geometry validation...');
+      try {
+        const result = runGeometryValidation(standardizedEstimate);
+        allIssues.push(...result.issues);
+        allAuditEvents.push(...result.audit);
+        enginesExecuted.push('geometry-validation');
+      } catch (error) {
+        console.error('[PIPELINE] Geometry validation failed (non-blocking):', error);
+      }
+    }
+    
+    // ENGINE 10: Scope Gap Reconstruction
     if (!options.enabledEngines || options.enabledEngines.includes('scope-reconstruction')) {
-      console.log('[PIPELINE] [9/11] Running scope reconstruction...');
+      console.log('[PIPELINE] [10/12] Running scope reconstruction...');
       try {
         reconstructionResult = await reconstructScope(standardizedEstimate);
         enginesExecuted.push('scope-reconstruction');
@@ -212,9 +226,9 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 10: Recovery Calculator
+    // ENGINE 11: Recovery Calculator
     if (!options.enabledEngines || options.enabledEngines.includes('recovery-calculator')) {
-      console.log('[PIPELINE] [10/11] Running recovery calculator...');
+      console.log('[PIPELINE] [11/12] Running recovery calculator...');
       try {
         recoveryResult = calculateRecovery(
           allIssues,
@@ -234,9 +248,9 @@ export async function runClaimIntelligencePipeline(
       }
     }
     
-    // ENGINE 11: Litigation Evidence Generator
+    // ENGINE 12: Litigation Evidence Generator
     if (!options.enabledEngines || options.enabledEngines.includes('litigation-evidence')) {
-      console.log('[PIPELINE] [11/11] Generating litigation evidence...');
+      console.log('[PIPELINE] [12/12] Generating litigation evidence...');
       try {
         if (options.reportId && options.carrier && options.claimType) {
           litigationReport = await generateLitigationEvidence(
