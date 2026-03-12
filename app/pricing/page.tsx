@@ -6,11 +6,10 @@ import { useState } from "react";
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleCheckout = async (planType: 'single' | 'professional' | 'enterprise') => {
+  const handleCheckout = async (planType: 'single' | 'enterprise' | 'litigation') => {
     setLoading(planType);
 
     try {
-      // Create checkout session without requiring login first
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,27 +58,53 @@ export default function PricingPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-16">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Simple, Transparent Pricing
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-white mb-4">
+            Find $10,000–$40,000 in Missed Claim Value
           </h1>
+          <p className="text-xl text-slate-300 mb-2">
+            In Minutes. Guaranteed.
+          </p>
           <p className="text-lg text-slate-400">
-            Choose the plan that fits your needs
+            Pay $149 → Potentially recover $10K–$40K
+          </p>
+        </div>
+
+        {/* Recovery Guarantee Banner */}
+        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-lg p-6 mb-12">
+          <div className="flex items-center gap-3 mb-2">
+            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <h3 className="text-2xl font-bold text-white">Recovery Guarantee</h3>
+          </div>
+          <p className="text-lg text-slate-200">
+            If we don&apos;t find at least <span className="font-bold text-green-400">$1,000</span> in missed claim value, 
+            your review is <span className="font-bold text-green-400">100% free</span>. Automatic refund. No questions asked.
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-3">
-          {/* Pay Per Estimate */}
-          <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
+          {/* Single Review */}
+          <div className="rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-[#2563EB] text-white px-4 py-1 rounded-full text-sm font-semibold">
+                Most Popular
+              </span>
+            </div>
+
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Pay Per Estimate
+                Single Review
               </h2>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-slate-900">$49</span>
-                <span className="text-slate-600">per review</span>
+                <span className="text-5xl font-bold text-slate-900">$149</span>
+                <span className="text-slate-600">per estimate</span>
               </div>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-green-700 font-semibold mb-2">
+                ✓ Recovery Guarantee
+              </p>
+              <p className="text-xs text-slate-600">
                 One-time payment
               </p>
             </div>
@@ -89,7 +114,25 @@ export default function PricingPage() {
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Full dashboard view</span>
+                <span><strong>Comprehensive estimate analysis</strong></span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>11 intelligence engines</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Recovery calculation</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Litigation evidence</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-slate-700">
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,75 +151,9 @@ export default function PricingPage() {
             <button
               onClick={() => handleCheckout('single')}
               disabled={loading === 'single'}
-              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50"
+              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white hover:bg-[#1E40AF] transition disabled:opacity-50 shadow-lg"
             >
-              {loading === 'single' ? 'Loading...' : 'Run Single Review'}
-            </button>
-          </div>
-
-          {/* Professional */}
-          <div className="rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-[#2563EB] text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Most Popular
-              </span>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Professional
-              </h2>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-slate-900">$299</span>
-                <span className="text-slate-600">/month</span>
-              </div>
-              <p className="text-sm text-slate-600">
-                Billed monthly
-              </p>
-            </div>
-
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span><strong>50 reviews per month</strong></span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Up to 5 users</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Comparison mode</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Unlimited exports</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Report archive</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-600">
-                <span className="text-xs">Overage: $29 per additional review</span>
-              </li>
-            </ul>
-
-            <button
-              onClick={() => handleCheckout('professional')}
-              disabled={loading === 'professional'}
-              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white hover:bg-[#1E40AF] transition disabled:opacity-50"
-            >
-              {loading === 'professional' ? 'Loading...' : 'Start Professional'}
+              {loading === 'single' ? 'Loading...' : 'Start Review'}
             </button>
           </div>
 
@@ -187,10 +164,13 @@ export default function PricingPage() {
                 Enterprise
               </h2>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-slate-900">$599</span>
+                <span className="text-5xl font-bold text-slate-900">$299</span>
                 <span className="text-slate-600">/month</span>
               </div>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-green-700 font-semibold mb-2">
+                ✓ Recovery Guarantee
+              </p>
+              <p className="text-xs text-slate-600">
                 Billed monthly
               </p>
             </div>
@@ -200,13 +180,25 @@ export default function PricingPage() {
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span><strong>150 reviews per month</strong></span>
+                <span><strong>20 reviews per month</strong></span>
               </li>
               <li className="flex items-start gap-2 text-sm text-slate-700">
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Unlimited users</span>
+                <span>Carrier intelligence reports</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Recovery analytics dashboard</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Priority support</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-slate-700">
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -218,16 +210,7 @@ export default function PricingPage() {
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>White-label export</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Analytics dashboard</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-600">
-                <span className="text-xs">Overage: $19 per additional review</span>
+                <span>Bulk upload</span>
               </li>
             </ul>
 
@@ -236,14 +219,109 @@ export default function PricingPage() {
               disabled={loading === 'enterprise'}
               className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50"
             >
-              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise'}
+              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise Plan'}
+            </button>
+          </div>
+
+          {/* Litigation */}
+          <div className="rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                Premium
+              </span>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Litigation
+              </h2>
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-5xl font-bold text-white">$499</span>
+                <span className="text-slate-300">/month</span>
+              </div>
+              <p className="text-sm text-green-400 font-semibold mb-2">
+                ✓ Recovery Guarantee
+              </p>
+              <p className="text-xs text-slate-400">
+                Billed monthly
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span><strong>Unlimited reviews</strong></span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Attorney-ready evidence reports</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Carrier behavior analytics</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Litigation exhibits</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Expert witness support</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Priority processing</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Dedicated account manager</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={() => handleCheckout('litigation')}
+              disabled={loading === 'litigation'}
+              className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-base font-semibold text-white hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 shadow-lg"
+            >
+              {loading === 'litigation' ? 'Loading...' : 'Start Litigation Plan'}
             </button>
           </div>
         </div>
 
-        <div className="mt-16 text-center">
+        {/* Value Proposition */}
+        <div className="mt-16 grid gap-8 md:grid-cols-3">
+          <div className="text-center">
+            <div className="text-4xl font-bold text-green-400 mb-2">$10K-$40K</div>
+            <p className="text-slate-300">Average recovery identified</p>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-bold text-blue-400 mb-2">11</div>
+            <p className="text-slate-300">Intelligence engines</p>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-bold text-purple-400 mb-2">100%</div>
+            <p className="text-slate-300">Recovery guarantee</p>
+          </div>
+        </div>
+
+        <div className="mt-12 text-center">
           <p className="text-sm text-slate-400">
-            All plans include structured findings, Xactimate-aware parsing, and deterministic output.
+            All plans include: Pricing validation • Labor rate analysis • Depreciation detection • Carrier tactic recognition • 
+            Code compliance checking • Trade dependency analysis • Scope reconstruction • Litigation evidence generation
           </p>
         </div>
       </main>

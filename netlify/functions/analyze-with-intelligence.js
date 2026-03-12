@@ -92,6 +92,18 @@ exports.handler = async (event, context) => {
     const state = metadata.state || 'Unknown';
     const claimType = metadata.claimType || 'Unknown';
     const reportId = baseReport.reportId || `report-${Date.now()}`;
+    const userId = requestBody.userId;
+    
+    // Increment usage counter
+    if (userId) {
+      try {
+        const { incrementUsage } = await import('../../lib/billing/checkUsage');
+        await incrementUsage(userId);
+        console.log(`[INTELLIGENCE] Usage incremented for user ${userId}`);
+      } catch (error) {
+        console.error('[INTELLIGENCE] Failed to increment usage:', error);
+      }
+    }
     
     // Run pipeline with all engines
     const pipelineResult = await runClaimIntelligencePipeline(
@@ -153,6 +165,45 @@ exports.handler = async (event, context) => {
     console.log(`[INTELLIGENCE] Complete in ${Date.now() - startTime}ms`);
     console.log(`[INTELLIGENCE] - Issues: ${pipelineResult.issues.length}`);
     console.log(`[INTELLIGENCE] - Recovery: $${pipelineResult.recovery?.totalRecoveryValue.toFixed(2) || '0.00'}`);
+    
+    // Check recovery guarantee
+    let guaranteeResult = null;
+    if (pipelineResult.recovery && reportId && userId) {
+      try {
+        const { checkRecoveryGuarantee } = await import('../../lib/billing/recoveryGuarantee');
+        
+        guaranteeResult = await checkRecoveryGuarantee(
+          userId,
+          reportId,
+          pipelineResult.recovery.totalRecoveryValue,
+          {
+            originalValue: pipelineResult.recovery.originalEstimateValue,
+            reconstructedValue: pipelineResult.recovery.reconstructedEstimateValue,
+            carrier,
+            claimType,
+            state,
+          }
+        );
+        
+        console.log(`[INTELLIGENCE] Recovery guarantee: ${guaranteeResult.guaranteeTriggered ? 'TRIGGERED' : 'MET'}`);
+        if (guaranteeResult.refundIssued) {
+          console.log(`[INTELLIGENCE] Refund issued: $${guaranteeResult.refundAmount}`);
+        }
+        
+      } catch (error) {
+        console.error('[INTELLIGENCE] Recovery guarantee check failed:', error);
+      }
+    }
+    
+    // Add guarantee result to response
+    if (guaranteeResult) {
+      enhancedReport.intelligence.recoveryGuarantee = {
+        guaranteeTriggered: guaranteeResult.guaranteeTriggered,
+        refundIssued: guaranteeResult.refundIssued,
+        refundAmount: guaranteeResult.refundAmount,
+        reason: guaranteeResult.reason,
+      };
+    }
     
     return {
       statusCode: 200,

@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { planType } = await request.json();
+    const { planType, userId } = await request.json();
 
     if (!planType) {
       return NextResponse.json(
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     let sessionConfig: Stripe.Checkout.SessionCreateParams;
 
     if (planType === 'single') {
-      // Single review - one-time payment
+      // Single review - one-time payment $149
       sessionConfig = {
         mode: 'payment',
         payment_method_types: ['card'],
@@ -29,22 +29,87 @@ export async function POST(request: NextRequest) {
               currency: 'usd',
               product_data: {
                 name: 'Single Estimate Review',
-                description: 'One-time estimate review with 30-day access',
+                description: 'Find $10,000-$40,000 in missed claim value. Recovery guarantee: Free if we find less than $1,000.',
               },
-              unit_amount: 4900, // $49.00
+              unit_amount: 14900, // $149.00
             },
             quantity: 1,
           },
         ],
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upload?payment=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
-        customer_email: undefined, // Stripe will collect email
+        customer_email: undefined,
         metadata: {
           plan_type: 'single',
+          plan_name: 'Single Review',
+          reviews_limit: '1',
+          user_id: userId || '',
+        },
+      };
+    } else if (planType === 'enterprise') {
+      // Enterprise plan - $299/month, 20 reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Enterprise Plan',
+                description: '20 estimate reviews per month + carrier intelligence reports + recovery analytics dashboard',
+              },
+              unit_amount: 29900, // $299.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        customer_email: undefined,
+        metadata: {
+          plan_type: 'subscription',
+          plan_name: 'Enterprise',
+          reviews_limit: '20',
+          user_id: userId || '',
+        },
+      };
+    } else if (planType === 'litigation') {
+      // Litigation plan - $499/month, unlimited reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Litigation Plan',
+                description: 'Unlimited reviews + evidence reports + carrier behavior analytics + litigation exhibits',
+              },
+              unit_amount: 49900, // $499.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        customer_email: undefined,
+        metadata: {
+          plan_type: 'subscription',
+          plan_name: 'Litigation',
+          reviews_limit: 'unlimited',
+          user_id: userId || '',
         },
       };
     } else if (planType === 'professional') {
-      // Professional subscription
+      // Legacy professional plan (keep for backward compatibility)
       sessionConfig = {
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -61,26 +126,6 @@ export async function POST(request: NextRequest) {
           plan_type: 'professional',
           review_limit: '50',
           overage_price: '2900',
-        },
-      };
-    } else if (planType === 'enterprise') {
-      // Enterprise subscription
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: process.env.STRIPE_PRICE_ENTERPRISE!,
-            quantity: 1,
-          },
-        ],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upload?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
-        customer_email: undefined,
-        metadata: {
-          plan_type: 'enterprise',
-          review_limit: '150',
-          overage_price: '1900',
         },
       };
     } else {
