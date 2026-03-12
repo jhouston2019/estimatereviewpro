@@ -46,7 +46,7 @@ export async function logAuditEvents(
       created_at: new Date(event.timestamp).toISOString(),
     }));
     
-    const { error } = await client
+    const { error } = await (client as any)
       .from('audit_events')
       .insert(records);
     
@@ -92,7 +92,7 @@ export async function logAIDecisions(
       return;
     }
     
-    const { error } = await client
+    const { error } = await (client as any)
       .from('ai_decisions')
       .insert(records);
     
@@ -125,7 +125,7 @@ export async function updateReportWithIntelligence(
     const highIssues = issues.filter(i => i.severity === 'high').length;
     const totalFinancialImpact = issues.reduce((sum, i) => sum + (i.financialImpact || 0), 0);
     
-    const { error } = await client
+    const { error } = await (client as any)
       .from('reports')
       .update({
         intelligence_issues: issues,

@@ -64,7 +64,10 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   
   try {
-    console.log('[INTELLIGENCE] Starting enhanced analysis...');
+    console.log('[INTELLIGENCE] Starting Claims Intelligence Platform analysis...');
+    
+    // Parse request body
+    const requestBody = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
     
     // STEP 1: Run existing analysis pipeline
     console.log('[INTELLIGENCE] [1/2] Running standard analysis...');
@@ -76,29 +79,80 @@ exports.handler = async (event, context) => {
     
     const baseReport = standardAnalysis.data;
     
-    // STEP 2: Run intelligence pipeline (if we have parsed data)
-    console.log('[INTELLIGENCE] [2/2] Running intelligence engines...');
+    // STEP 2: Run full intelligence pipeline
+    console.log('[INTELLIGENCE] [2/2] Running Claims Intelligence Platform...');
     
-    const intelligenceIssues = [];
-    const intelligenceAudit = [];
+    // Import pipeline (using dynamic import for Netlify)
+    const { runClaimIntelligencePipeline } = await import('../../lib/pipeline/claimIntelligencePipeline');
     
-    // Note: This is a simplified version that will be expanded
-    // For now, just return the base report with a flag indicating intelligence is available
+    // Extract metadata
+    const metadata = requestBody.metadata || {};
+    const region = metadata.region || 'DEFAULT';
+    const carrier = metadata.carrier || 'Unknown';
+    const state = metadata.state || 'Unknown';
+    const claimType = metadata.claimType || 'Unknown';
+    const reportId = baseReport.reportId || `report-${Date.now()}`;
     
+    // Run pipeline with all engines
+    const pipelineResult = await runClaimIntelligencePipeline(
+      baseReport.parsedEstimate || { lineItems: [], totals: { rcv: 0, acv: 0, depreciation: 0 } },
+      {
+        region,
+        includeAI: true,
+        reportId,
+        carrier,
+        state,
+        claimType,
+        enabledEngines: [
+          'pricing',
+          'depreciation',
+          'labor',
+          'carrier-tactics',
+          'op-gaps',
+          'scope-reconstruction',
+          'recovery-calculator',
+          'litigation-evidence',
+        ],
+      }
+    );
+    
+    // Build enhanced report
     const enhancedReport = {
       ...baseReport,
       intelligence: {
         enabled: true,
-        issues: intelligenceIssues,
-        audit: intelligenceAudit,
-        summary: {
-          totalIssues: intelligenceIssues.length,
-          processingTimeMs: Date.now() - startTime,
-        },
+        issues: pipelineResult.issues,
+        audit: pipelineResult.auditEvents,
+        summary: pipelineResult.summary,
+        reconstruction: pipelineResult.reconstruction ? {
+          originalValue: pipelineResult.reconstruction.reconstruction.originalValue,
+          reconstructedValue: pipelineResult.reconstruction.reconstruction.reconstructedValue,
+          gapValue: pipelineResult.reconstruction.reconstruction.gapValue,
+          gapPercentage: pipelineResult.reconstruction.reconstruction.gapPercentage,
+          missingItems: pipelineResult.reconstruction.reconstruction.missingLineItems.length,
+          tradesDetected: pipelineResult.reconstruction.tradesDetected,
+        } : null,
+        recovery: pipelineResult.recovery ? {
+          totalRecoveryValue: pipelineResult.recovery.totalRecoveryValue,
+          recoveryPercentage: pipelineResult.recovery.recoveryPercentage,
+          breakdown: pipelineResult.recovery.breakdown,
+          categories: pipelineResult.recovery.categories.map(c => ({
+            category: c.category,
+            issueCount: c.issueCount,
+            totalImpact: c.totalImpact,
+          })),
+        } : null,
+        litigationEvidence: pipelineResult.litigationEvidence ? {
+          evidenceItems: pipelineResult.litigationEvidence.evidenceItems.length,
+          totalFinancialImpact: pipelineResult.litigationEvidence.totalFinancialImpact,
+          executiveSummary: pipelineResult.litigationEvidence.executiveSummary,
+        } : null,
       },
     };
     
     console.log(`[INTELLIGENCE] Complete in ${Date.now() - startTime}ms`);
+    console.log(`[INTELLIGENCE] - Issues: ${pipelineResult.issues.length}`);
+    console.log(`[INTELLIGENCE] - Recovery: $${pipelineResult.recovery?.totalRecoveryValue.toFixed(2) || '0.00'}`);
     
     return {
       statusCode: 200,
