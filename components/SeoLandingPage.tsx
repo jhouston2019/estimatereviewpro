@@ -67,10 +67,10 @@ export function SeoLandingPage({
           <p className="text-xl md:text-2xl mb-6 text-slate-200">{subtitle}</p>
           <p className="text-lg mb-10 text-slate-300 max-w-3xl mx-auto">{description}</p>
           <Link
-            href="/pricing"
+            href={ctaHref}
             className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
-            Start Structured Review
+            {ctaLabel}
           </Link>
         </div>
       </section>
@@ -118,10 +118,10 @@ export function SeoLandingPage({
             Structured analysis in under 2 minutes. No credit card required for preview.
           </p>
           <Link
-            href="/pricing"
+            href={ctaHref}
             className="inline-block bg-[#2563EB] text-white px-10 py-4 rounded-lg font-semibold text-lg hover:bg-[#1E40AF] transition"
           >
-            Start Structured Review
+            {ctaLabel}
           </Link>
         </div>
       </section>

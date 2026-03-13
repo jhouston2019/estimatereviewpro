@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import type { Report } from "@/lib/report-types";
 import ExportControls from "./ExportControls";
 import PrintStyles from "./PrintStyles";
+import { getVerticalReportTitle } from "@/lib/verticalReportUtils";
+import SupplementGenerator from "@/components/SupplementGenerator";
 
 export default async function ReportDetailPage({
   params,
@@ -28,6 +30,7 @@ export default async function ReportDetailPage({
   const analysis = report.result_json;
   const propertyDetails = analysis.property_details || {};
   const classification = analysis.classification || {};
+  const vertical = analysis.vertical || '';
   const detectedTrades = analysis.detected_trades || [];
   const missingItems = analysis.missing_items || [];
   const quantityIssues = analysis.quantity_issues || [];
@@ -37,6 +40,8 @@ export default async function ReportDetailPage({
   const criticalActions = analysis.critical_action_items || [];
   const missingValue = analysis.total_missing_value_estimate || { low: 0, high: 0 };
   const riskLevel = analysis.risk_level || 'unknown';
+
+  const reportTitle = getVerticalReportTitle(vertical);
 
   const estimateValue = propertyDetails.total_estimate_value || 0;
   const gapPercentageLow = estimateValue > 0 
@@ -164,7 +169,7 @@ export default async function ReportDetailPage({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <h1 className="text-xl font-bold text-slate-50">
-                {report.estimate_name}
+                {reportTitle}
               </h1>
               <p className="mt-1 text-xs text-slate-400">
                 {propertyDetails.claim_number || 'No claim number'}
@@ -457,6 +462,16 @@ export default async function ReportDetailPage({
             </div>
           </section>
         )}
+
+        <SupplementGenerator 
+          reportData={{
+            missingItems,
+            quantityIssues,
+            pricingObservations,
+            vertical,
+            propertyDetails
+          }}
+        />
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg">
           <h2 className="text-sm font-semibold text-slate-50">Executive Summary</h2>

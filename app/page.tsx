@@ -165,6 +165,86 @@ export default function Home() {
           </p>
         </section>
 
+        {/* Vertical Review Pages */}
+        <section className="mb-20">
+          <h2 className="mb-10 text-center text-3xl font-bold text-white">
+            Estimate Review for Specific Claim Types
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            <Link
+              href="/roof-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Roof Estimate Review
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Detect missing roofing scope including starter rows, drip edge, ridge cap issues, and flashing omissions.
+              </p>
+            </Link>
+
+            <Link
+              href="/water-damage-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Water Damage Review
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Identify missing mitigation scope, drying equipment gaps, and suppressed restoration work.
+              </p>
+            </Link>
+
+            <Link
+              href="/fire-damage-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Fire Damage Review
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Detect missing smoke sealing, thermal fogging, HVAC cleaning, and restoration scope gaps.
+              </p>
+            </Link>
+
+            <Link
+              href="/interior-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Interior Estimate Review
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Identify missing insulation, drywall suppression, texture gaps, and paint scope issues.
+              </p>
+            </Link>
+
+            <Link
+              href="/contractor-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Contractor Estimate Comparison
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Compare contractor bids vs. insurance estimates to detect scope suppression and pricing gaps.
+              </p>
+            </Link>
+
+            <Link
+              href="/xactimate-estimate-review"
+              className="group rounded-lg border border-slate-800 bg-[#F8FAFC] p-6 transition hover:border-[#2563EB] hover:shadow-lg"
+            >
+              <h3 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-[#2563EB]">
+                Xactimate Estimate Review
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-700">
+                Analyze Xactimate line items, detect pricing manipulation, and identify missing scope.
+              </p>
+            </Link>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="text-center">
           <Link

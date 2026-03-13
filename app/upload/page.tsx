@@ -44,6 +44,19 @@ function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) =>
   return null;
 }
 
+function VerticalHandler({ onVerticalDetected }: { onVerticalDetected: (vertical: string) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const vertical = searchParams?.get('vertical');
+    if (vertical) {
+      onVerticalDetected(vertical);
+    }
+  }, [searchParams, onVerticalDetected]);
+
+  return null;
+}
+
 export default function UploadPage() {
   const [step, setStep] = useState<"upload" | "processing" | "results">("upload");
   const [estimateText, setEstimateText] = useState("");
@@ -51,6 +64,7 @@ export default function UploadPage() {
   const [damageType, setDamageType] = useState("");
   const [platform, setPlatform] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [vertical, setVertical] = useState<string>("");
   
   // Claim/Project information fields
   const [claimNumber, setClaimNumber] = useState("");
@@ -63,6 +77,7 @@ export default function UploadPage() {
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
       <Suspense fallback={null}>
         <PaymentSuccessHandler onSuccess={setPaymentSuccess} />
+        <VerticalHandler onVerticalDetected={setVertical} />
       </Suspense>
       <header className="border-b border-slate-800/50 bg-[#0F172A]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -115,6 +130,7 @@ export default function UploadPage() {
             setDateOfLoss={setDateOfLoss}
             insuranceCarrier={insuranceCarrier}
             setInsuranceCarrier={setInsuranceCarrier}
+            vertical={vertical}
             onSubmit={(id: string) => {
               setReportId(id);
               setStep("processing");
@@ -154,6 +170,7 @@ function UploadForm({
   setDateOfLoss,
   insuranceCarrier,
   setInsuranceCarrier,
+  vertical,
   onSubmit,
 }: {
   estimateText: string;
@@ -172,6 +189,7 @@ function UploadForm({
   setDateOfLoss: (v: string) => void;
   insuranceCarrier: string;
   setInsuranceCarrier: (v: string) => void;
+  vertical: string;
   onSubmit: (reportId: string) => void;
 }) {
   const [dragActive, setDragActive] = useState(false);
@@ -231,7 +249,8 @@ function UploadForm({
           propertyAddress: propertyAddress || '',
           dateOfLoss: dateOfLoss || '',
           insuranceCarrier: insuranceCarrier || '',
-          platform: platform || 'UNKNOWN'
+          platform: platform || 'UNKNOWN',
+          vertical: vertical || ''
         })
       });
       

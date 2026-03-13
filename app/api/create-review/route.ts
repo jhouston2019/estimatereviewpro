@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
       propertyAddress,
       dateOfLoss,
       insuranceCarrier,
-      platform
+      platform,
+      vertical
     } = await request.json();
 
     if (!userId || !estimateName || !estimateText) {
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
             // Placeholder - actual AI analysis would go here
             status: 'preview',
             message: 'Preview mode - payment required for full export',
+            vertical: vertical || '',
             property_details: {
               claim_number: claimNumber || '',
               address: propertyAddress || '',
@@ -127,6 +129,7 @@ export async function POST(request: NextRequest) {
             // Placeholder - actual AI analysis would go here
             status: 'complete',
             plan_type: 'single',
+            vertical: vertical || '',
             property_details: {
               claim_number: claimNumber || '',
               address: propertyAddress || '',
@@ -202,6 +205,7 @@ export async function POST(request: NextRequest) {
           reviewCount: permission.review_count + 1,
           reviewLimit: permission.review_limit,
           isOverage: isOverage,
+          vertical: vertical || '',
           property_details: {
             claim_number: claimNumber || '',
             address: propertyAddress || '',
