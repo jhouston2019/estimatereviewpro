@@ -62,11 +62,8 @@ export default function PricingPage() {
           <h1 className="text-5xl font-bold text-white mb-4">
             Find $10,000–$40,000 in Missed Claim Value
           </h1>
-          <p className="text-xl text-slate-300 mb-2">
+          <p className="text-xl text-slate-300">
             In Minutes.
-          </p>
-          <p className="text-lg text-slate-400">
-            Pay $49 → Potentially recover $10K–$40K
           </p>
         </div>
 
