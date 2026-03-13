@@ -103,7 +103,7 @@ export default function PricingPage() {
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>11 intelligence engines</span>
+                <span>12 intelligence engines</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-slate-700">
                 <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,18 +286,14 @@ export default function PricingPage() {
         </div>
 
         {/* Value Proposition */}
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
+        <div className="mt-16 grid gap-8 md:grid-cols-2 max-w-2xl mx-auto">
           <div className="text-center">
             <div className="text-4xl font-bold text-green-400 mb-2">$10K-$40K</div>
             <p className="text-slate-300">Average recovery identified</p>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-blue-400 mb-2">11</div>
+            <div className="text-4xl font-bold text-blue-400 mb-2">12</div>
             <p className="text-slate-300">Intelligence engines</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-purple-400 mb-2">100%</div>
-            <p className="text-slate-300">Recovery guarantee</p>
           </div>
         </div>
 
