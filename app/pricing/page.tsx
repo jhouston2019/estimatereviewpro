@@ -6,7 +6,7 @@ import { useState } from "react";
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleCheckout = async (planType: 'single' | 'enterprise' | 'litigation') => {
+  const handleCheckout = async (planType: 'single' | 'premier' | 'enterprise') => {
     setLoading(planType);
 
     try {
@@ -137,11 +137,11 @@ export default function PricingPage() {
             </button>
           </div>
 
-          {/* Enterprise */}
+          {/* Premier Plan */}
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Enterprise
+                Premier Plan
               </h2>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-5xl font-bold text-slate-900">$299</span>
@@ -195,15 +195,15 @@ export default function PricingPage() {
             </ul>
 
             <button
-              onClick={() => handleCheckout('enterprise')}
-              disabled={loading === 'enterprise'}
+              onClick={() => handleCheckout('premier')}
+              disabled={loading === 'premier'}
               className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50"
             >
-              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise Plan'}
+              {loading === 'premier' ? 'Loading...' : 'Start Premier Plan'}
             </button>
           </div>
 
-          {/* Litigation */}
+          {/* Enterprise Plan */}
           <div className="rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8 relative">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
@@ -213,10 +213,10 @@ export default function PricingPage() {
 
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">
-                Litigation
+                Enterprise Plan
               </h2>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-white">$499</span>
+                <span className="text-5xl font-bold text-white">$599</span>
                 <span className="text-slate-300">/month</span>
               </div>
               <p className="text-sm text-green-400 font-semibold mb-2">
@@ -273,11 +273,11 @@ export default function PricingPage() {
             </ul>
 
             <button
-              onClick={() => handleCheckout('litigation')}
-              disabled={loading === 'litigation'}
+              onClick={() => handleCheckout('enterprise')}
+              disabled={loading === 'enterprise'}
               className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-base font-semibold text-white hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 shadow-lg"
             >
-              {loading === 'litigation' ? 'Loading...' : 'Start Litigation Plan'}
+              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise Plan'}
             </button>
           </div>
         </div>

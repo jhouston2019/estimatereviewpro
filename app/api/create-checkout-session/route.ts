@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
           user_id: userId || '',
         },
       };
-    } else if (planType === 'litigation') {
-      // Litigation plan - $499/month, unlimited reviews
+    } else if (planType === 'premier') {
+      // Premier plan - $299/month, 20 reviews
       sessionConfig = {
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -87,10 +87,10 @@ export async function POST(request: NextRequest) {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Litigation Plan',
-                description: 'Unlimited reviews + evidence reports + carrier behavior analytics + litigation exhibits',
+                name: 'Premier Plan',
+                description: '20 estimate reviews per month + carrier intelligence reports + recovery analytics dashboard',
               },
-              unit_amount: 49900, // $499.00
+              unit_amount: 29900, // $299.00
               recurring: {
                 interval: 'month',
               },
@@ -103,7 +103,38 @@ export async function POST(request: NextRequest) {
         customer_email: undefined,
         metadata: {
           plan_type: 'subscription',
-          plan_name: 'Litigation',
+          plan_name: 'Premier',
+          reviews_limit: '20',
+          user_id: userId || '',
+        },
+      };
+    } else if (planType === 'enterprise') {
+      // Enterprise plan - $599/month, unlimited reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Enterprise Plan',
+                description: 'Unlimited reviews + evidence reports + carrier behavior analytics + dedicated support',
+              },
+              unit_amount: 59900, // $599.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        customer_email: undefined,
+        metadata: {
+          plan_type: 'subscription',
+          plan_name: 'Enterprise',
           reviews_limit: 'unlimited',
           user_id: userId || '',
         },
