@@ -186,6 +186,7 @@ export interface ReportAnalysis {
   recommendations_for_adjuster?: string[];
   positive_findings?: string[];
   metadata: ReportMetadata;
+  vertical?: string;
 }
 
 /**
