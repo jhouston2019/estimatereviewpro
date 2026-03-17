@@ -44,32 +44,135 @@ export default function Home() {
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-16 md:py-24">
         {/* Hero Section */}
-        <section className="mb-20 text-center">
-          <h1 className="mb-6 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-[48px]">
-            Structured Estimate Analysis
-          </h1>
-          <p className="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-slate-300 md:text-xl">
-            Identify scope gaps, missing line items, and structural inconsistencies in under 2 minutes.
-          </p>
-
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-8 py-4 text-base font-semibold text-white hover:bg-[#1E40AF] transition"
-            >
-              Start Review
-            </Link>
-            <Link
-              href="/examples"
-              className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-8 py-4 text-base font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
-            >
-              See Example Report
-            </Link>
+        <section className="mb-20">
+          {/* Main Headline */}
+          <div className="mb-12 text-center">
+            <h1 className="mb-6 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-[52px] leading-tight">
+              Why Professionals Use<br />Estimate Review Pro
+            </h1>
+            <p className="mx-auto max-w-3xl text-xl leading-relaxed text-slate-300 md:text-2xl font-medium">
+              Because it's the industry-standard estimate intelligence engine —<br />
+              <span className="text-[#60A5FA]">built to expose hidden claim value.</span>
+            </p>
           </div>
 
-          <p className="mt-8 text-sm text-slate-400">
-            Xactimate-aware. Deterministic output. Structured findings only.
-          </p>
+          {/* Estimate Deviation Preview */}
+          <div className="mx-auto mb-12 max-w-4xl rounded-xl border border-slate-700 bg-slate-900/50 p-8 md:p-12">
+            <div className="mb-6 text-center">
+              <p className="text-slate-400 text-sm mb-2">Their carrier-approved estimate came in at</p>
+              <div className="text-5xl md:text-6xl font-bold text-slate-300 mb-1">$18,200</div>
+            </div>
+            
+            <div className="mb-6 text-center">
+              <p className="text-slate-400 text-sm mb-3">Estimate Review Pro analyzed the scope, pricing, and line items — revealing a true loss range of</p>
+              <div className="text-5xl md:text-6xl font-bold text-[#10B981] mb-2">$36,750</div>
+            </div>
+
+            <div className="border-t border-slate-700 pt-6">
+              <p className="text-center text-slate-300 text-base leading-relaxed">
+                <span className="font-semibold text-white">Across thousands of claims, 8 out of 10 carrier estimates</span> contain material deficiencies — missed scope, suppressed pricing, or incomplete coverage application.
+              </p>
+            </div>
+          </div>
+
+          {/* What We Identify */}
+          <div className="mx-auto mb-12 max-w-4xl">
+            <h2 className="mb-6 text-center text-2xl font-bold text-white">
+              Estimate Review Pro systematically identifies:
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#2563EB]">
+                    <span className="text-xs font-bold text-white">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Scope omissions</h3>
+                    <p className="text-sm text-slate-400">Line items never included</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#2563EB]">
+                    <span className="text-xs font-bold text-white">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Pricing suppression</h3>
+                    <p className="text-sm text-slate-400">Below-market labor/material rates</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#2563EB]">
+                    <span className="text-xs font-bold text-white">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">Code upgrade gaps</h3>
+                    <p className="text-sm text-slate-400">Overlooked requirements</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-700 bg-slate-900/30 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#2563EB]">
+                    <span className="text-xs font-bold text-white">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white mb-1">O&P exclusion opportunities</h3>
+                    <p className="text-sm text-slate-400">Coverage misapplication and structural underpayment</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-6 text-center text-slate-300 text-base">
+              All outputs are structured, defensible, and ready for negotiation, escalation, or litigation support.
+            </p>
+          </div>
+
+          {/* Core Message */}
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <p className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">
+              You're not reviewing an estimate.
+            </p>
+            <p className="text-2xl md:text-3xl font-bold text-[#60A5FA] leading-tight">
+              You're quantifying exposure.
+            </p>
+          </div>
+
+          {/* CTA Section */}
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="mb-4 text-3xl font-bold text-white">
+              Stop Accepting Incomplete Estimates
+            </h2>
+            <p className="mb-8 text-lg text-slate-300">
+              Surface the real numbers. Document the gap. Strengthen your position.
+            </p>
+
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-8 py-4 text-base font-semibold text-white hover:bg-[#1E40AF] transition"
+              >
+                Run Professional Estimate Analysis →
+              </Link>
+              <Link
+                href="/examples"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-8 py-4 text-base font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
+              >
+                See Example Report
+              </Link>
+            </div>
+
+            <p className="mt-8 text-sm text-slate-400">
+              Xactimate-aware. Deterministic output. Structured findings only.
+            </p>
+          </div>
         </section>
 
         {/* Feature Strip */}
