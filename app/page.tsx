@@ -54,6 +54,9 @@ export default function Home() {
               Because it's the industry-standard estimate intelligence engine —<br />
               <span className="text-[#60A5FA]">built to expose hidden claim value.</span>
             </p>
+            <p className="mx-auto mt-6 max-w-3xl text-base text-slate-400">
+              Most estimates are reviewed — but not systematically analyzed for scope omissions, pricing suppression, and coverage gaps.
+            </p>
           </div>
 
           {/* Estimate Deviation Preview */}
@@ -71,6 +74,9 @@ export default function Home() {
             <div className="border-t border-slate-700 pt-6">
               <p className="text-center text-slate-300 text-base leading-relaxed">
                 <span className="font-semibold text-white">Across thousands of claims, 8 out of 10 carrier estimates</span> contain material deficiencies — missed scope, suppressed pricing, or incomplete coverage application.
+              </p>
+              <p className="mt-4 text-center text-sm text-slate-400">
+                These gaps are not always obvious — they emerge through structured, line-by-line analysis.
               </p>
             </div>
           </div>
@@ -169,7 +175,10 @@ export default function Home() {
               </Link>
             </div>
 
-            <p className="mt-8 text-sm text-slate-400">
+            <p className="mt-6 text-sm text-slate-400">
+              This is a full line-by-line analysis — not a surface-level review.
+            </p>
+            <p className="mt-4 text-sm text-slate-400">
               Xactimate-aware. Deterministic output. Structured findings only.
             </p>
           </div>
@@ -327,6 +336,9 @@ export default function Home() {
               <p className="text-lg font-semibold leading-relaxed text-white">
                 Estimate Review Pro identifies and quantifies these gaps — turning estimate review into a structured, defensible analysis.
               </p>
+              <p className="mt-6 text-base text-slate-400">
+                Underpayment is rarely a single issue — it is typically a combination of missing scope, suppressed pricing, and incomplete coverage application. This identifies and quantifies all three.
+              </p>
             </div>
 
             {/* Gap Preview Block */}
@@ -370,6 +382,9 @@ export default function Home() {
                   Clear, documented underpayment with defined negotiation position
                 </p>
               </div>
+              <p className="mt-6 text-center text-sm text-slate-400">
+                Each flagged item is documented and can be supported in supplements, negotiation, or escalation.
+              </p>
             </div>
           </div>
         </section>
@@ -409,6 +424,9 @@ export default function Home() {
           <h2 className="mb-10 text-center text-3xl font-bold text-white">
             How It Works
           </h2>
+          <p className="mb-8 text-center text-base text-slate-400">
+            Used to support contractors, adjusters, and policyholders in documenting and defending claim value.
+          </p>
           <div className="grid gap-6 md:grid-cols-4">
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#2563EB] text-xl font-bold text-white">
@@ -549,12 +567,18 @@ export default function Home() {
 
         {/* Final CTA */}
         <section className="text-center">
+          <p className="mb-6 text-lg text-slate-300">
+            The goal is simple: identify, quantify, and document underpayment — so it can be properly pursued.
+          </p>
           <Link
             href="/pricing"
             className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-10 py-4 text-lg font-semibold text-white hover:bg-[#1E40AF] transition"
           >
             Run Your First Review
           </Link>
+          <p className="mt-6 text-sm text-slate-400">
+            Even a single missed line item can exceed the cost of analysis — the value is in identifying what was overlooked.
+          </p>
         </section>
       </main>
 
