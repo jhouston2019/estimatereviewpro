@@ -175,6 +175,205 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Capability Comparison Table */}
+        <section className="mb-20">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-8 text-center">
+              <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+                Why Professionals Use Estimate Review Pro
+              </h2>
+              <p className="text-lg text-slate-300 md:text-xl">
+                Because accurate scope, pricing, and coverage analysis determines the true value of a claim.
+              </p>
+            </div>
+
+            {/* Comparison Table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="px-6 py-4 text-sm font-bold text-white">
+                      What Determines an Accurate Estimate
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-slate-400">
+                      Manual / Basic Review
+                    </th>
+                    <th className="bg-slate-800/50 px-6 py-4 text-center text-sm font-bold text-[#60A5FA]">
+                      Estimate Review Pro
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Scope Completeness
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Obvious items reviewed
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Systematically identifies missing and omitted scope
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Line Item Accuracy
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Spot-checked
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Full line-by-line validation
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Pricing Evaluation
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Compared loosely
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Identifies suppressed labor and material pricing
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Code & Upgrade Gaps
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Often overlooked
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Detects code requirements and upgrade opportunities
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      O&P Eligibility
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Missed or inconsistently applied
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Evaluates inclusion based on project complexity
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Coverage Alignment
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Not fully evaluated
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Aligns estimate with applicable policy coverage
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Structural Underpayment
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Partially identified
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Quantifies total underpayment exposure
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Consistency
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Varies by reviewer experience
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Standardized analysis across all estimates
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Documentation Strength
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Limited notes
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Structured findings ready for negotiation or escalation
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Claim Leverage
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Weak or undefined
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Clear, defensible position with quantified gap
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Post-Table Statement */}
+            <div className="mt-8 rounded-lg border border-slate-700 bg-slate-900/30 p-8 text-center">
+              <p className="mb-4 text-lg leading-relaxed text-slate-300">
+                Most estimates are not fully accurate — not because they are intentionally incorrect,<br />
+                but because scope is incomplete, pricing is suppressed, or coverage is not fully applied.
+              </p>
+              <p className="text-lg font-semibold leading-relaxed text-white">
+                Estimate Review Pro identifies and quantifies these gaps — turning estimate review into a structured, defensible analysis.
+              </p>
+            </div>
+
+            {/* Gap Preview Block */}
+            <div className="mt-8 rounded-xl border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-8">
+              <h3 className="mb-6 text-center text-xl font-bold text-white">
+                Example Estimate Analysis
+              </h3>
+              
+              <div className="mb-6 grid gap-6 md:grid-cols-2">
+                <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-6 text-center">
+                  <p className="mb-2 text-sm font-medium text-slate-400">Carrier Estimate</p>
+                  <p className="text-4xl font-bold text-slate-300">$18,200</p>
+                </div>
+                <div className="rounded-lg border border-emerald-700/50 bg-emerald-950/30 p-6 text-center">
+                  <p className="mb-2 text-sm font-medium text-emerald-400">Independent Scope</p>
+                  <p className="text-4xl font-bold text-emerald-400">$36,750</p>
+                </div>
+              </div>
+
+              <div className="mb-6 rounded-lg border border-slate-700 bg-slate-900/50 p-6">
+                <p className="mb-3 font-semibold text-white">Identified Gaps:</p>
+                <ul className="space-y-2 text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-[#60A5FA]">•</span>
+                    <span>Missing scope items</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-[#60A5FA]">•</span>
+                    <span>Suppressed pricing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-[#60A5FA]">•</span>
+                    <span>Code upgrade omissions</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-[#2563EB] bg-[#2563EB]/10 p-6 text-center">
+                <p className="mb-2 text-sm font-semibold text-[#60A5FA]">Result:</p>
+                <p className="text-lg font-semibold text-white">
+                  Clear, documented underpayment with defined negotiation position
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Feature Strip */}
         <section className="mb-20 grid gap-8 md:grid-cols-3">
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
