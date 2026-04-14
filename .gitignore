@@ -44,4 +44,22 @@ yarn-error.log*
 # OS
 Thumbs.db
 
+# Local test / preview artifacts (do not commit)
+test-body.json
+test-body2.json
+test-body3.json
+test-body4.json
+test-letter.json
+test-auth.json
+test-pdf.json
+test-docx.json
+test-output.pdf
+test-output.docx
+external-ai-code-bundle.txt
+step2-layout-preview.png
+step3-delta-column-preview.png
+step5-layout-preview.png
+wizard-summary*.pdf
+public/samples/
+
 

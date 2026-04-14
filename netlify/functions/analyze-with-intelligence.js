@@ -71,7 +71,7 @@ exports.handler = async (event, context) => {
     
     // STEP 1: Run existing analysis pipeline
     console.log('[INTELLIGENCE] [1/2] Running standard analysis...');
-    const standardAnalysis = await callFunction('analyze-estimate', event.body);
+    const standardAnalysis = await callFunction('analyze-estimate-classic', event.body);
     
     if (standardAnalysis.statusCode !== 200) {
       return standardAnalysis; // Pass through error
@@ -216,7 +216,7 @@ exports.handler = async (event, context) => {
     
     // Fallback to standard analysis
     try {
-      const fallback = await callFunction('analyze-estimate', event.body);
+      const fallback = await callFunction('analyze-estimate-classic', event.body);
       return fallback;
     } catch (fallbackError) {
       return {

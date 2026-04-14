@@ -14,9 +14,8 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   const isProtected =
-    pathname.startsWith("/dashboard") || 
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/account") ||
-    pathname.startsWith("/upload") ||
     pathname.startsWith("/estimate-review");
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
@@ -34,8 +33,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Check payment status for upload/estimate-review pages
-  if ((pathname.startsWith("/upload") || pathname.startsWith("/estimate-review")) && session) {
+  // Check payment status for estimate-review pages
+  if (pathname.startsWith("/estimate-review") && session) {
     type UserPaymentStatus = {
       plan_type: string | null;
       team_id: string | null;
@@ -65,7 +64,13 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/account", "/login", "/register", "/upload", "/estimate-review"],
+  matcher: [
+    "/dashboard/:path*",
+    "/account",
+    "/login",
+    "/register",
+    "/estimate-review/:path*",
+  ],
 };
 
 

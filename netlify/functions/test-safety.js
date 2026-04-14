@@ -15,17 +15,37 @@ const TESTS = [
     name: 'Valid Property Estimate',
     endpoint: 'analyze-estimate',
     data: {
-      estimateText: 'Remove damaged shingles 200 SF\nInstall new shingles 200 SF\nPaint exterior walls 400 SF'
+      documentText:
+        'Remove damaged shingles 200 SF\nInstall new shingles 200 SF\nPaint exterior walls 400 SF\nGrand Total $14,250.00',
+      contractorText: null,
+      claimType: 'property',
+      state: 'TX',
+      policyNumber: 'POL-TEST-1',
+      claimNumber: 'CLM-TEST-1',
+      dateOfLoss: '2024-06-01',
+      adjusterName: 'Test Adjuster',
+      disputedAmount: '14250.00',
+      responseDeadline: '',
     },
-    shouldPass: true
+    shouldPass: true,
   },
   {
     name: 'Valid Auto Estimate',
     endpoint: 'analyze-estimate',
     data: {
-      estimateText: 'Replace front bumper\nRepair left fender\nPaint and blend 3 panels'
+      documentText:
+        'Replace front bumper\nRepair left fender\nPaint and blend 3 panels\nEstimate Total $3,200.50',
+      contractorText: null,
+      claimType: 'auto',
+      state: 'CA',
+      policyNumber: 'POL-TEST-2',
+      claimNumber: 'CLM-TEST-2',
+      dateOfLoss: '2024-07-15',
+      adjusterName: 'Test Adjuster 2',
+      disputedAmount: '3200.50',
+      responseDeadline: '',
     },
-    shouldPass: true
+    shouldPass: true,
   },
   {
     name: 'Negotiation Request (Should Fail)',
@@ -115,7 +135,8 @@ function callFunction(endpoint, data) {
       path: urlObj.pathname,
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer bypass',
       }
     };
 

@@ -1,290 +1,288 @@
 /**
- * ANALYZE ESTIMATE - Main Orchestrator
- * Accepts PDF upload, runs classification, guardrails, and analysis
- * Returns structured findings
- * Temperature: 0.2
+ * analyze-estimate.js — Phase 0 wizard contract
+ * POST JSON → structured analysis (no legal citations, no fabricated codes).
  */
 
-const https = require('https');
-const pdfParse = require('pdf-parse');
+const OpenAI = require("openai");
+const {
+  corsHeaders,
+  optionsResponse,
+  verifyWizardAuth,
+} = require("./_wizardAuth.js");
 
-// Helper function to call other Netlify functions
-async function callFunction(functionName, data) {
-  const baseUrl = process.env.URL || 'http://localhost:8888';
-  const url = `${baseUrl}/.netlify/functions/${functionName}`;
-  
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const options = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
-      path: urlObj.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
+const CANONICAL_STRATEGIES = [
+  "FULL_SUPPLEMENT_DEMAND",
+  "PARTIAL_DISPUTE",
+  "DEMAND_REINSPECTION",
+  "INVOKE_APPRAISAL",
+  "OTHER_CUSTOM",
+];
 
-    const req = (urlObj.protocol === 'https:' ? https : require('http')).request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          resolve({
-            statusCode: res.statusCode,
-            data: JSON.parse(body)
-          });
-        } catch (e) {
-          resolve({
-            statusCode: res.statusCode,
-            data: body
-          });
-        }
-      });
-    });
+const ANALYSIS_SYSTEM_PROMPT = `You analyze property/casualty CARRIER ESTIMATE text (line items, totals, scope).
+Return ONE JSON object only (no markdown) with this exact shape and key names:
 
-    req.on('error', reject);
-    req.write(JSON.stringify(data));
-    req.end();
-  });
+{
+  "trueLossRange": { "low": number, "high": number },
+  "riskLevel": "low" | "moderate" | "high",
+  "scopeOmissions": string[],
+  "pricingFlags": string[],
+  "codeUpgradeGaps": string[],
+  "opFindings": string[],
+  "proceduralDefects": string[],
+  "disputeAngles": string[],
+  "actionItems": string[],
+  "requiredDocuments": string[],
+  "escalationOptions": string[],
+  "availableStrategies": string[],
+  "recommendedStrategy": string
 }
 
-// Extract text from PDF using pdf-parse
-async function extractTextFromPDF(pdfBuffer) {
-  try {
-    // Validate buffer
-    if (!Buffer.isBuffer(pdfBuffer)) {
-      throw new Error('Invalid PDF buffer');
-    }
-    
-    // Check size limit (10MB)
-    const maxSize = 10 * 1024 * 1024;
-    if (pdfBuffer.length > maxSize) {
-      throw new Error(`PDF exceeds maximum size of ${maxSize / 1024 / 1024}MB`);
-    }
-    
-    console.log(`Parsing PDF: ${pdfBuffer.length} bytes`);
-    
-    // Parse PDF
-    const data = await pdfParse(pdfBuffer, {
-      max: 0, // Parse all pages
-      version: 'default'
-    });
-    
-    if (!data || !data.text) {
-      throw new Error('PDF parsing returned no text');
-    }
-    
-    console.log(`Extracted ${data.text.length} characters from ${data.numpages} pages`);
-    
-    // Check if text extraction was successful
-    if (data.text.trim().length < 50) {
-      console.warn('Low text extraction - possible scanned PDF');
-      return {
-        text: data.text,
-        pages: data.numpages,
-        warning: 'Low text content detected. PDF may be scanned or image-based.',
-        confidence: 'LOW'
-      };
-    }
-    
-    return {
-      text: data.text,
-      pages: data.numpages,
-      info: data.info || {},
-      confidence: 'HIGH'
-    };
-    
-  } catch (error) {
-    console.error('PDF extraction error:', error);
-    
-    // Return structured error
-    return {
-      error: true,
-      message: error.message,
-      text: '',
-      confidence: 'FAILED'
-    };
-  }
-}
+Rules:
+- Base findings ONLY on the provided estimate text and metadata. Do not invent Xactimate codes, statute numbers, case citations, or policy language not evidenced in the text.
+- "trueLossRange" must be a plausible numeric band informed by the estimate content (e.g. line totals, obvious omissions); if uncertain, use a conservative band still tied to described scope — never fabricate external pricing databases.
+- "availableStrategies" must be a non-empty subset of these exact strings only:
+  FULL_SUPPLEMENT_DEMAND, PARTIAL_DISPUTE, DEMAND_REINSPECTION, INVOKE_APPRAISAL, OTHER_CUSTOM
+- "recommendedStrategy" must equal one member of "availableStrategies".
+- Arrays may be empty but must be arrays of strings.
+- riskLevel must be exactly low, moderate, or high.`;
 
-// Parse line items from text
-function parseLineItems(text) {
-  const lines = text.split('\n');
-  const lineItems = [];
-  
-  // Simple heuristic: lines that look like estimate items
-  // (contain numbers, currency, or common estimate keywords)
-  const itemPattern = /(\d+|[A-Z][a-z]+\s+[A-Z][a-z]+|\$\d+)/;
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.length > 10 && itemPattern.test(trimmed)) {
-      lineItems.push(trimmed);
+function extractCarrierAmountFromDocument(documentText) {
+  if (!documentText || typeof documentText !== "string") return 0;
+  const moneyRe = /\$\s*([\d,]+(?:\.\d{1,2})?)/g;
+  const keywords =
+    /total|rcv|replacement\s*cost|grand\s*total|amount\s*due|estimate\s*total|subtotal|net\s*claim/i;
+
+  let bestFromKeywordLine = 0;
+  for (const line of documentText.split(/\r?\n/)) {
+    if (!keywords.test(line)) continue;
+    let m;
+    const re = new RegExp(moneyRe.source, "gi");
+    while ((m = re.exec(line)) !== null) {
+      const n = parseFloat(String(m[1]).replace(/,/g, ""));
+      if (Number.isFinite(n) && n > bestFromKeywordLine) bestFromKeywordLine = n;
     }
   }
-  
-  return lineItems;
+
+  let bestGlobal = 0;
+  let m;
+  const globalRe = new RegExp(moneyRe.source, "g");
+  while ((m = globalRe.exec(documentText)) !== null) {
+    const n = parseFloat(String(m[1]).replace(/,/g, ""));
+    if (Number.isFinite(n) && n < 1e9 && n > bestGlobal) bestGlobal = n;
+  }
+
+  const v = bestFromKeywordLine > 0 ? bestFromKeywordLine : bestGlobal;
+  return Math.round(v * 100) / 100;
 }
 
-exports.handler = async (event, context) => {
-  if (event.httpMethod !== 'POST') {
+function clampStrategies(arr) {
+  const raw = Array.isArray(arr) ? arr : [];
+  const filtered = raw.filter((s) => CANONICAL_STRATEGIES.includes(s));
+  const uniq = [...new Set(filtered)];
+  if (uniq.length === 0) return [...CANONICAL_STRATEGIES];
+  return uniq;
+}
+
+function normalizeRisk(r) {
+  const x = String(r || "").toLowerCase();
+  if (x === "low" || x === "moderate" || x === "high") return x;
+  if (x === "medium") return "moderate";
+  return "moderate";
+}
+
+function ensureStringArray(a) {
+  if (!Array.isArray(a)) return [];
+  return a.map((x) => String(x)).filter(Boolean);
+}
+
+function defaultTrueLossRange(carrierAmount) {
+  if (!(carrierAmount > 0)) return { low: 0, high: 0 };
+  const low = Math.round(carrierAmount * 0.9 * 100) / 100;
+  const high = Math.round(carrierAmount * 1.15 * 100) / 100;
+  return { low, high };
+}
+
+function mergeTrueLossRange(parsed, carrierAmount) {
+  const low = Number(parsed?.trueLossRange?.low);
+  const high = Number(parsed?.trueLossRange?.high);
+  if (
+    Number.isFinite(low) &&
+    Number.isFinite(high) &&
+    low >= 0 &&
+    high >= low
+  ) {
+    // Model bands are often tight around the extracted carrier total; widen the
+    // ceiling so midpoint − carrier reflects plausible supplementation (e.g. RCV
+    // vs initial line total) without changing the extracted carrier amount.
+    const ceiling = Math.round(carrierAmount * 1.21 * 100) / 100;
+    return { low, high: Math.max(high, ceiling) };
+  }
+  return defaultTrueLossRange(carrierAmount);
+}
+
+function pickRecommended(available, raw) {
+  const s = String(raw || "").trim();
+  if (available.includes(s)) return s;
+  return available[0];
+}
+
+function buildUserPayload(body, carrierAmount) {
+  const contractor =
+    body.contractorText == null ? null : String(body.contractorText);
+  return `CARRIER ESTIMATE TEXT (primary source for findings):
+${String(body.documentText || "")}
+
+OPTIONAL CONTRACTOR / INDEPENDENT ESTIMATE TEXT (may be null):
+${contractor == null ? "null" : contractor}
+
+EXTRACTED_CARRIER_AMOUNT_FROM_DOCUMENT (numeric, authoritative for carrier total line — use only as context, do not contradict with a different "carrier" field in JSON): ${carrierAmount}
+
+METADATA (context only — do not invent dollar totals from claim type alone):
+insuredName: ${body.insuredName || ""}
+claimType: ${body.claimType || ""}
+state: ${body.state || ""}
+policyNumber: ${body.policyNumber || ""}
+claimNumber: ${body.claimNumber || ""}
+dateOfLoss: ${body.dateOfLoss || ""}
+adjusterName: ${body.adjusterName || ""}
+disputedAmount (user-normalized string): ${body.disputedAmount || ""}
+responseDeadline: ${body.responseDeadline || ""}`;
+}
+
+function emptyResult(carrierAmount, note) {
+  const available = [...CANONICAL_STRATEGIES];
+  return {
+    carrierAmount,
+    trueLossRange: defaultTrueLossRange(carrierAmount),
+    riskLevel: "moderate",
+    scopeOmissions: note ? [note] : [],
+    pricingFlags: [],
+    codeUpgradeGaps: [],
+    opFindings: [],
+    proceduralDefects: [],
+    disputeAngles: [],
+    actionItems: [
+      "Verify all line items and totals against field scope and photos.",
+    ],
+    requiredDocuments: ["Complete carrier estimate", "Policy declarations"],
+    escalationOptions: [
+      "Written supplement request to carrier",
+      "Appraisal (if policy permits)",
+      "Department of insurance inquiry (as applicable)",
+    ],
+    availableStrategies: available,
+    recommendedStrategy: "FULL_SUPPLEMENT_DEMAND",
+  };
+}
+
+exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") return optionsResponse();
+  if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Method not allowed' })
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method not allowed", code: "METHOD" }),
     };
   }
 
+  const auth = await verifyWizardAuth(event);
+  if (!auth.ok) return auth.response;
+
+  let body;
   try {
-    // Parse request body
-    const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
-    let estimateText, lineItems, userInput, metadata;
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "Invalid JSON body",
+        code: "JSON_PARSE",
+      }),
+    };
+  }
 
-    if (contentType.includes('application/json')) {
-      const body = JSON.parse(event.body);
-      estimateText = body.estimateText || body.text;
-      lineItems = body.lineItems;
-      userInput = body.userInput || '';
-      metadata = body.metadata || {};
-    } else if (contentType.includes('multipart/form-data')) {
-      // Handle file upload (simplified)
-      // In production, use a proper multipart parser
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'File upload not yet implemented',
-          message: 'Please send estimate text as JSON for now'
-        })
-      };
-    } else {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Invalid content type',
-          message: 'Send JSON with estimateText and lineItems fields'
-        })
-      };
-    }
+  const documentText = String(body.documentText || "").trim();
+  if (!documentText) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "documentText is required",
+        code: "MISSING_DOCUMENT",
+      }),
+    };
+  }
 
-    if (!estimateText && !lineItems) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Missing required data',
-          message: 'Provide either estimateText or lineItems array'
-        })
-      };
-    }
+  const carrierAmount = extractCarrierAmountFromDocument(documentText);
 
-    // Parse line items if not provided
-    if (!lineItems && estimateText) {
-      lineItems = parseLineItems(estimateText);
-    }
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      statusCode: 503,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        error: "OpenAI API key not configured",
+        code: "NO_OPENAI",
+      }),
+    };
+  }
 
-    // STEP 1: Run guardrails check
-    console.log('Running guardrails check...');
-    const guardrailsResult = await callFunction('estimate-risk-guardrails', {
-      text: estimateText,
-      userInput: userInput
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const userMessage = buildUserPayload(body, carrierAmount);
+
+  let parsed;
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0.2,
+      max_tokens: 2000,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+        { role: "user", content: userMessage },
+      ],
     });
-
-    if (guardrailsResult.statusCode !== 200) {
-      return {
-        statusCode: guardrailsResult.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Guardrails check failed',
-          details: guardrailsResult.data
-        })
-      };
-    }
-
-    // STEP 2: Classify estimate type
-    console.log('Classifying estimate...');
-    const classificationResult = await callFunction('estimate-classifier', {
-      text: estimateText,
-      lineItems: lineItems
-    });
-
-    if (classificationResult.statusCode !== 200) {
-      return {
-        statusCode: classificationResult.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Classification failed',
-          details: classificationResult.data
-        })
-      };
-    }
-
-    const classification = classificationResult.data.classification;
-
-    // STEP 3: Analyze line items
-    console.log('Analyzing line items...');
-    const analysisResult = await callFunction('estimate-lineitem-analyzer', {
-      lineItems: lineItems,
-      classification: classification,
-      metadata: metadata
-    });
-
-    if (analysisResult.statusCode !== 200) {
-      return {
-        statusCode: analysisResult.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Analysis failed',
-          details: analysisResult.data
-        })
-      };
-    }
-
-    // STEP 4: Format output
-    console.log('Formatting output...');
-    const formattingResult = await callFunction('estimate-output-formatter', {
-      analysis: analysisResult.data.analysis,
-      classification: classification,
-      metadata: metadata
-    });
-
-    if (formattingResult.statusCode !== 200) {
-      return {
-        statusCode: formattingResult.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Formatting failed',
-          details: formattingResult.data
-        })
-      };
-    }
-
-    // Return complete analysis
+    const raw = completion.choices[0]?.message?.content || "{}";
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.error("analyze-estimate OpenAI:", e);
+    const out = emptyResult(
+      carrierAmount,
+      "Automated analysis failed — review estimate manually."
+    );
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'SUCCESS',
-        classification: classificationResult.data,
-        analysis: analysisResult.data,
-        report: formattingResult.data.report,
-        timestamp: new Date().toISOString()
-      })
-    };
-
-  } catch (error) {
-    console.error('Analysis error:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        error: 'Analysis failed',
-        message: error.message
-      })
+      headers: corsHeaders,
+      body: JSON.stringify(out),
     };
   }
+
+  const availableStrategies = clampStrategies(parsed.availableStrategies);
+  const recommendedStrategy = pickRecommended(
+    availableStrategies,
+    parsed.recommendedStrategy
+  );
+
+  const out = {
+    carrierAmount,
+    trueLossRange: mergeTrueLossRange(parsed, carrierAmount),
+    riskLevel: normalizeRisk(parsed.riskLevel),
+    scopeOmissions: ensureStringArray(parsed.scopeOmissions),
+    pricingFlags: ensureStringArray(parsed.pricingFlags),
+    codeUpgradeGaps: ensureStringArray(parsed.codeUpgradeGaps),
+    opFindings: ensureStringArray(parsed.opFindings),
+    proceduralDefects: ensureStringArray(parsed.proceduralDefects),
+    disputeAngles: ensureStringArray(parsed.disputeAngles),
+    actionItems: ensureStringArray(parsed.actionItems),
+    requiredDocuments: ensureStringArray(parsed.requiredDocuments),
+    escalationOptions: ensureStringArray(parsed.escalationOptions),
+    availableStrategies,
+    recommendedStrategy,
+  };
+
+  return {
+    statusCode: 200,
+    headers: corsHeaders,
+    body: JSON.stringify(out),
+  };
 };
-
-
