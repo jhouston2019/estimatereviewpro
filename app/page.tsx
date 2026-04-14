@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WizardPreview from "@/components/WizardPreview";
 
 export default function Home() {
   return (
@@ -388,6 +389,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <WizardPreview />
 
         {/* Feature Strip */}
         <section className="mb-20 grid gap-8 md:grid-cols-3">
