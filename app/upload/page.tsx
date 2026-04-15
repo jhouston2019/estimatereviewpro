@@ -197,6 +197,7 @@ export default function UploadPage() {
   const [step6LetterLoading, setStep6LetterLoading] = useState(false);
   const [carrierFileDragOver, setCarrierFileDragOver] = useState(false);
   const [contractorFileDragOver, setContractorFileDragOver] = useState(false);
+  const [showXactimateHelp, setShowXactimateHelp] = useState(false);
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const wizardStateRef = useRef(state);
   wizardStateRef.current = state;
@@ -820,6 +821,51 @@ export default function UploadPage() {
                     >
                       {carrierExtractStatus}
                     </p>
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowXactimateHelp((v) => !v)}
+                        className="text-xs text-blue-500 hover:text-blue-700 underline-offset-2 hover:underline focus:outline-none"
+                      >
+                        {showXactimateHelp
+                          ? "Hide Xactimate export guide ▲"
+                          : "Using Xactimate? See how to export →"}
+                      </button>
+                      {showXactimateHelp && (
+                        <div
+                          id="erp-step1-xactimate-help"
+                          className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+                        >
+                          <p className="font-medium text-slate-700 mb-2">
+                            Exporting from Xactimate
+                          </p>
+                          <ol className="space-y-1 list-decimal list-inside">
+                            <li>Open your estimate in Xactimate</li>
+                            <li>
+                              Click{" "}
+                              <span className="font-medium">
+                                File → Print → Save as PDF
+                              </span>
+                            </li>
+                            <li>Upload that PDF using the drop zone above</li>
+                          </ol>
+                          <p className="mt-3 font-medium text-slate-700 mb-1">
+                            Or paste directly:
+                          </p>
+                          <ol className="space-y-1 list-decimal list-inside">
+                            <li>In Xactimate, select all line items</li>
+                            <li>
+                              Copy (<span className="font-medium">Ctrl+C</span>)
+                            </li>
+                            <li>Paste into the text field below</li>
+                          </ol>
+                          <p className="mt-3 text-xs text-slate-400 border-t border-slate-200 pt-2">
+                            ESX files cannot be read directly — PDF or paste
+                            export required.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <label
                         htmlFor="erp-step1-carrier-paste"
