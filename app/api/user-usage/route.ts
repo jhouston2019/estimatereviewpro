@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -13,14 +14,26 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const authClient = createSupabaseRouteHandlerClient();
+    const {
+      data: { session },
+    } = await authClient.auth.getSession();
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Missing userId' },
-        { status: 400 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminKey = request.headers.get('x-admin-key');
+    const adminOk =
+      !!process.env.ADMIN_ACCESS_KEY &&
+      adminKey === process.env.ADMIN_ACCESS_KEY;
+
+    const { searchParams } = new URL(request.url);
+    const paramUserId = searchParams.get('userId');
+
+    let userId = session.user.id;
+    if (adminOk && paramUserId) {
+      userId = paramUserId;
     }
 
     // Get plan usage
@@ -70,7 +83,6 @@ export async function GET(request: NextRequest) {
       averageRecovery: recovery.average_recovery || 0,
       totalReviews: recovery.total_reviews || 0,
     });
-
   } catch (error) {
     console.error('[USER-USAGE] Error:', error);
     return NextResponse.json(

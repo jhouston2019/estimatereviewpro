@@ -32,11 +32,17 @@ async function verifyWizardAuth(event) {
   }
 
   if (token === "bypass") {
-    const allow =
-      process.env.WIZARD_ALLOW_BYPASS === "true" ||
-      process.env.WIZARD_ALLOW_BYPASS === "1" ||
-      !process.env.SUPABASE_URL;
-    if (allow) {
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.NETLIFY_CONTEXT === "production" ||
+      process.env.CONTEXT === "production";
+
+    const bypassAllowed =
+      !isProduction &&
+      (process.env.WIZARD_ALLOW_BYPASS === "true" ||
+        process.env.WIZARD_ALLOW_BYPASS === "1");
+
+    if (bypassAllowed) {
       return { ok: true, user: { id: "bypass", email: "wizard@local" } };
     }
     return {
@@ -45,7 +51,9 @@ async function verifyWizardAuth(event) {
         statusCode: 401,
         headers: corsHeaders,
         body: JSON.stringify({
-          error: "Bypass disabled: set WIZARD_ALLOW_BYPASS=true or sign in",
+          error: isProduction
+            ? "Bypass is not allowed in production"
+            : "Bypass disabled: set WIZARD_ALLOW_BYPASS=true or sign in",
         }),
       },
     };

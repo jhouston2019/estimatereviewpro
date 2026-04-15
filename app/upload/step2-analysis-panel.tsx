@@ -165,6 +165,7 @@ function riskBadgeClass(risk: AnalysisResult["riskLevel"]): string {
 }
 
 type Props = {
+  accessToken: string;
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
   onBack: () => void;
@@ -173,6 +174,7 @@ type Props = {
 };
 
 export function Step2AnalysisPanel({
+  accessToken,
   analysis,
   comparison,
   onBack,
@@ -188,7 +190,10 @@ export function Step2AnalysisPanel({
     const text = root.innerText;
     const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         text,
         fileName: "estimate-analysis.pdf",
@@ -208,7 +213,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [announce]);
+  }, [accessToken, announce]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step2-print-root");
@@ -219,7 +224,10 @@ export function Step2AnalysisPanel({
     const text = root.innerText;
     const res = await fetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         text,
         fileName: "estimate-analysis.docx",
@@ -239,7 +247,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce]);
+  }, [accessToken, announce]);
 
   const omissionItems = useMemo(() => {
     if (!analysis?.scopeOmissions.length) return ["None identified."];

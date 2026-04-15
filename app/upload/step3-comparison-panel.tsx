@@ -12,6 +12,7 @@ export type ComparisonClaimMetaSlice = {
 };
 
 type Props = {
+  accessToken: string;
   comparison: ComparisonResult | null;
   claimMeta: ComparisonClaimMetaSlice;
   onBack: () => void;
@@ -145,7 +146,10 @@ export function Step3ComparisonPanel({
     const text = buildComparisonText(comparison, claimMeta);
     const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         text,
         fileName: "estimate-comparison.pdf",
@@ -175,7 +179,10 @@ export function Step3ComparisonPanel({
     const text = buildComparisonText(comparison, claimMeta);
     const res = await fetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         text,
         fileName: "estimate-comparison.docx",
@@ -195,7 +202,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison Word document downloaded.");
-  }, [announce, comparison, claimMeta]);
+  }, [accessToken, announce, comparison, claimMeta]);
 
   const mode = comparison?.mode ?? "";
   const lineItems = comparison?.lineItems ?? [];

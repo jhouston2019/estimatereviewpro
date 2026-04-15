@@ -80,6 +80,15 @@ npm run test:safety
 
 **See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.**
 
+### Database seeding and migrations
+
+There is **no** HTTP API for seeding the database (removed for security). Apply schema and seed data **directly in Supabase**:
+
+1. Open your project in the [Supabase Dashboard](https://supabase.com/dashboard) → **SQL Editor**.
+2. Run the SQL files under `supabase/migrations/` in order (start with `00_create_users_table.sql`, then pricing/schema files, then `01_seed_example_reports.sql` as needed).
+
+For local scripting you can also use `node scripts/seed-database.mjs` if you maintain that script; otherwise prefer the dashboard or Supabase CLI (`supabase db push` / linked project).
+
 ---
 
 ## 📦 SYSTEM COMPONENTS

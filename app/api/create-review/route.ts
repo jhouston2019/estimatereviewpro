@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,21 +14,31 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      userId, 
-      estimateName, 
-      estimateType, 
-      damageType, 
+    const authClient = createSupabaseRouteHandlerClient();
+    const {
+      data: { session },
+    } = await authClient.auth.getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+
+    const {
+      estimateName,
+      estimateType,
+      damageType,
       estimateText,
       claimNumber,
       propertyAddress,
       dateOfLoss,
       insuranceCarrier,
       platform,
-      vertical
+      vertical,
     } = await request.json();
 
-    if (!userId || !estimateName || !estimateText) {
+    if (!estimateName || !estimateText) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

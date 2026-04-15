@@ -7,9 +7,9 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
+  const { data: appUser } = await supabase
+    .from("users")
+    .select("plan_type, team_id")
     .eq("id", user?.id ?? "")
     .maybeSingle();
 
@@ -19,7 +19,16 @@ export default async function DashboardPage() {
     .eq("user_id", user?.id ?? "")
     .order("created_at", { ascending: false });
 
-  const tier = (profile as any)?.tier ?? "free";
+  const planType = (appUser as { plan_type?: string | null } | null)?.plan_type;
+  const hasTeam = !!(appUser as { team_id?: string | null } | null)?.team_id;
+  const tier =
+    planType === "single"
+      ? "oneoff"
+      : planType === "professional" ||
+          planType === "enterprise" ||
+          hasTeam
+        ? "pro"
+        : "free";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">

@@ -1,17 +1,23 @@
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
+const {
+  corsHeaders,
+  optionsResponse,
+  verifyWizardAuth,
+} = require("./_wizardAuth.js");
 
 exports.handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
+  if (event.httpMethod === "OPTIONS") return optionsResponse();
+
+  if (event.httpMethod !== "POST") {
     return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method not allowed", code: "METHOD" }),
     };
   }
+
+  const auth = await verifyWizardAuth(event);
+  if (!auth.ok) return auth.response;
 
   try {
     const body = JSON.parse(event.body || '{}');

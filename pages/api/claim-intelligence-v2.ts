@@ -5,6 +5,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 import { generateStructuralReport } from '../../lib/structural-unified-report-engine';
 import { normalizeInput } from '../../lib/input-normalizer';
 import { detectFormat } from '../../lib/format-detector';
@@ -94,7 +95,24 @@ export default async function handler(
       }
     });
   }
-  
+
+  const supabaseAuth = createPagesServerClient({ req, res });
+  const {
+    data: { session },
+  } = await supabaseAuth.auth.getSession();
+  if (!session) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        errorCode: 'UNAUTHORIZED',
+        errorType: 'AUTH_ERROR',
+        message: 'Authentication required',
+        remediation: 'Sign in and retry with a valid session cookie.',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
   // Create audit trail and performance monitor
   const startTime = Date.now();
   const audit = createAuditTrail();

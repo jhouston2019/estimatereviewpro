@@ -22,6 +22,7 @@ type ClaimMeta = {
 };
 
 type Props = {
+  accessToken: string;
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
   strategy: string | null;
@@ -249,6 +250,7 @@ function strategyRationaleFromAnalysis(
 }
 
 export function Step5SummaryPanel({
+  accessToken,
   analysis,
   comparison,
   strategy,
@@ -262,7 +264,10 @@ export function Step5SummaryPanel({
     const text = buildSummaryText(analysis, comparison, claimMeta, strategy);
     const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ text, fileName: "wizard-summary.pdf" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -290,7 +295,10 @@ export function Step5SummaryPanel({
     const text = root.innerText;
     const res = await fetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ text, fileName: "wizard-summary.docx" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -307,7 +315,7 @@ export function Step5SummaryPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary Word document downloaded.");
-  }, [announce, analysis, comparison, claimMeta, strategy]);
+  }, [accessToken, analysis, announce, claimMeta, comparison, strategy]);
 
   const carrierNameDisplay = claimMeta.carrierName?.trim() || "—";
 

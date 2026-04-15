@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-11-17.clover',
@@ -18,17 +19,36 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, userId } = await request.json();
+    const authClient = createSupabaseRouteHandlerClient();
+    const {
+      data: { session: authSession },
+    } = await authClient.auth.getSession();
 
-    if (!sessionId || !userId) {
+    if (!authSession) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = authSession.user.id;
+
+    const { sessionId } = await request.json();
+
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Missing sessionId or userId' },
+        { error: 'Missing sessionId' },
         { status: 400 }
       );
     }
 
     // Retrieve checkout session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    const metaUserId = session.metadata?.user_id?.trim();
+    if (metaUserId && metaUserId !== userId) {
+      return NextResponse.json(
+        { error: 'Checkout session does not match signed-in user' },
+        { status: 403 }
+      );
+    }
 
     if (session.payment_status !== 'paid') {
       return NextResponse.json(

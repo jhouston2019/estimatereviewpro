@@ -1199,6 +1199,7 @@ export default function UploadPage() {
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
           >
             <Step2AnalysisPanel
+              accessToken={state.accessToken}
               analysis={state.analysis}
               comparison={state.comparison}
               onBack={onStep2Back}
@@ -1247,6 +1248,7 @@ export default function UploadPage() {
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
           >
             <Step5SummaryPanel
+              accessToken={state.accessToken}
               analysis={state.analysis}
               comparison={state.comparison}
               strategy={state.strategy}
@@ -1264,6 +1266,7 @@ export default function UploadPage() {
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
           >
             <Step6LetterPanel
+              accessToken={state.accessToken}
               active={currentStep === 6}
               letterType={state.letterType}
               onLetterTypeChange={onLetterTypeChange}

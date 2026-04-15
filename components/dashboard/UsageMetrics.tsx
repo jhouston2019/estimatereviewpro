@@ -9,7 +9,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export interface UsageMetricsProps {
-  userId: string;
+  /** @deprecated Ignored — usage is loaded for the signed-in session only. */
+  userId?: string;
 }
 
 interface UsageData {
@@ -23,14 +24,20 @@ interface UsageData {
   totalReviews: number;
 }
 
-export default function UsageMetrics({ userId }: UsageMetricsProps) {
+export default function UsageMetrics(_props: UsageMetricsProps) {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUsage() {
       try {
-        const response = await fetch(`/api/user-usage?userId=${userId}`);
+        const response = await fetch('/api/user-usage', {
+          credentials: 'same-origin',
+        });
+        if (response.status === 401) {
+          setUsage(null);
+          return;
+        }
         const data = await response.json();
         setUsage(data);
       } catch (error) {
@@ -40,10 +47,8 @@ export default function UsageMetrics({ userId }: UsageMetricsProps) {
       }
     }
 
-    if (userId) {
-      fetchUsage();
-    }
-  }, [userId]);
+    fetchUsage();
+  }, []);
 
   if (loading) {
     return (
@@ -79,7 +84,10 @@ export default function UsageMetrics({ userId }: UsageMetricsProps) {
 
   const isUnlimited = usage.reviewsLimit === null;
   const usagePercentage = isUnlimited ? 0 : (usage.reviewsUsed / usage.reviewsLimit!) * 100;
-  const periodEnd = new Date(usage.billingPeriodEnd);
+  const periodEnd =
+    usage.billingPeriodEnd != null && usage.billingPeriodEnd !== ''
+      ? new Date(usage.billingPeriodEnd)
+      : null;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -142,7 +150,9 @@ export default function UsageMetrics({ userId }: UsageMetricsProps) {
 
         <div className="border-t border-slate-700 pt-4 mt-4">
           <p className="text-xs text-slate-400">
-            Billing period ends: {periodEnd.toLocaleDateString()}
+            {periodEnd
+              ? `Billing period ends: ${periodEnd.toLocaleDateString()}`
+              : 'Billing period: —'}
           </p>
         </div>
 

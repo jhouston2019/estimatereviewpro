@@ -122,6 +122,7 @@ function syncExportSource(text: string) {
 }
 
 type Props = {
+  accessToken: string;
   active: boolean;
   letterType: string | null;
   onLetterTypeChange: (code: string) => void;
@@ -195,7 +196,10 @@ export function Step6LetterPanel({
     const text = root.innerText;
     const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ text, fileName: "estimate-letter.pdf" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -240,7 +244,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce]);
+  }, [accessToken, announce]);
 
   const patchField = (key: keyof LetterPlaceholderFields, value: string) => {
     onLetterPlaceholdersChange({ [key]: value });
