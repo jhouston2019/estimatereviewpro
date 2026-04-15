@@ -1430,6 +1430,7 @@ export default function UploadPage() {
                               onDragOver={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                console.log("DRAGOVER FIRED", doc.id);
                                 e.dataTransfer.dropEffect = "copy";
                                 setDocDragOverIndex(idx);
                               }}
@@ -1450,6 +1451,7 @@ export default function UploadPage() {
                               onDrop={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                console.log("DROP FIRED", e.dataTransfer.files);
                                 setDocDragOverIndex(null);
                                 const f = e.dataTransfer.files?.[0] ?? null;
                                 if (!f) return;
@@ -1474,7 +1476,7 @@ export default function UploadPage() {
                               id={step1DocFileInputId(idx)}
                               type="file"
                               accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
-                              className="sr-only"
+                              className="pointer-events-none sr-only"
                               ref={(el) => {
                                 fileInputRefs.current[doc.id] = el;
                               }}
