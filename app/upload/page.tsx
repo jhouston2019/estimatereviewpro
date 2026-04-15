@@ -109,6 +109,8 @@ interface ClaimDocument {
   id: string;
   extractedText: string;
   extractStatus: "idle" | "extracting" | "done" | "error";
+  /** Shown under the file slot (e.g. after PDF/image upload). */
+  statusMessage?: string;
   side: ClaimDocumentSide;
   category: ClaimDocumentCategory;
   version: ClaimDocumentVersion;
@@ -199,6 +201,22 @@ function buildDefaultLabel(
   const v = VERSION_OPTIONS.find((o) => o.value === version)?.label ?? version;
   return `${s} ${c} ${v}`;
 }
+
+/** Label from dropped file name: strip extension; underscores → spaces; letter-letter hyphens → spaces (keeps dates like 4-25-2023). */
+function labelFromDroppedFileName(fileName: string): string {
+  const base = fileName.replace(/\.[^.]+$/i, "").trim();
+  if (!base) return "";
+  const afterUnderscore = base.replace(/_/g, " ");
+  const withHyphens = afterUnderscore.replace(
+    /([a-zA-Z])-([a-zA-Z])/g,
+    "$1 $2"
+  );
+  return withHyphens.replace(/\s+/g, " ").trim();
+}
+
+/** Stable ids for the two default slots so SSR/client hydration list keys stay consistent. */
+const INITIAL_CARRIER_DOCUMENT_ID = "erp-initial-doc-carrier";
+const INITIAL_CONTRACTOR_DOCUMENT_ID = "erp-initial-doc-contractor";
 
 function createClaimDocument(slotIndex: number): ClaimDocument {
   const side: ClaimDocumentSide =
@@ -310,6 +328,8 @@ type WizardState = {
   prefillApplied: boolean;
 };
 
+type ClaimMetaFields = WizardState["claimMeta"];
+
 function deriveLegacyFields(
   s: WizardState
 ): Pick<
@@ -372,11 +392,48 @@ function documentSideSubtitle(side: ClaimDocumentSide): string {
 }
 
 function extractStatusMessage(doc: ClaimDocument): string {
-  if (doc.extractStatus === "extracting") return "Reading file…";
-  if (doc.extractStatus === "error") return "Could not read file.";
-  if (doc.extractStatus === "done") return "Text ready.";
+  if (doc.extractStatus === "extracting") {
+    return doc.statusMessage?.trim() || "Reading file…";
+  }
+  if (doc.extractStatus === "error") {
+    return doc.statusMessage?.trim() || "Could not read file.";
+  }
+  if (doc.extractStatus === "done") {
+    return doc.statusMessage?.trim() || "Text ready.";
+  }
+  const hint = doc.statusMessage?.trim();
+  if (hint) return hint;
   if (doc.extractedText.trim()) return "Ready.";
-  return "Add estimate text (paste or .txt file). PDF and images require pasting text below.";
+  return "Add estimate text (paste, .txt, or PDF). Image files still need pasted text below.";
+}
+
+function extractStatusClassName(doc: ClaimDocument): string {
+  if (doc.extractStatus === "extracting") return "text-sm text-blue-600";
+  if (doc.extractStatus === "error") return "text-sm text-amber-600";
+  if (doc.extractStatus === "done") return "text-sm text-green-600";
+  if (doc.statusMessage?.trim()) return "text-sm text-amber-600";
+  return "text-sm text-[#475569]";
+}
+
+const PDFJS_CDN_VERSION = "4.4.168";
+
+async function extractTextFromPDF(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  if (typeof window !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const textPages: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(" ");
+    textPages.push(pageText);
+  }
+  return textPages.join("\n\n");
 }
 
 const initialWizardState = (): WizardState => {
@@ -386,7 +443,7 @@ const initialWizardState = (): WizardState => {
     contractorText: null,
     documents: [
       {
-        id: crypto.randomUUID(),
+        id: INITIAL_CARRIER_DOCUMENT_ID,
         extractedText: "",
         extractStatus: "idle",
         side: "CARRIER",
@@ -397,7 +454,7 @@ const initialWizardState = (): WizardState => {
         labelLocked: false,
       },
       {
-        id: crypto.randomUUID(),
+        id: INITIAL_CONTRACTOR_DOCUMENT_ID,
         extractedText: "",
         extractStatus: "idle",
         side: "CONTRACTOR",
@@ -434,6 +491,120 @@ const initialWizardState = (): WizardState => {
   };
   return { ...base, ...deriveLegacyFields(base) };
 };
+
+const CLAIM_META_AUTO_EXTRACT_KEYS = new Set([
+  "policyNumber",
+  "claimNumber",
+  "dateOfLoss",
+  "adjusterName",
+  "carrierName",
+  "insuredName",
+  "disputedAmount",
+]);
+
+function extractClaimMetaFromText(
+  rawText: string
+): Partial<ClaimMetaFields> {
+  let text = rawText.replace(/\t/g, " ");
+  for (let pass = 0; pass < 20; pass++) {
+    const before = text;
+    text = text
+      .replace(/\b(\w) (\w) (\w) (\w) (\w)\b/g, "$1$2$3$4$5")
+      .replace(/\b(\w) (\w) (\w) (\w)\b/g, "$1$2$3$4")
+      .replace(/\b(\w) (\w) (\w)\b/g, "$1$2$3");
+    if (text === before) break;
+  }
+  text = text.replace(/ {3,}/g, " ");
+
+  const policyMatch = text.match(
+    /policy\s*(?:number|no\.?|#)?\s*[:\-]?\s*([A-Z0-9\-]{5,20})/i
+  );
+
+  const claimMatch = text.match(
+    /claim\s*(?:number|no\.?|#)?\s*[:\-]?\s*([A-Z0-9\-]{5,20})/i
+  );
+
+  const dolPatterns = [
+    /date\s*of\s*loss\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /loss\s*date\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+    /d\.?\s*o\.?\s*l\.?\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+  ];
+  let dolMatch: RegExpMatchArray | null = null;
+  for (const pattern of dolPatterns) {
+    dolMatch = text.match(pattern);
+    if (dolMatch) break;
+  }
+  if (!dolMatch) {
+    dolMatch = text.match(
+      /date\s*of\s*loss\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\w+\s+\d{1,2},?\s+\d{4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/i
+    );
+  }
+  if (!dolMatch) {
+    const lossLabel = /date\s*of\s*loss|loss\s*date|d\.?\s*o\.?\s*l\.?/i.exec(
+      text
+    );
+    if (lossLabel) {
+      const chunk = text.slice(lossLabel.index, lossLabel.index + 200);
+      dolMatch = chunk.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/);
+    }
+  }
+
+  const adjusterMatch = text.match(
+    /(?:adjuster|estimator|assigned\s+to|written\s+by|claim\s+rep|representative)\s*[:\-]?\s*([A-Za-z][A-Za-z\s\.]{2,35})(?:\s*(?:position|phone|email|cell|\n|$))/i
+  );
+
+  const carrierMatch = text.match(
+    /(?:insurance\s+company|carrier|insurer|company)\s*[:\-]?\s*([A-Za-z][A-Za-z\s\&\.]{2,50})(?:\s*(?:business|address|phone|\n|$))/i
+  );
+
+  const insuredMatch = text.match(
+    /(?:insured|customer|property\s+owner|owner)\s*[:\-]?\s*([A-Za-z][A-Za-z\s\.\,]{2,50})(?:\s*(?:property|address|phone|\n|$))/i
+  );
+
+  const amountMatch = text.match(
+    /(?:rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total)\s*[:\$]?\s*\$?([\d,]+\.?\d{0,2})/i
+  );
+
+  let dateOfLoss = "";
+  if (dolMatch?.[1]) {
+    try {
+      const d = new Date(dolMatch[1]);
+      if (!isNaN(d.getTime())) {
+        dateOfLoss = d.toISOString().split("T")[0];
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return {
+    policyNumber: policyMatch?.[1]?.trim() ?? "",
+    claimNumber: claimMatch?.[1]?.trim() ?? "",
+    dateOfLoss,
+    adjusterName: adjusterMatch?.[1]?.trim() ?? "",
+    carrierName: carrierMatch?.[1]?.trim() ?? "",
+    insuredName: insuredMatch?.[1]?.trim() ?? "",
+    disputedAmount: amountMatch?.[1]?.replace(/,/g, "") ?? "",
+  };
+}
+
+function mergeExtractedClaimMeta(
+  current: WizardState["claimMeta"],
+  extracted: Partial<WizardState["claimMeta"]>
+): { claimMeta: WizardState["claimMeta"]; extractedKeys: string[] } {
+  const next = { ...current };
+  const extractedKeys: string[] = [];
+  for (const [key, value] of Object.entries(extracted)) {
+    if (typeof value !== "string") continue;
+    const v = value.trim();
+    if (!v) continue;
+    const cur = String(next[key as keyof WizardState["claimMeta"]] ?? "").trim();
+    if (cur) continue;
+    (next as Record<string, string>)[key] = v;
+    extractedKeys.push(key);
+  }
+  return { claimMeta: next, extractedKeys };
+}
 
 function normalizeDisputedAmount(raw: string): string {
   return raw.replace(/\$/g, "").replace(/,/g, "").replace(/\s/g, "").trim();
@@ -513,6 +684,9 @@ export default function UploadPage() {
     null
   );
   const [showXactimateHelp, setShowXactimateHelp] = useState(false);
+  const [autoExtractedFields, setAutoExtractedFields] = useState<Set<string>>(
+    () => new Set()
+  );
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const wizardStateRef = useRef(state);
@@ -561,6 +735,16 @@ export default function UploadPage() {
 
   const patchClaimMeta = useCallback(
     (partial: Partial<WizardState["claimMeta"]>) => {
+      const keysToClear = Object.keys(partial).filter((k) =>
+        CLAIM_META_AUTO_EXTRACT_KEYS.has(k)
+      );
+      if (keysToClear.length > 0) {
+        setAutoExtractedFields((prev) => {
+          const next = new Set(prev);
+          for (const k of keysToClear) next.delete(k);
+          return next;
+        });
+      }
       setState((s) => ({
         ...s,
         claimMeta: { ...s.claimMeta, ...partial },
@@ -572,19 +756,22 @@ export default function UploadPage() {
   const readDocumentFile = useCallback(
     async (docId: string, file: File | null) => {
       if (!file) return;
-      setState((s) =>
-        withDerived(s, {
-          documents: s.documents.map((d) =>
-            d.id === docId ? { ...d, extractStatus: "extracting" } : d
-          ),
-        })
-      );
       try {
         if (
           file.type === "text/plain" ||
           file.name.toLowerCase().endsWith(".txt")
         ) {
+          setState((s) =>
+            withDerived(s, {
+              documents: s.documents.map((d) =>
+                d.id === docId
+                  ? { ...d, extractStatus: "extracting", statusMessage: undefined }
+                  : d
+              ),
+            })
+          );
           const text = await file.text();
+          let extractedKeysForAnnounce: string[] = [];
           setState((s) => {
             const documents = s.documents.map((d) => {
               if (d.id !== docId) return d;
@@ -593,6 +780,7 @@ export default function UploadPage() {
                 ...d,
                 extractedText: text,
                 extractStatus: "done" as const,
+                statusMessage: undefined,
                 category: detected,
                 autoDetected: true,
                 label: d.labelLocked
@@ -600,26 +788,149 @@ export default function UploadPage() {
                   : buildDefaultLabel(d.side, detected, d.version),
               };
             });
-            return withDerived(s, { documents });
+            const target = documents.find((d) => d.id === docId);
+            let claimMeta = s.claimMeta;
+            if (target?.side === "CARRIER") {
+              const merged = mergeExtractedClaimMeta(
+                s.claimMeta,
+                extractClaimMetaFromText(text)
+              );
+              claimMeta = merged.claimMeta;
+              extractedKeysForAnnounce = merged.extractedKeys;
+            }
+            return withDerived(s, { documents, claimMeta });
           });
+          if (extractedKeysForAnnounce.length > 0) {
+            setAutoExtractedFields(
+              (prev) => new Set([...prev, ...extractedKeysForAnnounce])
+            );
+            announce(
+              `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
+            );
+          }
           announce("Document text loaded from file.");
           return;
         }
+
+        const lower = file.name.toLowerCase();
+        const isPdf =
+          file.type === "application/pdf" || lower.endsWith(".pdf");
+
+        if (isPdf) {
+          setState((s) =>
+            withDerived(s, {
+              documents: s.documents.map((d) =>
+                d.id === docId
+                  ? {
+                      ...d,
+                      extractStatus: "extracting" as const,
+                      statusMessage: `Extracting text from "${file.name}"…`,
+                    }
+                  : d
+              ),
+            })
+          );
+          try {
+            const text = await extractTextFromPDF(file);
+            if (text.trim().length < 50) {
+              setState((s) =>
+                withDerived(s, {
+                  documents: s.documents.map((d) =>
+                    d.id === docId
+                      ? {
+                          ...d,
+                          extractStatus: "idle" as const,
+                          extractedText: "",
+                          statusMessage: `"${file.name}" appears to be a scanned PDF. Please paste the estimate text below.`,
+                        }
+                      : d
+                  ),
+                })
+              );
+              return;
+            }
+            let extractedKeysForAnnounce: string[] = [];
+            setState((s) => {
+              const detected = autoDetectCategory(text);
+              const documents = s.documents.map((d) => {
+                if (d.id !== docId) return d;
+                return {
+                  ...d,
+                  extractedText: text,
+                  extractStatus: "done" as const,
+                  statusMessage: `"${file.name}" — text extracted successfully (${text.length} characters).`,
+                  category: detected,
+                  autoDetected: true,
+                  label: d.labelLocked
+                    ? d.label
+                    : buildDefaultLabel(d.side, detected, d.version),
+                };
+              });
+              const updatedDoc = documents.find((d) => d.id === docId);
+              let claimMeta = s.claimMeta;
+              if (updatedDoc?.side === "CARRIER") {
+                const merged = mergeExtractedClaimMeta(
+                  s.claimMeta,
+                  extractClaimMetaFromText(text)
+                );
+                claimMeta = merged.claimMeta;
+                extractedKeysForAnnounce = merged.extractedKeys;
+              }
+              return withDerived(s, { documents, claimMeta });
+            });
+            if (extractedKeysForAnnounce.length > 0) {
+              setAutoExtractedFields(
+                (prev) => new Set([...prev, ...extractedKeysForAnnounce])
+              );
+              announce(
+                `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
+              );
+            }
+            announce(`Text extracted from ${file.name}`);
+          } catch {
+            setState((s) =>
+              withDerived(s, {
+                documents: s.documents.map((d) =>
+                  d.id === docId
+                    ? {
+                        ...d,
+                        extractStatus: "error" as const,
+                        extractedText: "",
+                        statusMessage: `Could not extract text from "${file.name}". Please paste the estimate text below.`,
+                      }
+                    : d
+                ),
+              })
+            );
+            announce("Could not extract text from PDF.");
+          }
+          return;
+        }
+
+        const statusMessage = `"${file.name}" uploaded — Image text extraction is not available in browser. Please paste the estimate text in the field below.`;
+        const suggestedLabel = labelFromDroppedFileName(file.name);
         setState((s) =>
           withDerived(s, {
             documents: s.documents.map((d) =>
               d.id === docId
-                ? { ...d, extractStatus: "idle", extractedText: "" }
+                ? {
+                    ...d,
+                    extractStatus: "idle" as const,
+                    extractedText: "",
+                    statusMessage,
+                    label: d.labelLocked ? d.label : suggestedLabel,
+                  }
                 : d
             ),
           })
         );
-        announce("File accepted — paste estimate text below.");
       } catch {
         setState((s) =>
           withDerived(s, {
             documents: s.documents.map((d) =>
-              d.id === docId ? { ...d, extractStatus: "error" } : d
+              d.id === docId
+                ? { ...d, extractStatus: "error", statusMessage: undefined }
+                : d
             ),
           })
         );
@@ -629,25 +940,48 @@ export default function UploadPage() {
     [announce]
   );
 
-  const updateDocumentText = useCallback((docId: string, text: string) => {
-    setState((s) => {
-      const documents = s.documents.map((d) => {
-        if (d.id !== docId) return d;
-        const detected = autoDetectCategory(text);
-        return {
-          ...d,
-          extractedText: text,
-          extractStatus: text.trim() ? ("done" as const) : ("idle" as const),
-          category: detected,
-          autoDetected: true,
-          label: d.labelLocked
-            ? d.label
-            : buildDefaultLabel(d.side, detected, d.version),
-        };
+  const updateDocumentText = useCallback(
+    (docId: string, text: string) => {
+      let extractedKeysForAnnounce: string[] = [];
+      setState((s) => {
+        const target = s.documents.find((d) => d.id === docId);
+        let claimMeta = s.claimMeta;
+        if (target?.side === "CARRIER") {
+          const merged = mergeExtractedClaimMeta(
+            s.claimMeta,
+            extractClaimMetaFromText(text)
+          );
+          claimMeta = merged.claimMeta;
+          extractedKeysForAnnounce = merged.extractedKeys;
+        }
+        const documents = s.documents.map((d) => {
+          if (d.id !== docId) return d;
+          const detected = autoDetectCategory(text);
+          return {
+            ...d,
+            extractedText: text,
+            extractStatus: text.trim() ? ("done" as const) : ("idle" as const),
+            statusMessage: undefined,
+            category: detected,
+            autoDetected: true,
+            label: d.labelLocked
+              ? d.label
+              : buildDefaultLabel(d.side, detected, d.version),
+          };
+        });
+        return withDerived(s, { documents, claimMeta });
       });
-      return withDerived(s, { documents });
-    });
-  }, []);
+      if (extractedKeysForAnnounce.length > 0) {
+        setAutoExtractedFields(
+          (prev) => new Set([...prev, ...extractedKeysForAnnounce])
+        );
+        announce(
+          `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
+        );
+      }
+    },
+    [announce]
+  );
 
   const updateDocumentSide = useCallback(
     (docId: string, side: ClaimDocumentSide) => {
@@ -790,6 +1124,7 @@ export default function UploadPage() {
         strategies: {},
       });
     });
+    setAutoExtractedFields(new Set());
     announce("Demo estimate and metadata loaded.");
   }, [announce]);
 
@@ -798,6 +1133,7 @@ export default function UploadPage() {
       ...initialWizardState(),
       accessToken: s.accessToken,
     }));
+    setAutoExtractedFields(new Set());
     setSubmitError(null);
     announce("Step 1 cleared.");
   }, [announce]);
@@ -854,9 +1190,7 @@ export default function UploadPage() {
         !m.state ||
         !m.policyNumber ||
         !m.claimNumber ||
-        !m.dateOfLoss ||
-        !m.adjusterName ||
-        !m.disputedAmount
+        !m.dateOfLoss
       ) {
         setSubmitError("Complete all required metadata fields.");
         announce("Submit blocked: missing required metadata.");
@@ -1222,6 +1556,7 @@ export default function UploadPage() {
       ...initialWizardState(),
       accessToken: s.accessToken,
     }));
+    setAutoExtractedFields(new Set());
     setCurrentStep(1);
     announce("Wizard reset to Step 1.");
   }, [announce]);
@@ -1430,7 +1765,6 @@ export default function UploadPage() {
                               onDragOver={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log("DRAGOVER FIRED", doc.id);
                                 e.dataTransfer.dropEffect = "copy";
                                 setDocDragOverIndex(idx);
                               }}
@@ -1451,17 +1785,16 @@ export default function UploadPage() {
                               onDrop={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log("DROP FIRED", e.dataTransfer.files);
                                 setDocDragOverIndex(null);
                                 const f = e.dataTransfer.files?.[0] ?? null;
                                 if (!f) return;
-                                if (!isStep1AcceptedEstimateFile(f)) {
+                                if (isStep1AcceptedEstimateFile(f)) {
+                                  void readDocumentFile(doc.id, f);
+                                } else {
                                   announce(
                                     "That file type is not accepted. Use PDF, PNG, JPG, JPEG, WEBP, or .txt."
                                   );
-                                  return;
                                 }
-                                void readDocumentFile(doc.id, f);
                               }}
                               className={`block cursor-pointer rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm text-[#475569] transition-colors ${
                                 docDragOverIndex === idx
@@ -1488,9 +1821,15 @@ export default function UploadPage() {
                           </div>
                           <p
                             id={step1DocExtractStatusId(idx)}
-                            className="text-sm text-[#475569]"
+                            className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${extractStatusClassName(doc)}`}
                           >
-                            {extractStatusMessage(doc)}
+                            {doc.extractStatus === "extracting" && (
+                              <span
+                                className="inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+                                aria-hidden
+                              />
+                            )}
+                            <span>{extractStatusMessage(doc)}</span>
                           </p>
                           {idx === 0 && (
                             <div className="mt-2">
@@ -1711,6 +2050,11 @@ export default function UploadPage() {
                     className="mb-2 block text-sm font-medium text-[#475569]"
                   >
                     Insured name <span className="text-red-500">*</span>
+                    {autoExtractedFields.has("insuredName") && (
+                      <span className="ml-2 text-xs font-normal text-green-600">
+                        Auto-extracted
+                      </span>
+                    )}
                   </label>
                   <input
                     id="erp-step1-insured-name"
@@ -1783,6 +2127,11 @@ export default function UploadPage() {
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
                         Policy number <span className="text-red-500">*</span>
+                        {autoExtractedFields.has("policyNumber") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-policy-number"
@@ -1802,6 +2151,11 @@ export default function UploadPage() {
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
                         Claim number <span className="text-red-500">*</span>
+                        {autoExtractedFields.has("claimNumber") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-claim-number"
@@ -1821,6 +2175,11 @@ export default function UploadPage() {
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
                         Date of loss <span className="text-red-500">*</span>
+                        {autoExtractedFields.has("dateOfLoss") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-date-of-loss"
@@ -1838,12 +2197,16 @@ export default function UploadPage() {
                         htmlFor="erp-step1-adjuster-name"
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
-                        Adjuster name <span className="text-red-500">*</span>
+                        Adjuster name
+                        {autoExtractedFields.has("adjusterName") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-adjuster-name"
                         type="text"
-                        required
                         autoComplete="off"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[#1E293B] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         value={state.claimMeta.adjusterName}
@@ -1858,6 +2221,11 @@ export default function UploadPage() {
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
                         Carrier name
+                        {autoExtractedFields.has("carrierName") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-carrier-name"
@@ -1875,12 +2243,16 @@ export default function UploadPage() {
                         htmlFor="erp-step1-disputed-amount"
                         className="mb-2 block text-sm font-medium text-[#475569]"
                       >
-                        Disputed amount <span className="text-red-500">*</span>
+                        Disputed amount
+                        {autoExtractedFields.has("disputedAmount") && (
+                          <span className="ml-2 text-xs font-normal text-green-600">
+                            Auto-extracted
+                          </span>
+                        )}
                       </label>
                       <input
                         id="erp-step1-disputed-amount"
                         type="text"
-                        required
                         inputMode="decimal"
                         autoComplete="off"
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[#1E293B] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
