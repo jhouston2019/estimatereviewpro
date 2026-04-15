@@ -444,7 +444,7 @@ async function extractImagesFromPDF(file: File): Promise<string[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const images: string[] = [];
-  const maxPages = Math.min(pdf.numPages, 10);
+  const maxPages = Math.min(pdf.numPages, 3);
   for (let i = 1; i <= maxPages; i++) {
     const page = await pdf.getPage(i);
     const viewport = page.getViewport({ scale: 1.5 });
@@ -873,38 +873,67 @@ export default function UploadPage() {
               );
               try {
                 const images = await extractImagesFromPDF(file);
-                const ocrRes = await fetch(
-                  netlifyFunctionUrl("extract-pdf-ocr"),
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
-                    },
-                    body: JSON.stringify({
-                      images,
-                      fileName: file.name,
-                    }),
-                  }
-                );
-                const ocrData = (await ocrRes.json()) as {
-                  text?: string;
-                  pages?: number;
-                  error?: string;
-                };
-                if (!ocrRes.ok || !ocrData.text?.trim()) {
-                  throw new Error(ocrData.error ?? "OCR extraction failed");
+                if (images.length === 0) {
+                  throw new Error("No pages rendered for OCR");
                 }
-                const ocrText = ocrData.text;
-                const pageCount = ocrData.pages ?? images.length;
+                const pageTexts: string[] = [];
+                for (let i = 0; i < images.length; i++) {
+                  setState((s) =>
+                    withDerived(s, {
+                      documents: s.documents.map((d) =>
+                        d.id === docId
+                          ? {
+                              ...d,
+                              extractStatus: "extracting" as const,
+                              statusMessage: `Reading "${file.name}" with AI vision… (page ${i + 1} of ${images.length})`,
+                            }
+                          : d
+                      ),
+                    })
+                  );
+                  const ocrRes = await fetch(
+                    netlifyFunctionUrl("extract-pdf-ocr"),
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
+                      },
+                      body: JSON.stringify({
+                        images: [images[i]],
+                        fileName: file.name,
+                        pageNumber: i + 1,
+                        totalPages: images.length,
+                      }),
+                    }
+                  );
+                  if (!ocrRes.ok) {
+                    const err = (await ocrRes.json().catch(() => ({}))) as {
+                      error?: string;
+                    };
+                    throw new Error(
+                      err.error ?? `Page ${i + 1} extraction failed`
+                    );
+                  }
+                  const ocrData = (await ocrRes.json()) as {
+                    text?: string;
+                    error?: string;
+                  };
+                  if (ocrData.text?.trim()) pageTexts.push(ocrData.text);
+                }
+                const fullText = pageTexts.join("\n\n");
+                if (!fullText.trim()) {
+                  throw new Error("OCR returned no text");
+                }
+                const pageCount = images.length;
                 let extractedKeysForAnnounce: string[] = [];
                 setState((s) => {
-                  const detected = autoDetectCategory(ocrText);
+                  const detected = autoDetectCategory(fullText);
                   const documents = s.documents.map((d) => {
                     if (d.id !== docId) return d;
                     return {
                       ...d,
-                      extractedText: ocrText,
+                      extractedText: fullText,
                       extractStatus: "done" as const,
                       statusMessage: `"${file.name}" — AI vision extracted text from ${pageCount} page${pageCount > 1 ? "s" : ""}.`,
                       category: detected,
@@ -919,7 +948,7 @@ export default function UploadPage() {
                   if (updatedDoc?.side === "CARRIER") {
                     const merged = mergeExtractedClaimMeta(
                       s.claimMeta,
-                      extractClaimMetaFromText(ocrText)
+                      extractClaimMetaFromText(fullText)
                     );
                     claimMeta = merged.claimMeta;
                     extractedKeysForAnnounce = merged.extractedKeys;
