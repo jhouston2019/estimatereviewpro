@@ -223,21 +223,70 @@ function Step3Mock() {
 }
 
 function Step4Mock() {
+  const strategies = [
+    {
+      title: "Full Supplement Demand",
+      desc: "Formal demand for omitted scope and corrected pricing.",
+      selected: true,
+      recommended: true,
+    },
+    {
+      title: "Partial Dispute",
+      desc: "Target specific line items without a full supplement.",
+      selected: false,
+      recommended: false,
+    },
+    {
+      title: "Demand Re-Inspection",
+      desc: "Request a new field inspection before finalizing payment.",
+      selected: false,
+      recommended: false,
+    },
+    {
+      title: "Invoke Appraisal",
+      desc: "Start appraisal when policy and amount allow.",
+      selected: false,
+      recommended: false,
+    },
+    {
+      title: "Other / Custom",
+      desc: "Tailored wording for an unusual carrier or claim posture.",
+      selected: false,
+      recommended: false,
+    },
+  ] as const;
+
   return (
-    <div className="p-4 text-left md:p-6">
-      <h3 className="mb-4 text-lg font-bold text-slate-900">Step 4 — Strategy</h3>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border-2 border-blue-500 bg-blue-50/40 p-4">
-          <span className="mb-2 inline-block rounded bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-            Recommended
-          </span>
-          <p className="font-semibold text-slate-900">Full Supplement Demand</p>
-          <p className="mt-1 text-xs text-slate-600">Selected</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="font-semibold text-slate-900">Partial Dispute</p>
-          <p className="mt-1 text-xs text-slate-500">Unselected</p>
-        </div>
+    <div className="p-3 text-left md:p-4">
+      <h3 className="mb-2 text-base font-bold text-slate-900 md:text-lg">
+        Step 4 — Strategy
+      </h3>
+      <div className="grid grid-cols-2 gap-2">
+        {strategies.map((s) => (
+          <div
+            key={s.title}
+            className={`rounded-md border p-2 ${
+              s.selected
+                ? "border-2 border-blue-500 bg-blue-50"
+                : "border border-slate-300 bg-white"
+            }`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-1">
+              <p className="text-xs font-bold leading-tight text-slate-900">{s.title}</p>
+              {s.recommended && (
+                <span className="shrink-0 rounded border border-blue-300 bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-blue-800">
+                  Recommended
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-slate-600 md:text-[11px]">{s.desc}</p>
+            {s.selected ? (
+              <p className="mt-1 text-[10px] font-semibold text-blue-800">Selected</p>
+            ) : (
+              <p className="mt-1 text-[10px] text-slate-400">Click to select</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -299,6 +348,16 @@ function Step5Mock() {
   );
 }
 
+const STEP6_LETTER_SAMPLE = `BACKGROUND
+
+This correspondence relates to claim DEMO-CLM-9921 under policy DEMO-POL-001 for Demo Insured, date of loss 2024-05-10. We have communicated with Demo Adjuster at Demo Carrier Insurance. The amount in controversy is $18,200.00. We are pursuing correction of scope and valuation consistent with a full supplement demand grounded in the documented findings.
+
+BASIS FOR SUPPLEMENT
+
+This section supports a formal demand for additional payment. The estimate review identifies scope omissions including starter strip and flashing, and pricing suppression in labor costs. The carrier estimate undervalues tear-off, waste factor, and steep-slope labor rates relative to prevailing contractor pricing in the loss ZIP code. We incorporate line-by-line documentation from the contractor estimate dated 2024-05-18 and photo evidence from the field inspection on 2024-05-12.
+
+The following items require correction before payment can be considered complete: ice and water shield in valleys, drip edge at eaves and rakes, ridge vent integration, and detached garage matching slope materials. O&P was omitted on trades where customary and reasonable. We reserve all rights under the policy and applicable regulations and request written confirmation of acceptance or a detailed rebuttal within the timeframe stated in prior correspondence.`;
+
 function Step6Mock() {
   const types = [
     "Supplement Demand Letter",
@@ -308,13 +367,13 @@ function Step6Mock() {
     "Custom / Other",
   ];
   return (
-    <div className="space-y-4 p-4 text-left md:p-6">
-      <h3 className="text-lg font-bold text-slate-900">Step 6 — Letter</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="flex min-h-[420px] flex-col gap-2 p-3 text-left md:min-h-[436px] md:p-4">
+      <h3 className="shrink-0 text-base font-bold text-slate-900 md:text-lg">Step 6 — Letter</h3>
+      <div className="grid shrink-0 grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
         {types.map((t) => (
           <div
             key={t}
-            className={`rounded-lg border p-2 text-center text-[10px] font-medium leading-tight sm:text-xs ${
+            className={`rounded border px-1 py-1 text-center text-[9px] font-medium leading-tight text-slate-700 sm:text-[10px] ${
               t === "Supplement Demand Letter"
                 ? "border-2 border-blue-500 bg-blue-50 text-blue-900"
                 : "border border-slate-200 bg-white text-slate-600"
@@ -324,24 +383,17 @@ function Step6Mock() {
           </div>
         ))}
       </div>
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] leading-relaxed text-slate-700 sm:text-xs">
-        <p className="font-bold text-slate-900">BACKGROUND</p>
-        <p className="mt-2">
-          Re: Claim <span className="text-blue-700">[CLAIM NUMBER]</span> — Insured{" "}
-          <span className="text-blue-700">[INSURED NAME]</span>
-        </p>
-        <p className="mt-2 text-slate-600">
-          Please find enclosed our supplement request regarding the above-referenced loss…
-        </p>
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-100 p-2.5 font-mono text-xs leading-relaxed text-slate-800">
+        <pre className="whitespace-pre-wrap font-mono text-xs">{STEP6_LETTER_SAMPLE}</pre>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <span className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">
+      <div className="flex shrink-0 flex-wrap gap-1.5 pt-0.5">
+        <span className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold">
           Copy
         </span>
-        <span className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">
+        <span className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold">
           Download PDF
         </span>
-        <span className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">
+        <span className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold">
           Download Word
         </span>
       </div>
