@@ -143,6 +143,30 @@ const VERSION_OPTIONS: { value: ClaimDocumentVersion; label: string }[] = [
   { value: "FINAL", label: "Final" },
 ];
 
+function categorySelectValue(
+  category: ClaimDocumentCategory | undefined | null
+): ClaimDocumentCategory {
+  if (
+    category &&
+    CATEGORY_OPTIONS.some((o) => o.value === category)
+  ) {
+    return category;
+  }
+  return "BUILDING";
+}
+
+function versionSelectValue(
+  version: ClaimDocumentVersion | undefined | null
+): ClaimDocumentVersion {
+  if (
+    version &&
+    VERSION_OPTIONS.some((o) => o.value === version)
+  ) {
+    return version;
+  }
+  return "ORIGINAL";
+}
+
 function autoDetectCategory(text: string): ClaimDocumentCategory {
   const t = text.toLowerCase();
   if (
@@ -177,7 +201,8 @@ function buildDefaultLabel(
 }
 
 function createClaimDocument(slotIndex: number): ClaimDocument {
-  const side: ClaimDocumentSide = slotIndex === 0 ? "CARRIER" : "CONTRACTOR";
+  const side: ClaimDocumentSide =
+    slotIndex === 0 ? "CARRIER" : "CONTRACTOR";
   const category: ClaimDocumentCategory = "BUILDING";
   const version: ClaimDocumentVersion = "ORIGINAL";
   return {
@@ -279,6 +304,23 @@ function withDerived(
   return { ...next, ...deriveLegacyFields(next) };
 }
 
+function documentSideSubtitle(side: ClaimDocumentSide): string {
+  switch (side) {
+    case "CARRIER":
+      return "Carrier Estimate";
+    case "CONTRACTOR":
+      return "Contractor / Independent Estimate";
+    case "PUBLIC_ADJUSTER":
+      return "Public Adjuster Estimate";
+    case "MITIGATION":
+      return "Mitigation Invoice";
+    case "OTHER":
+      return "Other Document";
+    default:
+      return "";
+  }
+}
+
 function extractStatusMessage(doc: ClaimDocument): string {
   if (doc.extractStatus === "extracting") return "Reading file…";
   if (doc.extractStatus === "error") return "Could not read file.";
@@ -292,7 +334,30 @@ const initialWizardState = (): WizardState => {
     accessToken: "bypass",
     carrierText: null,
     contractorText: null,
-    documents: [createClaimDocument(0)],
+    documents: [
+      {
+        id: crypto.randomUUID(),
+        extractedText: "",
+        extractStatus: "idle",
+        side: "CARRIER",
+        category: "BUILDING",
+        version: "ORIGINAL",
+        label: "Carrier Building Original",
+        autoDetected: false,
+        labelLocked: false,
+      },
+      {
+        id: crypto.randomUUID(),
+        extractedText: "",
+        extractStatus: "idle",
+        side: "CONTRACTOR",
+        category: "BUILDING",
+        version: "ORIGINAL",
+        label: "Contractor Building Original",
+        autoDetected: false,
+        labelLocked: false,
+      },
+    ],
     analyses: {},
     comparisons: {},
     strategies: {},
@@ -622,17 +687,30 @@ export default function UploadPage() {
     const demoText =
       "RCV Grand Total $18,200.00\nRemove damaged shingles 24 SQ  $3,200.00\nInstall shingles 24 SQ  $4,800.00\nDetach reset gutter 40 LF  $480.00\nFelt underlayment  $320.00\nRidge cap  $220.00\nDrip edge  $180.00\n";
     setState((s) => {
-      const first = s.documents[0];
+      const slot0 = s.documents[0];
+      const slot1 = s.documents[1] ?? createClaimDocument(1);
       const documents: ClaimDocument[] = [
         {
-          ...(first ?? createClaimDocument(0)),
-          id: first?.id ?? crypto.randomUUID(),
+          ...(slot0 ?? createClaimDocument(0)),
+          id: slot0?.id ?? crypto.randomUUID(),
           extractedText: demoText,
           extractStatus: "done",
           side: "CARRIER",
           category: "BUILDING",
           version: "ORIGINAL",
-          label: buildDefaultLabel("CARRIER", "BUILDING", "ORIGINAL"),
+          label: "Carrier Building Original",
+          autoDetected: false,
+          labelLocked: false,
+        },
+        {
+          ...slot1,
+          id: slot1.id,
+          extractedText: "",
+          extractStatus: "idle",
+          side: "CONTRACTOR",
+          category: "BUILDING",
+          version: "ORIGINAL",
+          label: "Contractor Building Original",
           autoDetected: false,
           labelLocked: false,
         },
@@ -1085,7 +1163,7 @@ export default function UploadPage() {
 
         <div
           id="erp-wizard-root"
-          className="relative flex flex-col gap-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
+          className="relative flex flex-col gap-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8 [color-scheme:light]"
           data-access-token={state.accessToken === "bypass" ? "bypass" : "set"}
         >
           <nav
@@ -1159,7 +1237,7 @@ export default function UploadPage() {
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-[#1E293B]">
-                            {doc.label || `Document ${idx + 1}`}
+                            Document {idx + 1}
                           </span>
                           <button
                             type="button"
@@ -1300,11 +1378,9 @@ export default function UploadPage() {
                               htmlFor={step1DocPasteId(idx)}
                               className="mb-2 block text-sm font-medium text-[#475569]"
                             >
-                              {idx === 0
+                              {doc.side === "CARRIER"
                                 ? "Paste carrier estimate text"
-                                : idx === 1
-                                  ? "Paste contractor estimate text"
-                                  : "Paste estimate text"}
+                                : "Paste estimate text"}
                             </label>
                             <textarea
                               id={step1DocPasteId(idx)}
@@ -1312,9 +1388,9 @@ export default function UploadPage() {
                               rows={idx === 0 ? 8 : 6}
                               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-[#1E293B] placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                               placeholder={
-                                idx === 0
+                                doc.side === "CARRIER"
                                   ? "Paste line items and totals…"
-                                  : "Optional second estimate…"
+                                  : "Paste contractor, PA, or other estimate text"
                               }
                               value={doc.extractedText}
                               onChange={(ev) =>
@@ -1322,8 +1398,8 @@ export default function UploadPage() {
                               }
                             />
                           </div>
-                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
+                          <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="min-w-0">
                               <label
                                 className="mb-1 block text-xs font-medium text-[#475569]"
                                 htmlFor={`erp-step1-doc-${idx}-side`}
@@ -1332,7 +1408,7 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-side`}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-slate-900"
                                 value={doc.side}
                                 onChange={(e) =>
                                   updateDocumentSide(
@@ -1342,13 +1418,17 @@ export default function UploadPage() {
                                 }
                               >
                                 {SIDE_OPTIONS.map((o) => (
-                                  <option key={o.value} value={o.value}>
+                                  <option
+                                    key={o.value}
+                                    value={o.value}
+                                    className="bg-white text-slate-900"
+                                  >
                                     {o.label}
                                   </option>
                                 ))}
                               </select>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <label
                                   className="text-xs font-medium text-[#475569]"
@@ -1364,8 +1444,8 @@ export default function UploadPage() {
                               </div>
                               <select
                                 id={`erp-step1-doc-${idx}-category`}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
-                                value={doc.category}
+                                className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-slate-900"
+                                value={categorySelectValue(doc.category)}
                                 onChange={(e) =>
                                   updateDocumentCategory(
                                     doc.id,
@@ -1374,13 +1454,17 @@ export default function UploadPage() {
                                 }
                               >
                                 {CATEGORY_OPTIONS.map((o) => (
-                                  <option key={o.value} value={o.value}>
+                                  <option
+                                    key={o.value}
+                                    value={o.value}
+                                    className="bg-white text-slate-900"
+                                  >
                                     {o.label}
                                   </option>
                                 ))}
                               </select>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <label
                                 className="mb-1 block text-xs font-medium text-[#475569]"
                                 htmlFor={`erp-step1-doc-${idx}-version`}
@@ -1389,8 +1473,8 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-version`}
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
-                                value={doc.version}
+                                className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-slate-900"
+                                value={versionSelectValue(doc.version)}
                                 onChange={(e) =>
                                   updateDocumentVersion(
                                     doc.id,
@@ -1399,28 +1483,39 @@ export default function UploadPage() {
                                 }
                               >
                                 {VERSION_OPTIONS.map((o) => (
-                                  <option key={o.value} value={o.value}>
+                                  <option
+                                    key={o.value}
+                                    value={o.value}
+                                    className="bg-white text-slate-900"
+                                  >
                                     {o.label}
                                   </option>
                                 ))}
                               </select>
                             </div>
-                            <div className="sm:col-span-2 lg:col-span-1">
+                            <div className="min-w-0 sm:col-span-2 lg:col-span-1">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#475569]"
+                                className="mb-1 block text-xs font-medium text-slate-500"
                                 htmlFor={`erp-step1-doc-${idx}-label`}
                               >
-                                Label
+                                Label{" "}
+                                <span className="font-normal text-slate-400">
+                                  (optional)
+                                </span>
                               </label>
                               <input
                                 id={`erp-step1-doc-${idx}-label`}
                                 type="text"
-                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                className="w-full max-w-md rounded border border-slate-200/90 bg-slate-50/80 px-2 py-1 text-sm font-normal text-slate-600 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-0"
+                                placeholder="Optional note — defaults from selections"
                                 value={doc.label}
                                 onChange={(e) =>
                                   updateDocumentLabel(doc.id, e.target.value)
                                 }
                               />
+                              <p className="mt-1 text-xs text-slate-500">
+                                {documentSideSubtitle(doc.side)}
+                              </p>
                             </div>
                           </div>
                         </div>
