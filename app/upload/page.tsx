@@ -436,6 +436,31 @@ async function extractTextFromPDF(file: File): Promise<string> {
   return textPages.join("\n\n");
 }
 
+async function extractImagesFromPDF(file: File): Promise<string[]> {
+  const pdfjsLib = await import("pdfjs-dist");
+  if (typeof window !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const images: string[] = [];
+  const maxPages = Math.min(pdf.numPages, 10);
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    const base64 = dataUrl.split(",")[1];
+    if (base64) images.push(base64);
+  }
+  return images;
+}
+
 const initialWizardState = (): WizardState => {
   const base: WizardState = {
     accessToken: "bypass",
@@ -839,14 +864,94 @@ export default function UploadPage() {
                     d.id === docId
                       ? {
                           ...d,
-                          extractStatus: "idle" as const,
-                          extractedText: "",
-                          statusMessage: `"${file.name}" appears to be a scanned PDF. Please paste the estimate text below.`,
+                          extractStatus: "extracting" as const,
+                          statusMessage: `Reading "${file.name}" with AI vision…`,
                         }
                       : d
                   ),
                 })
               );
+              try {
+                const images = await extractImagesFromPDF(file);
+                const ocrRes = await fetch(
+                  netlifyFunctionUrl("extract-pdf-ocr"),
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
+                    },
+                    body: JSON.stringify({
+                      images,
+                      fileName: file.name,
+                    }),
+                  }
+                );
+                const ocrData = (await ocrRes.json()) as {
+                  text?: string;
+                  pages?: number;
+                  error?: string;
+                };
+                if (!ocrRes.ok || !ocrData.text?.trim()) {
+                  throw new Error(ocrData.error ?? "OCR extraction failed");
+                }
+                const ocrText = ocrData.text;
+                const pageCount = ocrData.pages ?? images.length;
+                let extractedKeysForAnnounce: string[] = [];
+                setState((s) => {
+                  const detected = autoDetectCategory(ocrText);
+                  const documents = s.documents.map((d) => {
+                    if (d.id !== docId) return d;
+                    return {
+                      ...d,
+                      extractedText: ocrText,
+                      extractStatus: "done" as const,
+                      statusMessage: `"${file.name}" — AI vision extracted text from ${pageCount} page${pageCount > 1 ? "s" : ""}.`,
+                      category: detected,
+                      autoDetected: true,
+                      label: d.labelLocked
+                        ? d.label
+                        : buildDefaultLabel(d.side, detected, d.version),
+                    };
+                  });
+                  const updatedDoc = documents.find((d) => d.id === docId);
+                  let claimMeta = s.claimMeta;
+                  if (updatedDoc?.side === "CARRIER") {
+                    const merged = mergeExtractedClaimMeta(
+                      s.claimMeta,
+                      extractClaimMetaFromText(ocrText)
+                    );
+                    claimMeta = merged.claimMeta;
+                    extractedKeysForAnnounce = merged.extractedKeys;
+                  }
+                  return withDerived(s, { documents, claimMeta });
+                });
+                if (extractedKeysForAnnounce.length > 0) {
+                  setAutoExtractedFields(
+                    (prev) => new Set([...prev, ...extractedKeysForAnnounce])
+                  );
+                  announce(
+                    `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
+                  );
+                }
+                announce(`AI vision extracted text from ${file.name}`);
+              } catch {
+                setState((s) =>
+                  withDerived(s, {
+                    documents: s.documents.map((d) =>
+                      d.id === docId
+                        ? {
+                            ...d,
+                            extractStatus: "error" as const,
+                            extractedText: "",
+                            statusMessage: `Could not read "${file.name}". Please paste the estimate text below.`,
+                          }
+                        : d
+                    ),
+                  })
+                );
+                announce("Could not read PDF with AI vision.");
+              }
               return;
             }
             let extractedKeysForAnnounce: string[] = [];
