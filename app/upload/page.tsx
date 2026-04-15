@@ -1214,6 +1214,7 @@ export default function UploadPage() {
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
           >
             <Step3ComparisonPanel
+              accessToken={state.accessToken}
               comparison={state.comparison}
               claimMeta={{
                 insuredName: state.claimMeta.insuredName,

@@ -132,6 +132,7 @@ export function buildComparisonText(
 }
 
 export function Step3ComparisonPanel({
+  accessToken,
   comparison,
   claimMeta,
   onBack,
@@ -169,7 +170,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison PDF downloaded.");
-  }, [announce, comparison, claimMeta]);
+  }, [accessToken, announce, comparison, claimMeta]);
 
   const downloadWord = useCallback(async () => {
     if (!comparison) {

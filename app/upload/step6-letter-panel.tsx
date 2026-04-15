@@ -139,6 +139,7 @@ type Props = {
 };
 
 export function Step6LetterPanel({
+  accessToken,
   active,
   letterType,
   onLetterTypeChange,
@@ -216,7 +217,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [announce]);
+  }, [accessToken, announce]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step6-letter-export-source");
@@ -227,7 +228,10 @@ export function Step6LetterPanel({
     const text = root.innerText;
     const res = await fetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ text, fileName: "estimate-letter.docx" }),
     });
     const ct = res.headers.get("content-type") || "";
