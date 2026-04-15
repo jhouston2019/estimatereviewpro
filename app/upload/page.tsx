@@ -83,10 +83,136 @@ const US_STATES: { code: string; name: string }[] = [
   { code: "WY", name: "Wyoming" },
 ];
 
+type ClaimDocumentSide =
+  | "CARRIER"
+  | "CONTRACTOR"
+  | "PUBLIC_ADJUSTER"
+  | "MITIGATION"
+  | "OTHER";
+
+type ClaimDocumentCategory =
+  | "BUILDING"
+  | "CONTENTS"
+  | "ALE"
+  | "MITIGATION"
+  | "OTHER";
+
+type ClaimDocumentVersion =
+  | "ORIGINAL"
+  | "SUPPLEMENT_1"
+  | "SUPPLEMENT_2"
+  | "SUPPLEMENT_3"
+  | "REVISED"
+  | "FINAL";
+
+interface ClaimDocument {
+  id: string;
+  extractedText: string;
+  extractStatus: "idle" | "extracting" | "done" | "error";
+  side: ClaimDocumentSide;
+  category: ClaimDocumentCategory;
+  version: ClaimDocumentVersion;
+  label: string;
+  autoDetected: boolean;
+  /** When false, label is auto-updated from side/category/version. */
+  labelLocked?: boolean;
+}
+
+const SIDE_OPTIONS: { value: ClaimDocumentSide; label: string }[] = [
+  { value: "CARRIER", label: "Carrier" },
+  { value: "CONTRACTOR", label: "Contractor" },
+  { value: "PUBLIC_ADJUSTER", label: "Public Adjuster" },
+  { value: "MITIGATION", label: "Mitigation" },
+  { value: "OTHER", label: "Other" },
+];
+
+const CATEGORY_OPTIONS: { value: ClaimDocumentCategory; label: string }[] = [
+  { value: "BUILDING", label: "Building" },
+  { value: "CONTENTS", label: "Contents" },
+  { value: "ALE", label: "ALE" },
+  { value: "MITIGATION", label: "Mitigation" },
+  { value: "OTHER", label: "Other" },
+];
+
+const VERSION_OPTIONS: { value: ClaimDocumentVersion; label: string }[] = [
+  { value: "ORIGINAL", label: "Original" },
+  { value: "SUPPLEMENT_1", label: "Supplement 1" },
+  { value: "SUPPLEMENT_2", label: "Supplement 2" },
+  { value: "SUPPLEMENT_3", label: "Supplement 3" },
+  { value: "REVISED", label: "Revised" },
+  { value: "FINAL", label: "Final" },
+];
+
+function autoDetectCategory(text: string): ClaimDocumentCategory {
+  const t = text.toLowerCase();
+  if (
+    /contents|personal property|furniture|appliance|clothing|electronics/.test(
+      t
+    )
+  ) {
+    return "CONTENTS";
+  }
+  if (
+    /additional living|ale|loss of use|hotel|temporary housing/.test(t)
+  ) {
+    return "ALE";
+  }
+  if (
+    /mitigation|water extraction|drying|dehumidif|mold remediation/.test(t)
+  ) {
+    return "MITIGATION";
+  }
+  return "BUILDING";
+}
+
+function buildDefaultLabel(
+  side: ClaimDocumentSide,
+  category: ClaimDocumentCategory,
+  version: ClaimDocumentVersion
+): string {
+  const s = SIDE_OPTIONS.find((o) => o.value === side)?.label ?? side;
+  const c = CATEGORY_OPTIONS.find((o) => o.value === category)?.label ?? category;
+  const v = VERSION_OPTIONS.find((o) => o.value === version)?.label ?? version;
+  return `${s} ${c} ${v}`;
+}
+
+function createClaimDocument(slotIndex: number): ClaimDocument {
+  const side: ClaimDocumentSide = slotIndex === 0 ? "CARRIER" : "CONTRACTOR";
+  const category: ClaimDocumentCategory = "BUILDING";
+  const version: ClaimDocumentVersion = "ORIGINAL";
+  return {
+    id: crypto.randomUUID(),
+    extractedText: "",
+    extractStatus: "idle",
+    side,
+    category,
+    version,
+    label: buildDefaultLabel(side, category, version),
+    autoDetected: false,
+    labelLocked: false,
+  };
+}
+
+function categoriesInDocumentOrder(documents: ClaimDocument[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const d of documents) {
+    if (!seen.has(d.category)) {
+      seen.add(d.category);
+      out.push(d.category);
+    }
+  }
+  return out;
+}
+
 type WizardState = {
   accessToken: string;
   carrierText: string | null;
   contractorText: string | null;
+  documents: ClaimDocument[];
+  analyses: Record<string, AnalysisResult>;
+  comparisons: Record<string, ComparisonResult>;
+  strategies: Record<string, string>;
   fileBase64: string | null;
   claimMeta: {
     insuredName: string;
@@ -109,31 +235,90 @@ type WizardState = {
   prefillApplied: boolean;
 };
 
-const initialWizardState = (): WizardState => ({
-  accessToken: "bypass",
-  carrierText: null,
-  contractorText: null,
-  fileBase64: null,
-  claimMeta: {
-    insuredName: "",
-    carrierName: "",
-    claimType: "",
-    state: "",
-    policyNumber: "",
-    claimNumber: "",
-    dateOfLoss: "",
-    adjusterName: "",
-    disputedAmount: "",
-    responseDeadline: "",
-  },
-  analysis: null,
-  comparison: null,
-  strategy: null,
-  letterType: null,
-  letterRaw: null,
-  letterPlaceholders: emptyLetterPlaceholders(),
-  prefillApplied: false,
-});
+function deriveLegacyFields(
+  s: WizardState
+): Pick<
+  WizardState,
+  "carrierText" | "contractorText" | "analysis" | "comparison" | "strategy"
+> {
+  const carrierParts: string[] = [];
+  const contractorParts: string[] = [];
+  for (const d of s.documents) {
+    const t = d.extractedText.trim();
+    if (!t) continue;
+    if (d.side === "CARRIER") carrierParts.push(t);
+    else contractorParts.push(t);
+  }
+  const carrierText = carrierParts.length
+    ? carrierParts.join("\n\n---\n\n")
+    : null;
+  const contractorText = contractorParts.length
+    ? contractorParts.join("\n\n---\n\n")
+    : null;
+  const order = categoriesInDocumentOrder(s.documents);
+  let analysis: AnalysisResult | null = null;
+  let comparison: ComparisonResult | null = null;
+  let strategy: string | null = null;
+  for (const c of order) {
+    if (!analysis && s.analyses[c]) analysis = s.analyses[c] ?? null;
+    if (!comparison && s.comparisons[c]) comparison = s.comparisons[c] ?? null;
+    if (!strategy && s.strategies[c]) strategy = s.strategies[c] ?? null;
+  }
+  if (!strategy) {
+    const vals = Object.values(s.strategies);
+    strategy = vals[0] ?? null;
+  }
+  return { carrierText, contractorText, analysis, comparison, strategy };
+}
+
+function withDerived(
+  prev: WizardState,
+  patch: Partial<WizardState>
+): WizardState {
+  const next = { ...prev, ...patch };
+  return { ...next, ...deriveLegacyFields(next) };
+}
+
+function extractStatusMessage(doc: ClaimDocument): string {
+  if (doc.extractStatus === "extracting") return "Reading file…";
+  if (doc.extractStatus === "error") return "Could not read file.";
+  if (doc.extractStatus === "done") return "Text ready.";
+  if (doc.extractedText.trim()) return "Ready.";
+  return "Add estimate text (paste or .txt file). PDF and images require pasting text below.";
+}
+
+const initialWizardState = (): WizardState => {
+  const base: WizardState = {
+    accessToken: "bypass",
+    carrierText: null,
+    contractorText: null,
+    documents: [createClaimDocument(0)],
+    analyses: {},
+    comparisons: {},
+    strategies: {},
+    fileBase64: null,
+    claimMeta: {
+      insuredName: "",
+      carrierName: "",
+      claimType: "",
+      state: "",
+      policyNumber: "",
+      claimNumber: "",
+      dateOfLoss: "",
+      adjusterName: "",
+      disputedAmount: "",
+      responseDeadline: "",
+    },
+    analysis: null,
+    comparison: null,
+    strategy: null,
+    letterType: null,
+    letterRaw: null,
+    letterPlaceholders: emptyLetterPlaceholders(),
+    prefillApplied: false,
+  };
+  return { ...base, ...deriveLegacyFields(base) };
+};
 
 function normalizeDisputedAmount(raw: string): string {
   return raw.replace(/\$/g, "").replace(/,/g, "").replace(/\s/g, "").trim();
@@ -184,19 +369,34 @@ function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) =>
   return null;
 }
 
+function step1DocFileInputId(idx: number): string {
+  if (idx === 0) return "erp-step1-carrier-file";
+  if (idx === 1) return "erp-step1-contractor-file";
+  return `erp-step1-doc-${idx}-file`;
+}
+
+function step1DocPasteId(idx: number): string {
+  if (idx === 0) return "erp-step1-carrier-paste";
+  if (idx === 1) return "erp-step1-contractor-paste";
+  return `erp-step1-doc-${idx}-paste`;
+}
+
+function step1DocExtractStatusId(idx: number): string {
+  if (idx === 0) return "erp-step1-carrier-extract-status";
+  if (idx === 1) return "erp-step1-contractor-extract-status";
+  return `erp-step1-doc-${idx}-extract-status`;
+}
+
 export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [state, setState] = useState<WizardState>(initialWizardState);
+  const [state, setState] = useState<WizardState>(() => initialWizardState());
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [carrierExtractStatus, setCarrierExtractStatus] =
-    useState<string>("idle");
-  const [contractorExtractStatus, setContractorExtractStatus] =
-    useState<string>("idle");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [step6LetterLoading, setStep6LetterLoading] = useState(false);
-  const [carrierFileDragOver, setCarrierFileDragOver] = useState(false);
-  const [contractorFileDragOver, setContractorFileDragOver] = useState(false);
+  const [docDragOverIndex, setDocDragOverIndex] = useState<number | null>(
+    null
+  );
   const [showXactimateHelp, setShowXactimateHelp] = useState(false);
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const wizardStateRef = useRef(state);
@@ -253,62 +453,212 @@ export default function UploadPage() {
     []
   );
 
-  const readCarrierFile = useCallback(async (file: File | null) => {
-    if (!file) return;
-    setCarrierExtractStatus("reading");
-    if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
-      const text = await file.text();
-      setState((s) => ({ ...s, carrierText: text }));
-      setCarrierExtractStatus("Text loaded from file.");
-      announce("Carrier estimate text loaded from file.");
-      return;
-    }
-    setCarrierExtractStatus(
-      "Paste estimate text below, or use a .txt export for now."
-    );
-    announce("Carrier file: paste text or use plain text file.");
-  }, [announce]);
+  const readDocumentFile = useCallback(
+    async (docId: string, file: File | null) => {
+      if (!file) return;
+      setState((s) =>
+        withDerived(s, {
+          documents: s.documents.map((d) =>
+            d.id === docId ? { ...d, extractStatus: "extracting" } : d
+          ),
+        })
+      );
+      try {
+        if (
+          file.type === "text/plain" ||
+          file.name.toLowerCase().endsWith(".txt")
+        ) {
+          const text = await file.text();
+          setState((s) => {
+            const documents = s.documents.map((d) => {
+              if (d.id !== docId) return d;
+              const detected = autoDetectCategory(text);
+              return {
+                ...d,
+                extractedText: text,
+                extractStatus: "done" as const,
+                category: detected,
+                autoDetected: true,
+                label: d.labelLocked
+                  ? d.label
+                  : buildDefaultLabel(d.side, detected, d.version),
+              };
+            });
+            return withDerived(s, { documents });
+          });
+          announce("Document text loaded from file.");
+          return;
+        }
+        setState((s) =>
+          withDerived(s, {
+            documents: s.documents.map((d) =>
+              d.id === docId
+                ? { ...d, extractStatus: "idle", extractedText: "" }
+                : d
+            ),
+          })
+        );
+        announce("File accepted — paste estimate text below.");
+      } catch {
+        setState((s) =>
+          withDerived(s, {
+            documents: s.documents.map((d) =>
+              d.id === docId ? { ...d, extractStatus: "error" } : d
+            ),
+          })
+        );
+        announce("Could not read file.");
+      }
+    },
+    [announce]
+  );
 
-  const readContractorFile = useCallback(async (file: File | null) => {
-    if (!file) return;
-    setContractorExtractStatus("reading");
-    if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
-      const text = await file.text();
-      setState((s) => ({ ...s, contractorText: text }));
-      setContractorExtractStatus("Text loaded from file.");
-      announce("Contractor estimate text loaded from file.");
-      return;
-    }
-    setContractorExtractStatus(
-      "Paste contractor estimate text below, or use a .txt export for now."
-    );
-    announce("Contractor file: paste text or use plain text file.");
-  }, [announce]);
+  const updateDocumentText = useCallback((docId: string, text: string) => {
+    setState((s) => {
+      const documents = s.documents.map((d) => {
+        if (d.id !== docId) return d;
+        const detected = autoDetectCategory(text);
+        return {
+          ...d,
+          extractedText: text,
+          extractStatus: text.trim() ? ("done" as const) : ("idle" as const),
+          category: detected,
+          autoDetected: true,
+          label: d.labelLocked
+            ? d.label
+            : buildDefaultLabel(d.side, detected, d.version),
+        };
+      });
+      return withDerived(s, { documents });
+    });
+  }, []);
+
+  const updateDocumentSide = useCallback(
+    (docId: string, side: ClaimDocumentSide) => {
+      setState((s) => {
+        const documents = s.documents.map((d) => {
+          if (d.id !== docId) return d;
+          return {
+            ...d,
+            side,
+            label: d.labelLocked
+              ? d.label
+              : buildDefaultLabel(side, d.category, d.version),
+          };
+        });
+        return withDerived(s, { documents });
+      });
+    },
+    []
+  );
+
+  const updateDocumentCategory = useCallback(
+    (docId: string, category: ClaimDocumentCategory) => {
+      setState((s) => {
+        const documents = s.documents.map((d) => {
+          if (d.id !== docId) return d;
+          return {
+            ...d,
+            category,
+            autoDetected: false,
+            label: d.labelLocked
+              ? d.label
+              : buildDefaultLabel(d.side, category, d.version),
+          };
+        });
+        return withDerived(s, { documents });
+      });
+    },
+    []
+  );
+
+  const updateDocumentVersion = useCallback(
+    (docId: string, version: ClaimDocumentVersion) => {
+      setState((s) => {
+        const documents = s.documents.map((d) => {
+          if (d.id !== docId) return d;
+          return {
+            ...d,
+            version,
+            label: d.labelLocked
+              ? d.label
+              : buildDefaultLabel(d.side, d.category, version),
+          };
+        });
+        return withDerived(s, { documents });
+      });
+    },
+    []
+  );
+
+  const updateDocumentLabel = useCallback((docId: string, label: string) => {
+    setState((s) => {
+      const documents = s.documents.map((d) =>
+        d.id === docId ? { ...d, label, labelLocked: true } : d
+      );
+      return withDerived(s, { documents });
+    });
+  }, []);
+
+  const addDocumentSlot = useCallback(() => {
+    setState((s) => {
+      if (s.documents.length >= 10) return s;
+      return withDerived(s, {
+        documents: [...s.documents, createClaimDocument(s.documents.length)],
+      });
+    });
+  }, []);
+
+  const removeDocumentSlot = useCallback((docId: string) => {
+    setState((s) => {
+      if (s.documents.length <= 1) return s;
+      return withDerived(s, {
+        documents: s.documents.filter((d) => d.id !== docId),
+      });
+    });
+  }, []);
 
   const onLoadDemo = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      carrierText:
-        "RCV Grand Total $18,200.00\nRemove damaged shingles 24 SQ  $3,200.00\nInstall shingles 24 SQ  $4,800.00\nDetach reset gutter 40 LF  $480.00\nFelt underlayment  $320.00\nRidge cap  $220.00\nDrip edge  $180.00\n",
-      contractorText: null,
-      claimMeta: {
-        insuredName: "Demo Insured",
-        carrierName: "Demo Carrier Insurance",
-        claimType: "property",
-        state: "TX",
-        policyNumber: "DEMO-POL-001",
-        claimNumber: "DEMO-CLM-9921",
-        dateOfLoss: "2024-05-10",
-        adjusterName: "Demo Adjuster",
-        disputedAmount: "18200.00",
-        responseDeadline: "2026-05-01",
-      },
-      prefillApplied: false,
-      letterType: null,
-      letterRaw: null,
-    }));
-    setCarrierExtractStatus("Demo estimate loaded.");
-    setContractorExtractStatus("idle");
+    const demoText =
+      "RCV Grand Total $18,200.00\nRemove damaged shingles 24 SQ  $3,200.00\nInstall shingles 24 SQ  $4,800.00\nDetach reset gutter 40 LF  $480.00\nFelt underlayment  $320.00\nRidge cap  $220.00\nDrip edge  $180.00\n";
+    setState((s) => {
+      const first = s.documents[0];
+      const documents: ClaimDocument[] = [
+        {
+          ...(first ?? createClaimDocument(0)),
+          id: first?.id ?? crypto.randomUUID(),
+          extractedText: demoText,
+          extractStatus: "done",
+          side: "CARRIER",
+          category: "BUILDING",
+          version: "ORIGINAL",
+          label: buildDefaultLabel("CARRIER", "BUILDING", "ORIGINAL"),
+          autoDetected: false,
+          labelLocked: false,
+        },
+      ];
+      return withDerived(s, {
+        documents,
+        claimMeta: {
+          insuredName: "Demo Insured",
+          carrierName: "Demo Carrier Insurance",
+          claimType: "property",
+          state: "TX",
+          policyNumber: "DEMO-POL-001",
+          claimNumber: "DEMO-CLM-9921",
+          dateOfLoss: "2024-05-10",
+          adjusterName: "Demo Adjuster",
+          disputedAmount: "18200.00",
+          responseDeadline: "2026-05-01",
+        },
+        prefillApplied: false,
+        letterType: null,
+        letterRaw: null,
+        analyses: {},
+        comparisons: {},
+        strategies: {},
+      });
+    });
     announce("Demo estimate and metadata loaded.");
   }, [announce]);
 
@@ -317,8 +667,6 @@ export default function UploadPage() {
       ...initialWizardState(),
       accessToken: s.accessToken,
     }));
-    setCarrierExtractStatus("idle");
-    setContractorExtractStatus("idle");
     setSubmitError(null);
     announce("Step 1 cleared.");
   }, [announce]);
@@ -327,6 +675,39 @@ export default function UploadPage() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       setSubmitError(null);
+      if (state.documents.length > 10) {
+        setSubmitError("A maximum of 10 documents is allowed.");
+        announce("Submit blocked: too many documents.");
+        return;
+      }
+      const extracting = state.documents.some(
+        (d) => d.extractStatus === "extracting"
+      );
+      if (extracting) {
+        setSubmitError(
+          "Waiting for document extraction to complete before continuing."
+        );
+        announce("Waiting for document extraction to complete.");
+        return;
+      }
+      const emptyText = state.documents.some((d) => !d.extractedText.trim());
+      if (emptyText) {
+        setSubmitError(
+          "Each document must have estimate text before continuing."
+        );
+        announce("Submit blocked: complete all documents with text.");
+        return;
+      }
+      const hasCarrier = state.documents.some(
+        (d) => d.side === "CARRIER" && d.extractedText.trim().length > 0
+      );
+      if (!hasCarrier) {
+        setSubmitError(
+          "At least one carrier-side document with text is required."
+        );
+        announce("Submit blocked: carrier document required.");
+        return;
+      }
       const documentText = getDocumentText(state.carrierText);
       if (!documentText) {
         setSubmitError(
@@ -431,11 +812,16 @@ export default function UploadPage() {
           parsedComparison = parseComparisonResult(compareJson);
         }
 
-        setState((s) => ({
-          ...s,
-          analysis: parsedAnalysis,
-          comparison: parsedComparison,
-        }));
+        setState((s) => {
+          const primary =
+            categoriesInDocumentOrder(s.documents)[0] ?? "BUILDING";
+          return withDerived(s, {
+            analyses: { ...s.analyses, [primary]: parsedAnalysis },
+            comparisons: parsedComparison
+              ? { ...s.comparisons, [primary]: parsedComparison }
+              : s.comparisons,
+          });
+        });
         setSubmitLoading(false);
         setCurrentStep(2);
         announce("Step 2 — Analysis.");
@@ -449,6 +835,7 @@ export default function UploadPage() {
       state.accessToken,
       state.carrierText,
       state.contractorText,
+      state.documents,
       state.claimMeta,
       announce,
     ]
@@ -606,7 +993,14 @@ export default function UploadPage() {
   }, [announce]);
 
   const onStrategyChange = useCallback((code: string) => {
-    setState((s) => ({ ...s, strategy: code }));
+    setState((s) => {
+      const primary =
+        categoriesInDocumentOrder(s.documents)[0] ?? "BUILDING";
+      return withDerived(s, {
+        strategies: { ...s.strategies, [primary]: code },
+        strategy: code,
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -623,7 +1017,12 @@ export default function UploadPage() {
           ? s.analysis.recommendedStrategy.trim()
           : "";
       if (!rec) return s;
-      return { ...s, strategy: rec };
+      const primary =
+        categoriesInDocumentOrder(s.documents)[0] ?? "BUILDING";
+      return withDerived(s, {
+        strategies: { ...s.strategies, [primary]: rec },
+        strategy: rec,
+      });
     });
     return () => {
       step4StrategyAutoAppliedRef.current = false;
@@ -742,152 +1141,300 @@ export default function UploadPage() {
                 Step 1 — Input
               </h2>
               <p className="mt-2 text-sm text-[#475569]">
-                Upload or paste the carrier estimate, optional contractor
-                estimate, and claim metadata. Structured findings only.
+                Add up to 10 estimate documents (carrier, contractor, or other
+                sides), then complete claim metadata. Structured findings only.
               </p>
 
               <div className="mt-8 space-y-10">
                 <div>
                   <h3 className="text-lg font-semibold text-[#1E293B]">
-                    Carrier estimate
+                    Claim documents
                   </h3>
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <span className="mb-2 block text-sm font-medium text-[#475569]">
-                        File (PDF, images, or .txt)
-                      </span>
-                      <label
-                        htmlFor="erp-step1-carrier-file"
-                        onDragEnter={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setCarrierFileDragOver(true);
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          e.dataTransfer.dropEffect = "copy";
-                          setCarrierFileDragOver(true);
-                        }}
-                        onDragLeave={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (
-                            e.currentTarget.contains(
-                              e.relatedTarget as Node | null
-                            )
-                          ) {
-                            return;
-                          }
-                          setCarrierFileDragOver(false);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setCarrierFileDragOver(false);
-                          const f = e.dataTransfer.files?.[0] ?? null;
-                          if (!f) return;
-                          if (!isStep1AcceptedEstimateFile(f)) {
-                            announce(
-                              "That file type is not accepted. Use PDF, PNG, JPG, JPEG, WEBP, or .txt."
-                            );
-                            return;
-                          }
-                          void readCarrierFile(f);
-                        }}
-                        className={`block cursor-pointer rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm text-[#475569] transition-colors ${
-                          carrierFileDragOver
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-slate-300 bg-white hover:border-slate-400"
-                        }`}
+                  <div className="mt-4 space-y-6">
+                    {state.documents.map((doc, idx) => (
+                      <div
+                        key={doc.id}
+                        id={`erp-step1-doc-${idx}`}
+                        className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 md:p-5"
                       >
-                        Drag and drop PDF, image, or .txt file here, or click to
-                        browse
-                        <input
-                          id="erp-step1-carrier-file"
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
-                          className="sr-only"
-                          onChange={(ev) => {
-                            const f = ev.target.files?.[0] ?? null;
-                            void readCarrierFile(f);
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p
-                      id="erp-step1-carrier-extract-status"
-                      className="text-sm text-[#475569]"
-                    >
-                      {carrierExtractStatus}
-                    </p>
-                    <div className="mt-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowXactimateHelp((v) => !v)}
-                        className="text-xs text-blue-500 hover:text-blue-700 underline-offset-2 hover:underline focus:outline-none"
-                      >
-                        {showXactimateHelp
-                          ? "Hide Xactimate export guide ▲"
-                          : "Using Xactimate? See how to export →"}
-                      </button>
-                      {showXactimateHelp && (
-                        <div
-                          id="erp-step1-xactimate-help"
-                          className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
-                        >
-                          <p className="font-medium text-slate-700 mb-2">
-                            Exporting from Xactimate
-                          </p>
-                          <ol className="space-y-1 list-decimal list-inside">
-                            <li>Open your estimate in Xactimate</li>
-                            <li>
-                              Click{" "}
-                              <span className="font-medium">
-                                File → Print → Save as PDF
-                              </span>
-                            </li>
-                            <li>Upload that PDF using the drop zone above</li>
-                          </ol>
-                          <p className="mt-3 font-medium text-slate-700 mb-1">
-                            Or paste directly:
-                          </p>
-                          <ol className="space-y-1 list-decimal list-inside">
-                            <li>In Xactimate, select all line items</li>
-                            <li>
-                              Copy (<span className="font-medium">Ctrl+C</span>)
-                            </li>
-                            <li>Paste into the text field below</li>
-                          </ol>
-                          <p className="mt-3 text-xs text-slate-400 border-t border-slate-200 pt-2">
-                            ESX files cannot be read directly — PDF or paste
-                            export required.
-                          </p>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-[#1E293B]">
+                            {doc.label || `Document ${idx + 1}`}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={state.documents.length <= 1}
+                            onClick={() => removeDocumentSlot(doc.id)}
+                            className="text-xs font-medium text-red-600 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Remove
+                          </button>
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="erp-step1-carrier-paste"
-                        className="mb-2 block text-sm font-medium text-[#475569]"
-                      >
-                        Paste carrier estimate text
-                      </label>
-                      <textarea
-                        id="erp-step1-carrier-paste"
-                        name="erp-step1-carrier-paste"
-                        rows={8}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-[#1E293B] placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Paste line items and totals…"
-                        value={state.carrierText ?? ""}
-                        onChange={(ev) =>
-                          setState((s) => ({
-                            ...s,
-                            carrierText: ev.target.value,
-                          }))
-                        }
-                      />
-                    </div>
+                        <div className="space-y-4">
+                          <div>
+                            <span className="mb-2 block text-sm font-medium text-[#475569]">
+                              File (PDF, images, or .txt)
+                            </span>
+                            <label
+                              htmlFor={step1DocFileInputId(idx)}
+                              onDragEnter={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDocDragOverIndex(idx);
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                e.dataTransfer.dropEffect = "copy";
+                                setDocDragOverIndex(idx);
+                              }}
+                              onDragLeave={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (
+                                  e.currentTarget.contains(
+                                    e.relatedTarget as Node | null
+                                  )
+                                ) {
+                                  return;
+                                }
+                                setDocDragOverIndex((cur) =>
+                                  cur === idx ? null : cur
+                                );
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDocDragOverIndex(null);
+                                const f = e.dataTransfer.files?.[0] ?? null;
+                                if (!f) return;
+                                if (!isStep1AcceptedEstimateFile(f)) {
+                                  announce(
+                                    "That file type is not accepted. Use PDF, PNG, JPG, JPEG, WEBP, or .txt."
+                                  );
+                                  return;
+                                }
+                                void readDocumentFile(doc.id, f);
+                              }}
+                              className={`block cursor-pointer rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm text-[#475569] transition-colors ${
+                                docDragOverIndex === idx
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-slate-300 bg-white hover:border-slate-400"
+                              }`}
+                            >
+                              Drag and drop PDF, image, or .txt file here, or
+                              click to browse
+                              <input
+                                id={step1DocFileInputId(idx)}
+                                type="file"
+                                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
+                                className="sr-only"
+                                onChange={(ev) => {
+                                  const f = ev.target.files?.[0] ?? null;
+                                  void readDocumentFile(doc.id, f);
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <p
+                            id={step1DocExtractStatusId(idx)}
+                            className="text-sm text-[#475569]"
+                          >
+                            {extractStatusMessage(doc)}
+                          </p>
+                          {idx === 0 && (
+                            <div className="mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowXactimateHelp((v) => !v)}
+                                className="text-xs text-blue-500 hover:text-blue-700 underline-offset-2 hover:underline focus:outline-none"
+                              >
+                                {showXactimateHelp
+                                  ? "Hide Xactimate export guide ▲"
+                                  : "Using Xactimate? See how to export →"}
+                              </button>
+                              {showXactimateHelp && (
+                                <div
+                                  id="erp-step1-xactimate-help"
+                                  className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600"
+                                >
+                                  <p className="mb-2 font-medium text-slate-700">
+                                    Exporting from Xactimate
+                                  </p>
+                                  <ol className="list-inside list-decimal space-y-1">
+                                    <li>Open your estimate in Xactimate</li>
+                                    <li>
+                                      Click{" "}
+                                      <span className="font-medium">
+                                        File → Print → Save as PDF
+                                      </span>
+                                    </li>
+                                    <li>
+                                      Upload that PDF using the drop zone above
+                                    </li>
+                                  </ol>
+                                  <p className="mb-1 mt-3 font-medium text-slate-700">
+                                    Or paste directly:
+                                  </p>
+                                  <ol className="list-inside list-decimal space-y-1">
+                                    <li>In Xactimate, select all line items</li>
+                                    <li>
+                                      Copy (
+                                      <span className="font-medium">
+                                        Ctrl+C
+                                      </span>
+                                      )
+                                    </li>
+                                    <li>Paste into the text field below</li>
+                                  </ol>
+                                  <p className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-400">
+                                    ESX files cannot be read directly — PDF or
+                                    paste export required.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <label
+                              htmlFor={step1DocPasteId(idx)}
+                              className="mb-2 block text-sm font-medium text-[#475569]"
+                            >
+                              {idx === 0
+                                ? "Paste carrier estimate text"
+                                : idx === 1
+                                  ? "Paste contractor estimate text"
+                                  : "Paste estimate text"}
+                            </label>
+                            <textarea
+                              id={step1DocPasteId(idx)}
+                              name={step1DocPasteId(idx)}
+                              rows={idx === 0 ? 8 : 6}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-[#1E293B] placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              placeholder={
+                                idx === 0
+                                  ? "Paste line items and totals…"
+                                  : "Optional second estimate…"
+                              }
+                              value={doc.extractedText}
+                              onChange={(ev) =>
+                                updateDocumentText(doc.id, ev.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                              <label
+                                className="mb-1 block text-xs font-medium text-[#475569]"
+                                htmlFor={`erp-step1-doc-${idx}-side`}
+                              >
+                                Side
+                              </label>
+                              <select
+                                id={`erp-step1-doc-${idx}-side`}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                value={doc.side}
+                                onChange={(e) =>
+                                  updateDocumentSide(
+                                    doc.id,
+                                    e.target.value as ClaimDocumentSide
+                                  )
+                                }
+                              >
+                                {SIDE_OPTIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <div className="mb-1 flex flex-wrap items-center gap-2">
+                                <label
+                                  className="text-xs font-medium text-[#475569]"
+                                  htmlFor={`erp-step1-doc-${idx}-category`}
+                                >
+                                  Category
+                                </label>
+                                {doc.autoDetected && (
+                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-800">
+                                    Auto-detected
+                                  </span>
+                                )}
+                              </div>
+                              <select
+                                id={`erp-step1-doc-${idx}-category`}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                value={doc.category}
+                                onChange={(e) =>
+                                  updateDocumentCategory(
+                                    doc.id,
+                                    e.target.value as ClaimDocumentCategory
+                                  )
+                                }
+                              >
+                                {CATEGORY_OPTIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label
+                                className="mb-1 block text-xs font-medium text-[#475569]"
+                                htmlFor={`erp-step1-doc-${idx}-version`}
+                              >
+                                Version
+                              </label>
+                              <select
+                                id={`erp-step1-doc-${idx}-version`}
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                value={doc.version}
+                                onChange={(e) =>
+                                  updateDocumentVersion(
+                                    doc.id,
+                                    e.target.value as ClaimDocumentVersion
+                                  )
+                                }
+                              >
+                                {VERSION_OPTIONS.map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="sm:col-span-2 lg:col-span-1">
+                              <label
+                                className="mb-1 block text-xs font-medium text-[#475569]"
+                                htmlFor={`erp-step1-doc-${idx}-label`}
+                              >
+                                Label
+                              </label>
+                              <input
+                                id={`erp-step1-doc-${idx}-label`}
+                                type="text"
+                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-[#1E293B]"
+                                value={doc.label}
+                                onChange={(e) =>
+                                  updateDocumentLabel(doc.id, e.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      id="erp-step1-add-document"
+                      type="button"
+                      disabled={state.documents.length >= 10}
+                      onClick={addDocumentSlot}
+                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Add Document
+                    </button>
                   </div>
                 </div>
 
@@ -909,105 +1456,6 @@ export default function UploadPage() {
                       patchClaimMeta({ insuredName: e.target.value })
                     }
                   />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1E293B]">
-                    Contractor / independent estimate (optional)
-                  </h3>
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <span className="mb-2 block text-sm font-medium text-[#475569]">
-                        File
-                      </span>
-                      <label
-                        htmlFor="erp-step1-contractor-file"
-                        onDragEnter={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setContractorFileDragOver(true);
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          e.dataTransfer.dropEffect = "copy";
-                          setContractorFileDragOver(true);
-                        }}
-                        onDragLeave={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (
-                            e.currentTarget.contains(
-                              e.relatedTarget as Node | null
-                            )
-                          ) {
-                            return;
-                          }
-                          setContractorFileDragOver(false);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setContractorFileDragOver(false);
-                          const f = e.dataTransfer.files?.[0] ?? null;
-                          if (!f) return;
-                          if (!isStep1AcceptedEstimateFile(f)) {
-                            announce(
-                              "That file type is not accepted. Use PDF, PNG, JPG, JPEG, WEBP, or .txt."
-                            );
-                            return;
-                          }
-                          void readContractorFile(f);
-                        }}
-                        className={`block cursor-pointer rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm text-[#475569] transition-colors ${
-                          contractorFileDragOver
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-slate-300 bg-white hover:border-slate-400"
-                        }`}
-                      >
-                        Drag and drop PDF, image, or .txt file here, or click to
-                        browse
-                        <input
-                          id="erp-step1-contractor-file"
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
-                          className="sr-only"
-                          onChange={(ev) => {
-                            const f = ev.target.files?.[0] ?? null;
-                            void readContractorFile(f);
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <p
-                      id="erp-step1-contractor-extract-status"
-                      className="text-sm text-[#475569]"
-                    >
-                      {contractorExtractStatus}
-                    </p>
-                    <div>
-                      <label
-                        htmlFor="erp-step1-contractor-paste"
-                        className="mb-2 block text-sm font-medium text-[#475569]"
-                      >
-                        Paste contractor estimate text
-                      </label>
-                      <textarea
-                        id="erp-step1-contractor-paste"
-                        name="erp-step1-contractor-paste"
-                        rows={6}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm text-[#1E293B] placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Optional second estimate…"
-                        value={state.contractorText ?? ""}
-                        onChange={(ev) =>
-                          setState((s) => ({
-                            ...s,
-                            contractorText: ev.target.value || null,
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 <div>
