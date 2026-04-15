@@ -80,18 +80,100 @@ Rules:
 - lineItems may be an empty array only if the carrier text has no parseable line-level content; prefer at least one summary row if a total exists in the carrier text.`;
 }
 
-function buildUserMessage(mode, carrierText, contractorText, claimType) {
+function buildUserMessage(
+  mode,
+  carrierText,
+  contractorText,
+  claimType,
+  category
+) {
   const contractorBlock =
     mode === "LINE_COMPARE"
       ? `CONTRACTOR / INDEPENDENT ESTIMATE TEXT:\n${String(contractorText)}`
       : "CONTRACTOR TEXT: (none — reconstructed vs carrier mode)";
 
-  return `CLAIM TYPE (labels only, not a source of dollars): ${String(claimType || "unknown")}
+  const cat = String(category || "").trim().toUpperCase();
+  const allowed = new Set([
+    "BUILDING",
+    "CONTENTS",
+    "ALE",
+    "MITIGATION",
+    "OTHER",
+  ]);
+  const scopeLine =
+    cat && allowed.has(cat)
+      ? `SCOPE CATEGORY (labels only): ${cat}\n\n`
+      : cat
+        ? `SCOPE CATEGORY (labels only): OTHER\n\n`
+        : "";
+
+  return `${scopeLine}CLAIM TYPE (labels only, not a source of dollars): ${String(claimType || "unknown")}
 
 CARRIER ESTIMATE TEXT:
 ${String(carrierText)}
 
 ${contractorBlock}`;
+}
+
+const VERSION_DIFF_SYSTEM = `You compare two versions of a carrier estimate: PREVIOUS versus CURRENT.
+Return ONE JSON object only (no markdown) with this exact shape:
+{
+  "added": [ { "description": "string", "amount": number } ],
+  "removed": [ { "description": "string", "amount": number } ],
+  "changed": [ { "description": "string", "previousAmount": number, "currentAmount": number, "delta": number } ],
+  "netChange": number
+}
+Rules:
+- Base amounts only on explicit figures in the pasted texts; use 0 if not stated.
+- For "changed" rows, delta MUST equal currentAmount minus previousAmount.
+- netChange = reasonable net monetary movement from PREVIOUS to CURRENT as evidenced in the texts (not invented).
+- Arrays may be empty. Descriptions must be short and tied to the text.`;
+
+function normalizeVersionDiffFromModel(body, raw) {
+  const req = body.versionDiff || {};
+  const prevV = String(req.previousVersion || "");
+  const currV = String(req.currentVersion || "");
+  const mapAdded = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((row) => {
+      const r = row && typeof row === "object" ? row : {};
+      return {
+        description: String(r.description ?? ""),
+        amount: Math.round((Number(r.amount) || 0) * 100) / 100,
+      };
+    });
+  };
+  const mapChanged = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((row) => {
+      const r = row && typeof row === "object" ? row : {};
+      const pa = Math.round((Number(r.previousAmount) || 0) * 100) / 100;
+      const ca = Math.round((Number(r.currentAmount) || 0) * 100) / 100;
+      const delta =
+        Number.isFinite(Number(r.delta))
+          ? Math.round(Number(r.delta) * 100) / 100
+          : Math.round((ca - pa) * 100) / 100;
+      return {
+        description: String(r.description ?? ""),
+        previousAmount: pa,
+        currentAmount: ca,
+        delta,
+      };
+    });
+  };
+  const added = mapAdded(raw?.added);
+  const removed = mapAdded(raw?.removed);
+  const changed = mapChanged(raw?.changed);
+  let netChange = Math.round((Number(raw?.netChange) || 0) * 100) / 100;
+  if (!Number.isFinite(netChange)) netChange = 0;
+  return {
+    previousVersion: prevV,
+    currentVersion: currV,
+    added,
+    removed,
+    changed,
+    netChange,
+  };
 }
 
 function normalizeLineItem(row) {
@@ -186,6 +268,14 @@ exports.handler = async (event) => {
       ? null
       : body.contractorText;
   const claimType = String(body.claimType || "");
+  const category = body.category;
+
+  const vdRaw = body.versionDiff;
+  const hasVersionDiff =
+    vdRaw &&
+    typeof vdRaw === "object" &&
+    String(vdRaw.previousText || "").trim().length > 0 &&
+    String(vdRaw.currentText || "").trim().length > 0;
 
   const mode = resolveMode(contractorText);
 
@@ -206,7 +296,8 @@ exports.handler = async (event) => {
     mode,
     carrierText,
     mode === "LINE_COMPARE" ? contractorText : null,
-    claimType
+    claimType,
+    category
   );
 
   let parsed;
@@ -234,6 +325,27 @@ exports.handler = async (event) => {
 
   try {
     const out = finalizeResult(mode, parsed);
+    if (hasVersionDiff) {
+      const vdUser = `PREVIOUS CARRIER VERSION (${String(vdRaw.previousVersion || "PREVIOUS")}):\n${String(vdRaw.previousText)}\n\nCURRENT CARRIER VERSION (${String(vdRaw.currentVersion || "CURRENT")}):\n${String(vdRaw.currentText)}`;
+      try {
+        const vdCompletion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          temperature: 0.2,
+          max_tokens: 3000,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: VERSION_DIFF_SYSTEM },
+            { role: "user", content: vdUser },
+          ],
+        });
+        const vdRawJson =
+          vdCompletion.choices[0]?.message?.content || "{}";
+        const vdParsed = JSON.parse(vdRawJson);
+        out.versionDiff = normalizeVersionDiffFromModel(body, vdParsed);
+      } catch (vdErr) {
+        console.error("compare-estimates versionDiff OpenAI:", vdErr);
+      }
+    }
     return {
       statusCode: 200,
       headers: corsHeaders,

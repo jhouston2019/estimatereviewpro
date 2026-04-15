@@ -149,6 +149,20 @@ disputedAmount (user-normalized string): ${body.disputedAmount || ""}
 responseDeadline: ${body.responseDeadline || ""}`;
 }
 
+function buildAnalysisSystemPrompt(categoryRaw) {
+  const c = String(categoryRaw || "").trim().toUpperCase();
+  if (!c) return ANALYSIS_SYSTEM_PROMPT;
+  const allowed = new Set([
+    "BUILDING",
+    "CONTENTS",
+    "ALE",
+    "MITIGATION",
+    "OTHER",
+  ]);
+  const scope = allowed.has(c) ? c : "OTHER";
+  return `This estimate covers ${scope} scope.\n\n${ANALYSIS_SYSTEM_PROMPT}`;
+}
+
 function emptyResult(carrierAmount, note) {
   const available = [...CANONICAL_STRATEGIES];
   return {
@@ -229,6 +243,7 @@ exports.handler = async (event) => {
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const userMessage = buildUserPayload(body, carrierAmount);
+  const systemPrompt = buildAnalysisSystemPrompt(body.category);
 
   let parsed;
   try {
@@ -238,7 +253,7 @@ exports.handler = async (event) => {
       max_tokens: 2000,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
     });

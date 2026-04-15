@@ -230,6 +230,56 @@ function categoriesInDocumentOrder(documents: ClaimDocument[]): string[] {
   return out;
 }
 
+const CARRIER_VERSION_ORDER: Record<ClaimDocumentVersion, number> = {
+  ORIGINAL: 0,
+  SUPPLEMENT_1: 1,
+  SUPPLEMENT_2: 2,
+  SUPPLEMENT_3: 3,
+  REVISED: 4,
+  FINAL: 5,
+};
+
+function categoriesWithNonemptyDocs(
+  documents: ClaimDocument[]
+): ClaimDocumentCategory[] {
+  const seen = new Set<ClaimDocumentCategory>();
+  const order: ClaimDocumentCategory[] = [];
+  for (const d of documents) {
+    if (!d.extractedText.trim()) continue;
+    if (!seen.has(d.category)) {
+      seen.add(d.category);
+      order.push(d.category);
+    }
+  }
+  return order;
+}
+
+function carrierVersionSegmentsForCategory(
+  documents: ClaimDocument[],
+  category: ClaimDocumentCategory
+): { version: ClaimDocumentVersion; text: string }[] {
+  const carriers = documents.filter(
+    (d) =>
+      d.category === category &&
+      d.side === "CARRIER" &&
+      d.extractedText.trim()
+  );
+  const byVersion = new Map<ClaimDocumentVersion, string[]>();
+  for (const d of carriers) {
+    const list = byVersion.get(d.version) ?? [];
+    list.push(d.extractedText.trim());
+    byVersion.set(d.version, list);
+  }
+  const versions = [...byVersion.keys()].sort(
+    (a, b) =>
+      (CARRIER_VERSION_ORDER[a] ?? 0) - (CARRIER_VERSION_ORDER[b] ?? 0)
+  );
+  return versions.map((v) => ({
+    version: v,
+    text: (byVersion.get(v) ?? []).join("\n\n---\n\n"),
+  }));
+}
+
 type WizardState = {
   accessToken: string;
   carrierText: string | null;
@@ -464,6 +514,7 @@ export default function UploadPage() {
   );
   const [showXactimateHelp, setShowXactimateHelp] = useState(false);
   const liveRegionRef = useRef<HTMLDivElement>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const wizardStateRef = useRef(state);
   wizardStateRef.current = state;
   const step4StrategyAutoAppliedRef = useRef(false);
@@ -686,6 +737,8 @@ export default function UploadPage() {
   const onLoadDemo = useCallback(() => {
     const demoText =
       "RCV Grand Total $18,200.00\nRemove damaged shingles 24 SQ  $3,200.00\nInstall shingles 24 SQ  $4,800.00\nDetach reset gutter 40 LF  $480.00\nFelt underlayment  $320.00\nRidge cap  $220.00\nDrip edge  $180.00\n";
+    const contractorDemoText =
+      "Independent estimate — Building / Roofing\nRemove damaged shingles 24 SQ  $3,800.00\nInstall architectural shingles 24 SQ  $5,200.00\nDetach/reset gutter 40 LF  $520.00\nFelt and ice & water per code  $850.00\nRCV total shown: $19,370.00\n";
     setState((s) => {
       const slot0 = s.documents[0];
       const slot1 = s.documents[1] ?? createClaimDocument(1);
@@ -705,8 +758,8 @@ export default function UploadPage() {
         {
           ...slot1,
           id: slot1.id,
-          extractedText: "",
-          extractStatus: "idle",
+          extractedText: contractorDemoText,
+          extractStatus: "done",
           side: "CONTRACTOR",
           category: "BUILDING",
           version: "ORIGINAL",
@@ -817,9 +870,7 @@ export default function UploadPage() {
         Authorization: `Bearer ${state.accessToken}`,
       };
 
-      const analyzeBody = {
-        documentText,
-        contractorText: (state.contractorText ?? "").trim() || null,
+      const baseAnalyzeFields = {
         insuredName: m.insuredName.trim(),
         claimType: m.claimType,
         state: m.state,
@@ -831,75 +882,180 @@ export default function UploadPage() {
         responseDeadline: m.responseDeadline || "",
       };
 
-      const analyzePromise = fetch(
-        netlifyFunctionUrl("analyze-estimate"),
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(analyzeBody),
-        }
+      const docCats = categoriesWithNonemptyDocs(state.documents);
+      const analyzeCategories = docCats.filter((category) =>
+        state.documents.some(
+          (d) =>
+            d.category === category &&
+            d.side === "CARRIER" &&
+            d.extractedText.trim()
+        )
       );
 
-      const contractorTrim = (state.contractorText ?? "").trim();
-      const comparePromise =
-        contractorTrim.length > 0
-          ? fetch(netlifyFunctionUrl("compare-estimates"), {
+      try {
+        const analyzeResults = await Promise.all(
+          analyzeCategories.map(async (category) => {
+            const carrierDocs = state.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side === "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const otherDocs = state.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side !== "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const docText = carrierDocs
+              .map((d) => d.extractedText.trim())
+              .join("\n\n---\n\n");
+            const contractorJoined =
+              otherDocs.length > 0
+                ? otherDocs
+                    .map((d) => d.extractedText.trim())
+                    .join("\n\n---\n\n")
+                : null;
+            const analyzePayload: Record<string, unknown> = {
+              ...baseAnalyzeFields,
+              documentText: docText,
+              contractorText: contractorJoined,
+            };
+            if (docCats.length > 1) analyzePayload.category = category;
+            const res = await fetch(netlifyFunctionUrl("analyze-estimate"), {
               method: "POST",
               headers,
-              body: JSON.stringify({
-                carrierText: documentText,
-                contractorText: state.contractorText,
-                claimType: m.claimType,
-              }),
-            })
-          : Promise.resolve(null as Response | null);
+              body: JSON.stringify(analyzePayload),
+            });
+            return { category, res };
+          })
+        );
 
-      try {
-        const [analyzeRes, compareRes] = await Promise.all([
-          analyzePromise,
-          comparePromise,
-        ]);
-
-        if (!analyzeRes.ok) {
-          await analyzeRes.text().catch(() => "");
-          setSubmitError("Analysis failed. Please try again.");
-          announce("Analysis request failed.");
-          setSubmitLoading(false);
-          return;
+        const nextAnalyses: Record<string, AnalysisResult> = {};
+        for (const { category, res } of analyzeResults) {
+          if (!res.ok) {
+            await res.text().catch(() => "");
+            setSubmitError("Analysis failed. Please try again.");
+            announce("Analysis request failed.");
+            setSubmitLoading(false);
+            return;
+          }
+          const analysisJson: unknown = await res.json();
+          const parsedAnalysis = parseAnalysisResult(analysisJson);
+          if (!parsedAnalysis) {
+            setSubmitError("Analysis failed. Please try again.");
+            announce("Analysis parse failed.");
+            setSubmitLoading(false);
+            return;
+          }
+          nextAnalyses[category] = parsedAnalysis;
         }
 
-        const analysisJson: unknown = await analyzeRes.json();
-        const parsedAnalysis = parseAnalysisResult(analysisJson);
-        if (!parsedAnalysis) {
-          setSubmitError("Analysis failed. Please try again.");
-          announce("Analysis parse failed.");
-          setSubmitLoading(false);
-          return;
+        const compareTargets = new Set<ClaimDocumentCategory>();
+        for (const category of docCats) {
+          const hasCarrier = state.documents.some(
+            (d) =>
+              d.category === category &&
+              d.side === "CARRIER" &&
+              d.extractedText.trim()
+          );
+          const hasOther = state.documents.some(
+            (d) =>
+              d.category === category &&
+              d.side !== "CARRIER" &&
+              d.extractedText.trim()
+          );
+          const segs = carrierVersionSegmentsForCategory(
+            state.documents,
+            category
+          );
+          if ((hasCarrier && hasOther) || segs.length >= 2) {
+            compareTargets.add(category);
+          }
         }
 
-        let parsedComparison: ComparisonResult | null = null;
-        if (compareRes) {
-          if (!compareRes.ok) {
-            await compareRes.text().catch(() => "");
+        const compareResults = await Promise.all(
+          [...compareTargets].map(async (category) => {
+            const segs = carrierVersionSegmentsForCategory(
+              state.documents,
+              category
+            );
+            const latestText = segs[segs.length - 1]?.text ?? "";
+            const otherDocs = state.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side !== "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const contractorJoined =
+              otherDocs.length > 0
+                ? otherDocs
+                    .map((d) => d.extractedText.trim())
+                    .join("\n\n---\n\n")
+                : null;
+
+            let versionDiff:
+              | {
+                  previousText: string;
+                  currentText: string;
+                  previousVersion: string;
+                  currentVersion: string;
+                }
+              | undefined;
+            if (segs.length >= 2) {
+              const prev = segs[segs.length - 2]!;
+              const curr = segs[segs.length - 1]!;
+              versionDiff = {
+                previousText: prev.text,
+                currentText: curr.text,
+                previousVersion: prev.version,
+                currentVersion: curr.version,
+              };
+            }
+
+            const compareBody: Record<string, unknown> = {
+              carrierText: latestText,
+              contractorText: contractorJoined,
+              claimType: m.claimType,
+            };
+            if (docCats.length > 1) compareBody.category = category;
+            if (versionDiff) compareBody.versionDiff = versionDiff;
+
+            const res = await fetch(netlifyFunctionUrl("compare-estimates"), {
+              method: "POST",
+              headers,
+              body: JSON.stringify(compareBody),
+            });
+            return { category, res };
+          })
+        );
+
+        const nextComparisons: Record<string, ComparisonResult> = {};
+        for (const { category, res } of compareResults) {
+          if (!res.ok) {
+            await res.text().catch(() => "");
             setSubmitError("Comparison failed. Please try again.");
             announce("Compare request failed.");
             setSubmitLoading(false);
             return;
           }
-          const compareJson: unknown = await compareRes.json();
-          parsedComparison = parseComparisonResult(compareJson);
+          const compareJson: unknown = await res.json();
+          const parsedComparison = parseComparisonResult(compareJson);
+          if (!parsedComparison) {
+            setSubmitError("Comparison failed. Please try again.");
+            announce("Comparison parse failed.");
+            setSubmitLoading(false);
+            return;
+          }
+          nextComparisons[category] = parsedComparison;
         }
 
-        setState((s) => {
-          const primary =
-            categoriesInDocumentOrder(s.documents)[0] ?? "BUILDING";
-          return withDerived(s, {
-            analyses: { ...s.analyses, [primary]: parsedAnalysis },
-            comparisons: parsedComparison
-              ? { ...s.comparisons, [primary]: parsedComparison }
-              : s.comparisons,
-          });
-        });
+        setState((s) =>
+          withDerived(s, {
+            analyses: nextAnalyses,
+            comparisons: nextComparisons,
+          })
+        );
         setSubmitLoading(false);
         setCurrentStep(2);
         announce("Step 2 — Analysis.");
@@ -1253,8 +1409,19 @@ export default function UploadPage() {
                             <span className="mb-2 block text-sm font-medium text-[#475569]">
                               File (PDF, images, or .txt)
                             </span>
-                            <label
-                              htmlFor={step1DocFileInputId(idx)}
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Choose file for document ${idx + 1}`}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  fileInputRefs.current[doc.id]?.click();
+                                }
+                              }}
+                              onClick={() =>
+                                fileInputRefs.current[doc.id]?.click()
+                              }
                               onDragEnter={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -1302,17 +1469,20 @@ export default function UploadPage() {
                             >
                               Drag and drop PDF, image, or .txt file here, or
                               click to browse
-                              <input
-                                id={step1DocFileInputId(idx)}
-                                type="file"
-                                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
-                                className="sr-only"
-                                onChange={(ev) => {
-                                  const f = ev.target.files?.[0] ?? null;
-                                  void readDocumentFile(doc.id, f);
-                                }}
-                              />
-                            </label>
+                            </div>
+                            <input
+                              id={step1DocFileInputId(idx)}
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,text/plain"
+                              className="sr-only"
+                              ref={(el) => {
+                                fileInputRefs.current[doc.id] = el;
+                              }}
+                              onChange={(ev) => {
+                                const f = ev.target.files?.[0] ?? null;
+                                if (f) void readDocumentFile(doc.id, f);
+                              }}
+                            />
                           </div>
                           <p
                             id={step1DocExtractStatusId(idx)}

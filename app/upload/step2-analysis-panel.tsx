@@ -20,6 +20,20 @@ export type AnalysisResult = {
   recommendedStrategy: string;
 };
 
+export type VersionDiffResult = {
+  previousVersion: string;
+  currentVersion: string;
+  added: Array<{ description: string; amount: number }>;
+  removed: Array<{ description: string; amount: number }>;
+  changed: Array<{
+    description: string;
+    previousAmount: number;
+    currentAmount: number;
+    delta: number;
+  }>;
+  netChange: number;
+};
+
 export type ComparisonResult = {
   mode: string;
   lineItems: Array<{
@@ -35,6 +49,7 @@ export type ComparisonResult = {
   totalCarrier: number;
   totalContractor: number;
   totalDelta: number;
+  versionDiff?: VersionDiffResult;
 };
 
 function isRecord(x: unknown): x is Record<string, unknown> {
@@ -58,12 +73,50 @@ export function parseComparisonResult(raw: unknown): ComparisonResult | null {
       reason: String(r.reason ?? ""),
     };
   });
+  let versionDiff: VersionDiffResult | undefined;
+  const vdRaw = raw.versionDiff;
+  if (isRecord(vdRaw)) {
+    const mapAR = (arr: unknown) => {
+      if (!Array.isArray(arr)) return [];
+      return arr.map((row) => {
+        const r = isRecord(row) ? row : {};
+        return {
+          description: String(r.description ?? ""),
+          amount: Number(r.amount) || 0,
+        };
+      });
+    };
+    const changedArr = Array.isArray(vdRaw.changed) ? vdRaw.changed : [];
+    const changed = changedArr.map((row) => {
+      const r = isRecord(row) ? row : {};
+      const pa = Number(r.previousAmount) || 0;
+      const ca = Number(r.currentAmount) || 0;
+      const delta = Number.isFinite(Number(r.delta))
+        ? Number(r.delta)
+        : ca - pa;
+      return {
+        description: String(r.description ?? ""),
+        previousAmount: pa,
+        currentAmount: ca,
+        delta,
+      };
+    });
+    versionDiff = {
+      previousVersion: String(vdRaw.previousVersion ?? ""),
+      currentVersion: String(vdRaw.currentVersion ?? ""),
+      added: mapAR(vdRaw.added),
+      removed: mapAR(vdRaw.removed),
+      changed,
+      netChange: Number(vdRaw.netChange) || 0,
+    };
+  }
   return {
     mode,
     lineItems,
     totalCarrier: Number(raw.totalCarrier) || 0,
     totalContractor: Number(raw.totalContractor) || 0,
     totalDelta: Number(raw.totalDelta) || 0,
+    ...(versionDiff ? { versionDiff } : {}),
   };
 }
 
