@@ -901,7 +901,7 @@ export default function UploadPage() {
                     })
                   );
                   const ocrRes = await fetch(
-                    netlifyFunctionUrl("extract-pdf-ocr"),
+                    netlifyFunctionUrl("analyze-estimate"),
                     {
                       method: "POST",
                       headers: {
@@ -909,6 +909,7 @@ export default function UploadPage() {
                         Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
                       },
                       body: JSON.stringify({
+                        mode: "extract_only",
                         images: [images[i]],
                         fileName: file.name,
                         pageNumber: i + 1,
