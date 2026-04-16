@@ -866,7 +866,7 @@ export default function UploadPage() {
           );
           try {
             const text = await extractTextFromPDF(file);
-            if (text.trim().length < 50) {
+            if (text.trim().length < 500) {
               setState((s) =>
                 withDerived(s, {
                   documents: s.documents.map((d) =>
