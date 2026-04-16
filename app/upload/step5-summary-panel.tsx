@@ -230,11 +230,12 @@ function alignClaimLine(label: string, value: string): string {
 
 const STEP5_ACTIONS_KEY = "erp_actions_step5";
 
-const ERP_RAIL_NAVY_PANEL =
-  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-4 py-3";
-const ERP_RAIL_AMBER_PANEL =
-  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white px-4 py-3";
-
+const STEP5_WHITE_PANEL =
+  "rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-4 py-3";
+const STEP5_METRIC_AMBER =
+  "rounded-none rounded-r-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#f0a050] bg-white py-3 pl-4 pr-3";
+const STEP5_METRIC_RED =
+  "rounded-none rounded-r-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#b83030] bg-white py-3 pl-4 pr-3";
 function strategyRationaleFromAnalysis(
   analysis: AnalysisResult | null,
   strategy: string | null
@@ -386,7 +387,7 @@ export function Step5SummaryPanel({
     : ["None listed."];
 
   const sectionHeading =
-    "mb-2 block text-[11px] font-semibold uppercase tracking-[0.07em] text-[#0f2744] border-b-[0.5px] border-[#e8e0d4] pb-2";
+    "mb-2 block text-[11px] font-semibold uppercase tracking-[0.07em] text-[#1a2a3a] border-b-[0.5px] border-[#ebebea] pb-2";
 
   const gm = a ? getSummaryIdentifiedGap(a, claimMeta) : null;
   const gapValueClass =
@@ -400,7 +401,7 @@ export function Step5SummaryPanel({
     <div className="text-[#2a3a4a]">
       <h2
         id="erp-step5-heading"
-        className="text-2xl font-bold text-[#0f2744]"
+        className="text-2xl font-bold text-[#1a2a3a]"
       >
         Step 5 — Summary
       </h2>
@@ -414,42 +415,42 @@ export function Step5SummaryPanel({
       >
         <section
           id="erp-step5-claim-block"
-          className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4"
+          className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <p className="text-xs text-[#7a8a9a]">Insured name</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {claimMeta.insuredName?.trim() || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-[#7a8a9a]">Policy number</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {claimMeta.policyNumber || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-[#7a8a9a]">Claim number</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {claimMeta.claimNumber || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-[#7a8a9a]">Date of loss</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {claimMeta.dateOfLoss || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-[#7a8a9a]">Adjuster name</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {claimMeta.adjusterName || "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-[#7a8a9a]">Carrier name</p>
-              <p className="text-sm font-medium text-[#0f2744]">
+              <p className="text-sm font-medium text-[#1a2a3a]">
                 {carrierNameDisplay}
               </p>
             </div>
@@ -458,37 +459,35 @@ export function Step5SummaryPanel({
 
         <section id="erp-step5-gap-card" className="flex flex-col gap-3">
           <h3 className={sectionHeading}>Identified gap</h3>
-          <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-3 pl-4 pr-3">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-[22px] font-medium text-[#0f2744]">
-                  {a ? formatMoney(a.carrierAmount) : "—"}
-                </p>
-                <p className="mt-1 text-xs text-[#7a8a9a]">Carrier amount</p>
-              </div>
-              <div>
-                <p className="text-[22px] font-medium text-[#0f2744]">
-                  {gm
-                    ? `${formatMoney(gm.displayLow)} – ${formatMoney(gm.displayHigh)}`
-                    : "—"}
-                </p>
-                <p className="mt-1 text-xs text-[#7a8a9a]">True loss range</p>
-              </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className={STEP5_METRIC_AMBER}>
+              <p className="text-[22px] font-medium text-[#1a2a3a]">
+                {a ? formatMoney(a.carrierAmount) : "—"}
+              </p>
+              <p className="mt-1 text-xs text-[#7a8a9a]">Carrier amount</p>
+            </div>
+            <div className={STEP5_METRIC_AMBER}>
+              <p className="text-[22px] font-medium text-[#1a2a3a]">
+                {gm
+                  ? `${formatMoney(gm.displayLow)} – ${formatMoney(gm.displayHigh)}`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-xs text-[#7a8a9a]">True loss range</p>
             </div>
           </div>
-          <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-white py-3 pl-4 pr-3">
+          <div className={STEP5_METRIC_RED}>
             <div>
               <p className={gapValueClass}>{gm ? gm.estimatedGapLabel : "—"}</p>
-              <p className="mt-1 text-xs text-[#7a8a9a]">Estimated gap</p>
+              <p className="mt-1 text-xs text-[#9a9a94]">Estimated gap</p>
             </div>
           </div>
         </section>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-0">
-            <div className="border-b border-[#e8e0d4] pb-3">
+            <div className="border-b border-[#ebebea] pb-3">
               <h3 className={sectionHeading}>Scope omissions</h3>
-              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.scopeOmissions?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -514,9 +513,9 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-[#e8e0d4] pb-3">
+            <div className="border-b border-[#ebebea] pb-3">
               <h3 className={sectionHeading}>Pricing suppression flags</h3>
-              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.pricingFlags?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -542,9 +541,9 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-[#e8e0d4] pb-3">
+            <div className="border-b border-[#ebebea] pb-3">
               <h3 className={sectionHeading}>Code upgrade gaps</h3>
-              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.codeUpgradeGaps?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -570,9 +569,9 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-[#e8e0d4] pb-3">
+            <div className="border-b border-[#ebebea] pb-3">
               <h3 className={sectionHeading}>O&amp;P findings</h3>
-              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.opFindings?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -598,9 +597,9 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-[#e8e0d4] pb-3 last:border-0 last:pb-0">
+            <div className="border-b border-[#ebebea] pb-3 last:border-0 last:pb-0">
               <h3 className={sectionHeading}>Procedural defects</h3>
-              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.proceduralDefects?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -631,29 +630,29 @@ export function Step5SummaryPanel({
             {comparison && (
               <section
                 id="erp-step5-comparison-block"
-                className="mb-4 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4"
+                className="mb-4 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4"
               >
                 <h3 className={sectionHeading}>Comparison totals</h3>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white py-2 pl-3 pr-2">
-                    <p className="text-xl font-medium text-[#0f2744]">
+                  <div className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white py-2 pl-3 pr-2">
+                    <p className="text-xl font-medium text-[#1a2a3a]">
                       {formatMoney(comparison.totalCarrier)}
                     </p>
                     <p className="mt-1 text-xs text-[#7a8a9a]">Total carrier</p>
                   </div>
-                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-2 pl-3 pr-2">
-                    <p className="text-xl font-medium text-[#0f2744]">
+                  <div className={STEP5_METRIC_AMBER}>
+                    <p className="text-xl font-medium text-[#1a2a3a]">
                       {formatMoney(comparison.totalContractor)}
                     </p>
                     <p className="mt-1 text-xs text-[#7a8a9a]">
                       Total contractor / recon
                     </p>
                   </div>
-                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-white py-2 pl-3 pr-2">
+                  <div className={STEP5_METRIC_RED}>
                     <p className="text-xl font-medium text-[#b83030]">
                       {formatMoney(comparison.totalDelta)}
                     </p>
-                    <p className="mt-1 text-xs text-[#7a8a9a]">Total delta</p>
+                    <p className="mt-1 text-xs text-[#9a9a94]">Total delta</p>
                   </div>
                 </div>
               </section>
@@ -661,11 +660,11 @@ export function Step5SummaryPanel({
 
             <section
               id="erp-step5-strategy-block"
-              className="border-b border-[#e8e0d4] pb-3"
+              className="border-b border-[#ebebea] pb-3"
             >
               <h3 className={sectionHeading}>Selected strategy</h3>
-              <div className={`${ERP_RAIL_AMBER_PANEL} mt-1`}>
-                <p className="py-2 text-sm font-medium text-[#0f2744]">
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                <p className="py-2 text-sm font-medium text-[#1a2a3a]">
                   {strategy ? formatStrategyLabel(strategy) : "—"}
                 </p>
                 <p className="text-sm text-[#7a8a9a]">
@@ -676,7 +675,7 @@ export function Step5SummaryPanel({
 
             <section className="pb-2 pt-2">
               <h3 className={sectionHeading}>Action items</h3>
-              <div className={`${ERP_RAIL_AMBER_PANEL} mt-1`}>
+              <div className={`${STEP5_WHITE_PANEL} mt-1`}>
                 {!a?.actionItems?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
                 ) : (
@@ -705,9 +704,9 @@ export function Step5SummaryPanel({
           </div>
         </div>
 
-        <section className="border-b border-[#e8e0d4] pb-3">
+        <section className="border-b border-[#ebebea] pb-3">
           <h3 className={sectionHeading}>Required documents</h3>
-          <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+          <div className={`${STEP5_WHITE_PANEL} mt-1`}>
             {!a?.requiredDocuments?.length ? (
               <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
@@ -735,7 +734,7 @@ export function Step5SummaryPanel({
 
         <section className="pb-2">
           <h3 className={sectionHeading}>Escalation options</h3>
-          <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
+          <div className={`${STEP5_WHITE_PANEL} mt-1`}>
             {!a?.escalationOptions?.length ? (
               <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
@@ -762,11 +761,11 @@ export function Step5SummaryPanel({
         </section>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3 border-t border-[#e8e0d4] pt-6">
+      <div className="mt-8 flex flex-wrap gap-3 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step5-download-pdf"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={() => void downloadPdf()}
         >
           Download PDF
@@ -774,18 +773,18 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-download-word"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={() => void downloadWord()}
         >
           Download Word
         </button>
       </div>
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step5-back"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={onBack}
         >
           Back
@@ -793,7 +792,7 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-go-to-letter"
           type="button"
-          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95"
+          className="erp-btn-cta"
           onClick={onGoToLetter}
         >
           Generate Letter (Optional)
@@ -801,7 +800,7 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-start-over"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={onStartOver}
         >
           Start over

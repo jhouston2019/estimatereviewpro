@@ -243,7 +243,7 @@ export function Step6LetterPanel({
     <div className="text-[#2a3a4a]">
       <h2
         id="erp-step6-heading"
-        className="text-2xl font-bold text-[#0f2744]"
+        className="text-2xl font-bold text-[#1a2a3a]"
       >
         Step 6 — Letter
       </h2>
@@ -269,10 +269,10 @@ export function Step6LetterPanel({
                   onLetterTypeChange(opt.value);
                 }
               }}
-              className={`cursor-pointer rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] p-4 text-left text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
+              className={`cursor-pointer rounded-[10px] p-4 text-left text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0a050] ${
                 selected
-                  ? "border-l-[#d4860f] bg-[#fffbf5] text-[#0f2744]"
-                  : "border-l-[#888780] bg-white text-[#0f2744] hover:border-[#c8d4e0]"
+                  ? "border-2 border-[#f0a050] bg-[#fffaf4] text-[#1a2a3a]"
+                  : "border-[0.5px] border-[#e0e0dc] bg-white text-[#1a2a3a] hover:border-[#c8d4e0]"
               }`}
             >
               {opt.label}
@@ -286,7 +286,7 @@ export function Step6LetterPanel({
           id="erp-step6-generate"
           type="button"
           disabled={!letterType || generateLoading}
-          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="erp-btn-cta disabled:cursor-not-allowed"
           onClick={() => void onGenerate()}
         >
           {generateLoading ? "Generating…" : "Generate"}
@@ -294,8 +294,8 @@ export function Step6LetterPanel({
       </div>
 
       {showLetterEditor && (
-        <div className="mt-10 space-y-6 border-t border-[#e8e0d4] pt-8">
-          <div className="space-y-6 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4 md:p-5">
+        <div className="mt-10 space-y-6 border-t-[0.5px] border-[#1e3f6e] pt-8">
+          <div className="space-y-6 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4 md:p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label
@@ -308,7 +308,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-insured-name"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.insured}
                 onChange={(e) => patchField("insured", e.target.value)}
               />
@@ -324,7 +324,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-policy-number"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.policy}
                 onChange={(e) => patchField("policy", e.target.value)}
               />
@@ -340,7 +340,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-claim-number"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.claim}
                 onChange={(e) => patchField("claim", e.target.value)}
               />
@@ -355,7 +355,7 @@ export function Step6LetterPanel({
               <input
                 id="erp-step6-ph-date-of-loss"
                 type="date"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.dol}
                 onChange={(e) => patchField("dol", e.target.value)}
               />
@@ -371,7 +371,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-adjuster-name"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.adjuster}
                 onChange={(e) => patchField("adjuster", e.target.value)}
               />
@@ -387,7 +387,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-carrier-name"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.carrier}
                 onChange={(e) => patchField("carrier", e.target.value)}
               />
@@ -403,7 +403,7 @@ export function Step6LetterPanel({
                 id="erp-step6-ph-disputed-amount"
                 type="text"
                 autoComplete="off"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.amount}
                 onChange={(e) => patchField("amount", e.target.value)}
               />
@@ -418,7 +418,7 @@ export function Step6LetterPanel({
               <input
                 id="erp-step6-ph-response-deadline"
                 type="date"
-                className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                 value={f.deadline}
                 onChange={(e) => patchField("deadline", e.target.value)}
               />
@@ -428,7 +428,7 @@ export function Step6LetterPanel({
           <button
             id="erp-step6-apply-placeholders"
             type="button"
-            className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+            className="erp-btn-ghost-panel"
             onClick={applyPlaceholders}
           >
             Apply placeholders to letter
@@ -436,7 +436,7 @@ export function Step6LetterPanel({
 
           <label
             htmlFor="erp-step6-letter-editor"
-            className="block text-sm font-semibold text-[#0f2744]"
+            className="mb-2 block border-b-[0.5px] border-[#ebebea] pb-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-[#1a2a3a]"
           >
             Letter
           </label>
@@ -444,7 +444,7 @@ export function Step6LetterPanel({
             id="erp-step6-letter-editor"
             rows={18}
             spellCheck={false}
-            className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+            className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
             value={letterRaw ?? ""}
             onChange={onEditorChange}
           />
@@ -461,7 +461,7 @@ export function Step6LetterPanel({
             <button
               id="erp-step6-copy-letter"
               type="button"
-              className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+              className="erp-btn-ghost-panel"
               onClick={() => void copyLetter()}
             >
               Copy letter
@@ -469,7 +469,7 @@ export function Step6LetterPanel({
             <button
               id="erp-step6-download-pdf"
               type="button"
-              className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+              className="erp-btn-ghost-panel"
               onClick={() => void downloadPdf()}
             >
               Download PDF
@@ -477,7 +477,7 @@ export function Step6LetterPanel({
             <button
               id="erp-step6-download-word"
               type="button"
-              className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+              className="erp-btn-ghost-panel"
               onClick={() => void downloadWord()}
             >
               Download Word
@@ -486,11 +486,11 @@ export function Step6LetterPanel({
         </div>
       )}
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step6-back"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={onBack}
         >
           Back
@@ -498,7 +498,7 @@ export function Step6LetterPanel({
         <button
           id="erp-step6-start-over"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={onStartOver}
         >
           Start over

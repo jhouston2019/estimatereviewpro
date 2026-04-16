@@ -131,14 +131,14 @@ export function Step4StrategyPanel({
     <div className="text-[#2a3a4a]">
       <h2
         id="erp-step4-heading"
-        className="text-2xl font-bold text-[#0f2744]"
+        className="text-2xl font-bold text-[#1a2a3a]"
       >
         Step 4 — Strategy
       </h2>
 
       <aside
         id="erp-step4-auto-rationale"
-        className="mt-6 rounded-[10px] border border-[#d4c9b8] bg-white p-4 text-sm leading-relaxed text-[#2a3a4a]"
+        className="mt-6 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4 text-sm leading-relaxed text-[#2a3a4a]"
       >
         {analysis ? (
           buildAutoRationale(analysis)
@@ -165,44 +165,44 @@ export function Step4StrategyPanel({
                   onStrategyChange(code);
                 }
               }}
-              className={`relative cursor-pointer rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
+              className={`relative cursor-pointer rounded-[10px] p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0a050] ${
                 selected
-                  ? "border-l-[#d4860f] bg-[#fffbf5] shadow-sm"
-                  : "border-l-[#888780] bg-white hover:border-[#c8d4e0]"
+                  ? "border-2 border-[#f0a050] bg-[#fffaf4] shadow-sm"
+                  : "border-[0.5px] border-[#e0e0dc] bg-white hover:border-[#c8d4e0]"
               }`}
             >
               {recommended && (
-                <span className="absolute right-3 top-3 rounded-full bg-[#d4860f] px-2 py-0.5 text-xs font-semibold text-white">
+                <span className="absolute right-3 top-3 rounded-full bg-[#f0a050] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
                   Recommended
                 </span>
               )}
               <div
                 id={`erp-step4-card-${key}-title`}
-                className="pr-24 text-base font-semibold text-[#0f2744]"
+                className="pr-24 text-base font-semibold text-[#1a2a3a]"
               >
                 {formatStrategyLabel(code)}
               </div>
               <p
                 id={`erp-step4-card-${key}-rationale`}
-                className="mt-2 text-sm text-[#7a8a9a]"
+                className="mt-2 text-sm text-[#6a7a8a]"
               >
                 {cardRationale(code, analysis)}
               </p>
               <p
                 id={`erp-step4-card-${key}-risk`}
-                className="mt-2 text-sm text-[#7a8a9a]"
+                className="mt-2 text-sm text-[#9a9a94]"
               >
                 {cardRisk(analysis)}
               </p>
               <p
                 id={`erp-step4-card-${key}-outcome`}
-                className="mt-2 text-sm text-[#2a3a4a]"
+                className="mt-2 text-sm text-[#6a7a8a]"
               >
                 {cardOutcome(code, analysis)}
               </p>
               <div
                 id={`erp-step4-card-${key}-select`}
-                className={`mt-3 text-sm font-semibold ${selected ? "text-[#d4860f]" : "text-[#2c5a8a]"}`}
+                className={`mt-3 text-sm font-semibold ${selected ? "text-[#f0a050]" : "text-[#1e3f6e]"}`}
               >
                 {selected ? "Selected" : "Click this card to select"}
               </div>
@@ -212,7 +212,7 @@ export function Step4StrategyPanel({
       </div>
 
       {analysis?.recommendedStrategy ? (
-        <div className="mt-8 w-full rounded-[10px] bg-[#0f2744] px-[18px] py-4">
+        <div className="mt-8 w-full rounded-[10px] border border-[#1e3f6e] bg-[#0a1e38] px-[18px] py-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-[#6a9ac0]">
             Recommended strategy
           </p>
@@ -223,17 +223,17 @@ export function Step4StrategyPanel({
             Based on your analysis outputs and modeled figures. Choose a card
             above to confirm or override (not legal advice).
           </p>
-          <div className="mt-3 inline-flex rounded-md bg-[#d4860f] px-3 py-1 text-xs font-semibold text-white">
+          <div className="mt-3 inline-flex rounded-md bg-[#f0a050] px-3 py-1 text-xs font-semibold text-white">
             {formatStrategyLabel(analysis.recommendedStrategy)}
           </div>
         </div>
       ) : null}
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step4-back"
           type="button"
-          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
+          className="erp-btn-ghost-panel"
           onClick={onBack}
         >
           Back
@@ -242,7 +242,7 @@ export function Step4StrategyPanel({
           id="erp-step4-next"
           type="button"
           disabled={!strategy || continueLoading}
-          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="erp-btn-cta disabled:cursor-not-allowed"
           onClick={() => void handleNext()}
         >
           {continueLoading ? "Generating…" : "Continue"}

@@ -1,4 +1,62 @@
-/* Estimate Review Pro — wizard-only design tokens (imported from upload/page.tsx) */
+/* Estimate Review Pro — wizard visual tokens (imported from upload/page.tsx) */
+
+.erp-btn-ghost {
+  background-color: transparent !important;
+  border: 1px solid #a0b8d0 !important;
+  color: #e8f0f8 !important;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-weight: 500;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.erp-btn-ghost:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+/* Secondary on white step panels (navy page + white cards) */
+.erp-btn-ghost-panel {
+  background-color: transparent !important;
+  border: 1px solid #a0b8d0 !important;
+  color: #1a2a3a !important;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-weight: 500;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.erp-btn-ghost-panel:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+.erp-btn-cta {
+  background-color: #f0a050 !important;
+  border: none !important;
+  color: #ffffff !important;
+  border-radius: 6px;
+  padding: 8px 22px;
+  font-weight: 500;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.erp-btn-cta:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
 
 .erp-action-check {
   appearance: none;
@@ -8,7 +66,7 @@
   flex-shrink: 0;
   border: 1.5px solid #a0b4c8;
   border-radius: 4px;
-  background: #ffffff;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -37,7 +95,7 @@
 }
 
 .erp-find-dot-amber {
-  background: #d4860f;
+  background: #f0a050;
 }
 
 .erp-find-dot-red {

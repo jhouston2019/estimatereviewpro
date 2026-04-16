@@ -383,17 +383,6 @@ function withDerived(
   return { ...next, ...deriveLegacyFields(next) };
 }
 
-/** Left accent rail on document cards from Side role (visual only). */
-function step1DocumentCardClassName(side: ClaimDocumentSide): string {
-  const rail =
-    side === "CARRIER"
-      ? "border-l-[#1e3f6e]"
-      : side === "CONTRACTOR" || side === "PUBLIC_ADJUSTER"
-        ? "border-l-[#d4860f]"
-        : "border-l-[#888780]";
-  return `rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] ${rail} bg-white p-4 md:p-5`;
-}
-
 function documentSideSubtitle(side: ClaimDocumentSide): string {
   switch (side) {
     case "CARRIER":
@@ -428,11 +417,11 @@ function extractStatusMessage(doc: ClaimDocument): string {
 }
 
 function extractStatusClassName(doc: ClaimDocument): string {
-  if (doc.extractStatus === "extracting") return "text-sm text-[#d4860f]";
+  if (doc.extractStatus === "extracting") return "text-sm text-[#f0a050]";
   if (doc.extractStatus === "error") return "text-sm text-[#b83030]";
-  if (doc.extractStatus === "done") return "text-sm text-[#2c5a8a]";
-  if (doc.statusMessage?.trim()) return "text-sm text-[#d4860f]";
-  return "text-sm text-[#7a8a9a]";
+  if (doc.extractStatus === "done") return "text-sm text-[#1e3f6e]";
+  if (doc.statusMessage?.trim()) return "text-sm text-[#f0a050]";
+  return "text-sm text-[#7a6040]";
 }
 
 const PDFJS_CDN_VERSION = "4.4.168";
@@ -1753,37 +1742,34 @@ export default function UploadPage() {
   );
 
   return (
-    <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#f5f3ef]">
+    <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
       <Suspense fallback={null}>
         <PaymentSuccessHandler onSuccess={setPaymentSuccess} />
       </Suspense>
 
-      <header className="sticky top-0 z-[100] bg-[#0f2744] text-white shadow-sm">
+      <header className="sticky top-0 z-[100] border-b border-[#1e3f6e] bg-[#091c33] text-white">
         <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#d4860f]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#f0a050]">
               <span className="text-xs font-black text-white">ER</span>
             </div>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-[#e8f0f8]">
               Estimate Review Pro
             </span>
           </Link>
           <nav className="flex items-center gap-5 text-sm font-medium">
             <Link
               href="/pricing"
-              className="text-[#8aacc8] transition hover:text-white"
+              className="text-[#8aacc8] transition hover:text-[#e8f0f8]"
             >
               Pricing
             </Link>
-            <Link
-              href="/login"
-              className="rounded-md border border-[#c8d4e0] bg-white px-3 py-1.5 text-sm font-semibold text-[#0f2744] transition hover:bg-[#f5f3ef]"
-            >
+            <Link href="/login" className="erp-btn-ghost inline-block text-center no-underline">
               Log in
             </Link>
           </nav>
         </div>
-        <div className="border-t border-white/10">
+        <div>
           <div className="mx-auto max-w-6xl px-6 py-2">
             <nav
               id="erp-wizard-step-indicator"
@@ -1798,7 +1784,7 @@ export default function UploadPage() {
                   <div
                     key={n}
                     className={`flex flex-col items-center border-b-2 pb-1.5 ${
-                      isActive ? "border-[#d4860f]" : "border-transparent"
+                      isActive ? "border-[#f0a050]" : "border-transparent"
                     }`}
                     aria-current={isActive ? "step" : undefined}
                   >
@@ -1806,9 +1792,9 @@ export default function UploadPage() {
                       <span
                         className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
                           isActive
-                            ? "bg-[#d4860f] text-white"
+                            ? "bg-[#f0a050] text-white"
                             : isDone
-                              ? "bg-[#2c5a8a] text-white"
+                              ? "bg-[#2c5a8a] text-[#a8c8e8]"
                               : "bg-[#1e3f6e] text-[#6a8fb8]"
                         }`}
                       >
@@ -1831,11 +1817,11 @@ export default function UploadPage() {
               })}
             </nav>
             <div
-              className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#e4dcd0]"
+              className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#e8e8e4]"
               aria-hidden
             >
               <div
-                className="h-full rounded-full bg-[#d4860f] transition-[width] duration-300 ease-out"
+                className="h-full rounded-full bg-[#f0a050] transition-[width] duration-300 ease-out"
                 style={{ width: `${(currentStep / 6) * 100}%` }}
               />
             </div>
@@ -1843,9 +1829,9 @@ export default function UploadPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#2a3a4a]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
         {paymentSuccess && (
-          <div className="mb-6 rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-[#fdf0d5] p-4 text-center">
+          <div className="mb-6 rounded-[10px] border border-[#e0e0dc] bg-[#fdf0d5] p-4 text-center">
             <p className="text-base font-semibold text-[#8a5500]">
               Payment successful. You can continue in the wizard below.
             </p>
@@ -1854,7 +1840,7 @@ export default function UploadPage() {
 
         <div
           id="erp-wizard-root"
-          className="relative flex flex-col gap-8 rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4 [color-scheme:light]"
+          className="relative flex flex-col gap-8 border-0 bg-transparent px-0 py-0 [color-scheme:light]"
           data-access-token={state.accessToken === "bypass" ? "bypass" : "set"}
         >
           <div
@@ -1880,18 +1866,18 @@ export default function UploadPage() {
             >
               <h2
                 id="erp-step1-heading"
-                className="text-2xl font-bold text-[#0f2744]"
+                className="text-2xl font-bold text-[#e8f0f8]"
               >
                 Step 1 — Input
               </h2>
-              <p className="mt-2 text-sm text-[#7a8a9a]">
+              <p className="mt-2 text-sm text-[#6a8fb8]">
                 Add up to 10 estimate documents (carrier, contractor, or other
                 sides), then complete claim metadata. Structured findings only.
               </p>
 
               <div className="mt-8 space-y-10">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#0f2744]">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#a8c4e0]">
                     Claim documents
                   </h3>
                   <div className="mt-4 space-y-6">
@@ -1899,24 +1885,24 @@ export default function UploadPage() {
                       <div
                         key={doc.id}
                         id={`erp-step1-doc-${idx}`}
-                        className={step1DocumentCardClassName(doc.side)}
+                        className="rounded-[10px] border border-[#d4c4a8] bg-[#e8dcc8] p-4 md:p-5"
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-[#2a3a4a]">
+                          <span className="text-sm font-semibold text-[#2a1f0f]">
                             Document {idx + 1}
                           </span>
                           <button
                             type="button"
                             disabled={state.documents.length <= 1}
                             onClick={() => removeDocumentSlot(doc.id)}
-                            className="text-xs font-medium text-[#8a2020] hover:text-[#b83030] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="text-xs font-medium text-[#b83030] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             Remove
                           </button>
                         </div>
                         <div className="space-y-4">
                           <div>
-                            <span className="mb-2 block text-sm font-medium text-[#7a8a9a]">
+                            <span className="mb-2 block text-sm font-medium text-[#7a6040]">
                               File (PDF, images, or .txt)
                             </span>
                             <div
@@ -1971,10 +1957,10 @@ export default function UploadPage() {
                                   );
                                 }
                               }}
-                              className={`block cursor-pointer rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm text-[#7a8a9a] transition-colors ${
+                              className={`block cursor-pointer rounded-lg border-[1.5px] border-dashed px-4 py-8 text-center text-sm text-[#7a6040] transition-colors ${
                                 docDragOverIndex === idx
-                                  ? "border-[#d4860f] bg-[#fdf0d5]"
-                                  : "border-[#d4c9b8] bg-white hover:border-[#d4860f]/50"
+                                  ? "border-[#f0a050] bg-white"
+                                  : "border-[#b4a080] bg-white hover:border-[#f0a050]/70"
                               }`}
                             >
                               Drag and drop PDF, image, or .txt file here, or
@@ -2011,7 +1997,7 @@ export default function UploadPage() {
                               <button
                                 type="button"
                                 onClick={() => setShowXactimateHelp((v) => !v)}
-                                className="text-xs text-[#2c5a8a] hover:text-[#d4860f] underline-offset-2 hover:underline focus:outline-none"
+                                className="text-xs text-[#6a8fb8] hover:text-[#f0a050] underline-offset-2 hover:underline focus:outline-none"
                               >
                                 {showXactimateHelp
                                   ? "Hide Xactimate export guide ▲"
@@ -2020,7 +2006,7 @@ export default function UploadPage() {
                               {showXactimateHelp && (
                                 <div
                                   id="erp-step1-xactimate-help"
-                                  className="mt-2 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4 text-sm text-[#7a8a9a]"
+                                  className="mt-2 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4 text-sm text-[#7a8a9a]"
                                 >
                                   <p className="mb-2 font-medium text-[#2a3a4a]">
                                     Exporting from Xactimate
@@ -2051,7 +2037,7 @@ export default function UploadPage() {
                                     </li>
                                     <li>Paste into the text field below</li>
                                   </ol>
-                                  <p className="mt-3 border-t border-[#e8e0d4] pt-2 text-xs text-[#7a8a9a]">
+                                  <p className="mt-3 border-t border-[#ebebea] pt-2 text-xs text-[#7a8a9a]">
                                     ESX files cannot be read directly — PDF or
                                     paste export required.
                                   </p>
@@ -2062,7 +2048,7 @@ export default function UploadPage() {
                           <div>
                             <label
                               htmlFor={step1DocPasteId(idx)}
-                              className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                              className="mb-2 block text-sm font-medium text-[#7a6040]"
                             >
                               {doc.side === "CARRIER"
                                 ? "Paste carrier estimate text"
@@ -2072,7 +2058,7 @@ export default function UploadPage() {
                               id={step1DocPasteId(idx)}
                               name={step1DocPasteId(idx)}
                               rows={idx === 0 ? 8 : 6}
-                              className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#7a8a9a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                              className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                               placeholder={
                                 doc.side === "CARRIER"
                                   ? "Paste line items and totals…"
@@ -2087,14 +2073,14 @@ export default function UploadPage() {
                           <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="min-w-0">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a8a9a]"
+                                className="mb-1 block text-xs font-medium text-[#7a6040]"
                                 htmlFor={`erp-step1-doc-${idx}-side`}
                               >
                                 Side
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-side`}
-                                className="w-full min-w-0 rounded-lg border border-[#d4c9b8] bg-white px-2 py-2 text-sm text-[#2a3a4a]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#c4b090] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={doc.side}
                                 onChange={(e) =>
                                   updateDocumentSide(
@@ -2117,7 +2103,7 @@ export default function UploadPage() {
                             <div className="min-w-0">
                               <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <label
-                                  className="text-xs font-medium text-[#7a8a9a]"
+                                  className="text-xs font-medium text-[#7a6040]"
                                   htmlFor={`erp-step1-doc-${idx}-category`}
                                 >
                                   Category
@@ -2130,7 +2116,7 @@ export default function UploadPage() {
                               </div>
                               <select
                                 id={`erp-step1-doc-${idx}-category`}
-                                className="w-full min-w-0 rounded-lg border border-[#d4c9b8] bg-white px-2 py-2 text-sm text-[#2a3a4a]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#c4b090] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={categorySelectValue(doc.category)}
                                 onChange={(e) =>
                                   updateDocumentCategory(
@@ -2152,14 +2138,14 @@ export default function UploadPage() {
                             </div>
                             <div className="min-w-0">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a8a9a]"
+                                className="mb-1 block text-xs font-medium text-[#7a6040]"
                                 htmlFor={`erp-step1-doc-${idx}-version`}
                               >
                                 Version
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-version`}
-                                className="w-full min-w-0 rounded-lg border border-[#d4c9b8] bg-white px-2 py-2 text-sm text-[#2a3a4a]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#c4b090] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={versionSelectValue(doc.version)}
                                 onChange={(e) =>
                                   updateDocumentVersion(
@@ -2181,25 +2167,25 @@ export default function UploadPage() {
                             </div>
                             <div className="min-w-0 sm:col-span-2 lg:col-span-1">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a8a9a]"
+                                className="mb-1 block text-xs font-medium text-[#7a6040]"
                                 htmlFor={`erp-step1-doc-${idx}-label`}
                               >
                                 Label{" "}
-                                <span className="font-normal text-[#7a8a9a]">
+                                <span className="font-normal text-[#7a6040]/80">
                                   (optional)
                                 </span>
                               </label>
                               <input
                                 id={`erp-step1-doc-${idx}-label`}
                                 type="text"
-                                className="w-full max-w-md rounded-md border border-[#d4c9b8] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#7a8a9a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                                className="w-full max-w-md rounded-md border-[0.5px] border-[#c4b090] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 placeholder="Optional note — defaults from selections"
                                 value={doc.label}
                                 onChange={(e) =>
                                   updateDocumentLabel(doc.id, e.target.value)
                                 }
                               />
-                              <p className="mt-1 text-xs text-[#7a8a9a]">
+                              <p className="mt-1 text-xs text-[#7a6040]">
                                 {documentSideSubtitle(doc.side)}
                               </p>
                             </div>
@@ -2212,17 +2198,18 @@ export default function UploadPage() {
                       type="button"
                       disabled={state.documents.length >= 10}
                       onClick={addDocumentSlot}
-                      className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="erp-btn-ghost disabled:cursor-not-allowed"
                     >
                       Add Document
                     </button>
                   </div>
                 </div>
 
+                <div className="rounded-[10px] border border-[#d4c4a8] bg-[#e8dcc8] p-4 md:p-5 space-y-6">
                 <div>
                   <label
                     htmlFor="erp-step1-insured-name"
-                    className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                    className="mb-2 block text-sm font-medium text-[#7a6040]"
                   >
                     Insured name <span className="text-[#b83030]">*</span>
                     {autoExtractedFields.has("insuredName") && (
@@ -2236,7 +2223,7 @@ export default function UploadPage() {
                     type="text"
                     required
                     autoComplete="name"
-                    className="w-full max-w-xl rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                    className="w-full max-w-xl rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                     value={state.claimMeta.insuredName}
                     onChange={(e) =>
                       patchClaimMeta({ insuredName: e.target.value })
@@ -2245,21 +2232,21 @@ export default function UploadPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-[#0f2744]">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#a8c4e0]">
                     Claim metadata
                   </h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div>
                       <label
                         htmlFor="erp-step1-claim-type"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Claim type <span className="text-[#b83030]">*</span>
                       </label>
                       <select
                         id="erp-step1-claim-type"
                         required
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimType}
                         onChange={(e) =>
                           patchClaimMeta({ claimType: e.target.value })
@@ -2275,14 +2262,14 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-state"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         State <span className="text-[#b83030]">*</span>
                       </label>
                       <select
                         id="erp-step1-state"
                         required
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.state}
                         onChange={(e) =>
                           patchClaimMeta({ state: e.target.value })
@@ -2299,7 +2286,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-policy-number"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Policy number <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("policyNumber") && (
@@ -2313,7 +2300,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.policyNumber}
                         onChange={(e) =>
                           patchClaimMeta({ policyNumber: e.target.value })
@@ -2323,7 +2310,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-claim-number"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Claim number <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("claimNumber") && (
@@ -2337,7 +2324,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimNumber}
                         onChange={(e) =>
                           patchClaimMeta({ claimNumber: e.target.value })
@@ -2347,7 +2334,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-date-of-loss"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Date of loss <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("dateOfLoss") && (
@@ -2360,7 +2347,7 @@ export default function UploadPage() {
                         id="erp-step1-date-of-loss"
                         type="date"
                         required
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.dateOfLoss}
                         onChange={(e) =>
                           patchClaimMeta({ dateOfLoss: e.target.value })
@@ -2370,7 +2357,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-adjuster-name"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Adjuster name
                         {autoExtractedFields.has("adjusterName") && (
@@ -2383,7 +2370,7 @@ export default function UploadPage() {
                         id="erp-step1-adjuster-name"
                         type="text"
                         autoComplete="off"
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.adjusterName}
                         onChange={(e) =>
                           patchClaimMeta({ adjusterName: e.target.value })
@@ -2393,7 +2380,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-carrier-name"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Carrier name
                         {autoExtractedFields.has("carrierName") && (
@@ -2406,7 +2393,7 @@ export default function UploadPage() {
                         id="erp-step1-carrier-name"
                         type="text"
                         autoComplete="organization"
-                        className="w-full rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.carrierName}
                         onChange={(e) =>
                           patchClaimMeta({ carrierName: e.target.value })
@@ -2416,14 +2403,14 @@ export default function UploadPage() {
                     <div className="md:col-span-2">
                       <label
                         htmlFor="erp-step1-response-deadline"
-                        className="mb-2 block text-sm font-medium text-[#7a8a9a]"
+                        className="mb-2 block text-sm font-medium text-[#7a6040]"
                       >
                         Response deadline (optional)
                       </label>
                       <input
                         id="erp-step1-response-deadline"
                         type="date"
-                        className="w-full max-w-xs rounded-lg border border-[#d4c9b8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+                        className="w-full max-w-xs rounded-lg border-[0.5px] border-[#c4b090] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.responseDeadline}
                         onChange={(e) =>
                           patchClaimMeta({ responseDeadline: e.target.value })
@@ -2432,21 +2419,22 @@ export default function UploadPage() {
                     </div>
                   </div>
                 </div>
+                </div>
 
                 {submitError && (
                   <p
-                    className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
+                    className="rounded-[10px] border border-[#e0e0dc] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
                     role="alert"
                   >
                     {submitError}
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
                   <button
                     id="erp-step1-load-demo"
                     type="button"
-                    className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
+                    className="erp-btn-ghost"
                     onClick={onLoadDemo}
                   >
                     Load Demo Estimate
@@ -2454,7 +2442,7 @@ export default function UploadPage() {
                   <button
                     id="erp-step1-reset"
                     type="button"
-                    className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
+                    className="erp-btn-ghost"
                     onClick={onResetStep1}
                   >
                     Clear Step 1
@@ -2463,7 +2451,7 @@ export default function UploadPage() {
                     id="erp-step1-submit"
                     type="submit"
                     disabled={submitLoading}
-                    className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="erp-btn-cta disabled:cursor-not-allowed"
                   >
                     {submitLoading ? "Analyzing…" : "Continue"}
                   </button>
@@ -2476,7 +2464,7 @@ export default function UploadPage() {
             id="erp-step2-panel"
             hidden={currentStep !== 2}
             aria-hidden={currentStep !== 2}
-            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step2AnalysisPanel
               accessToken={state.accessToken}
@@ -2491,7 +2479,7 @@ export default function UploadPage() {
             id="erp-step3-panel"
             hidden={currentStep !== 3}
             aria-hidden={currentStep !== 3}
-            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step3ComparisonPanel
               accessToken={state.accessToken}
@@ -2511,7 +2499,7 @@ export default function UploadPage() {
             id="erp-step4-panel"
             hidden={currentStep !== 4}
             aria-hidden={currentStep !== 4}
-            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step4StrategyPanel
               analysis={state.analysis}
@@ -2526,7 +2514,7 @@ export default function UploadPage() {
             id="erp-step5-panel"
             hidden={currentStep !== 5}
             aria-hidden={currentStep !== 5}
-            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step5SummaryPanel
               accessToken={state.accessToken}
@@ -2544,7 +2532,7 @@ export default function UploadPage() {
             id="erp-step6-panel"
             hidden={currentStep !== 6}
             aria-hidden={currentStep !== 6}
-            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step6LetterPanel
               accessToken={state.accessToken}
