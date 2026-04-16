@@ -9,9 +9,6 @@
 [functions]
   node_bundler = "esbuild"
 
-[functions."extract-pdf-ocr"]
-  external_node_modules = ["openai"]
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

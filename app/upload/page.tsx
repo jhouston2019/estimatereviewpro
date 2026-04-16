@@ -171,17 +171,26 @@ function versionSelectValue(
 
 function autoDetectCategory(text: string): ClaimDocumentCategory {
   const t = text.toLowerCase();
+
+  // Only tag as ALE if it's clearly the primary subject of the document
+  // Require multiple ALE indicators or a clear section header
+  const aleScore = [
+    /^ale\b/m.test(t),
+    /additional living expense/i.test(t),
+    /loss of use/i.test(t),
+    /temporary housing/i.test(t),
+    /hotel.*receipt/i.test(t),
+    /rental.*reimbursement/i.test(t),
+  ].filter(Boolean).length;
+
+  if (aleScore >= 2) return "ALE";
+
   if (
     /contents|personal property|furniture|appliance|clothing|electronics/.test(
       t
     )
   ) {
     return "CONTENTS";
-  }
-  if (
-    /additional living|ale|loss of use|hotel|temporary housing/.test(t)
-  ) {
-    return "ALE";
   }
   if (
     /mitigation|water extraction|drying|dehumidif|mold remediation/.test(t)
