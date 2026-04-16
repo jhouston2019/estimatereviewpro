@@ -539,6 +539,13 @@ const CLAIM_META_AUTO_EXTRACT_KEYS = new Set([
 function extractClaimMetaFromText(
   rawText: string
 ): Partial<ClaimMetaFields> {
+  console.log(
+    "EXTRACT DEBUG:",
+    rawText.slice(
+      rawText.toLowerCase().indexOf("net claim") - 50,
+      rawText.toLowerCase().indexOf("net claim") + 200
+    )
+  );
   let text = rawText.replace(/\t/g, " ");
   for (let pass = 0; pass < 20; pass++) {
     const before = text;
