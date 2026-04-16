@@ -312,15 +312,6 @@ export function Step6LetterPanel({
 
       {showLetterEditor && (
         <div className="mt-10 space-y-6 border-t border-slate-200 pt-8">
-          <aside
-            id="erp-step6-attorney-note"
-            className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
-          >
-            Attorney review: this tool does not provide legal advice. Have a
-            qualified attorney review any letter before you rely on it. This
-            note is not included in exports.
-          </aside>
-
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label

@@ -596,7 +596,7 @@ function extractClaimMetaFromText(
   );
 
   const amountMatch = text.match(
-    /(?:rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total)\s*[:\$]?\s*\$?([\d,]+\.?\d{0,2})/i
+    /(?:net\s+claim|amount\s+due|total\s+amount\s+due|rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total|estimate\s+total|total\s+repairs?|total\s+replacement)\s*[:\$]?\s*\$?([\d,]+\.?\d{0,2})/i
   );
 
   let dateOfLoss = "";
