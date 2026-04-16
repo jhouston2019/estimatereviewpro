@@ -383,6 +383,17 @@ function withDerived(
   return { ...next, ...deriveLegacyFields(next) };
 }
 
+/** Left accent rail on document cards from Side role (visual only). */
+function step1DocumentCardClassName(side: ClaimDocumentSide): string {
+  const rail =
+    side === "CARRIER"
+      ? "border-l-[#1e3f6e]"
+      : side === "CONTRACTOR" || side === "PUBLIC_ADJUSTER"
+        ? "border-l-[#d4860f]"
+        : "border-l-[#888780]";
+  return `rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] ${rail} bg-white p-4 md:p-5`;
+}
+
 function documentSideSubtitle(side: ClaimDocumentSide): string {
   switch (side) {
     case "CARRIER":
@@ -1834,7 +1845,7 @@ export default function UploadPage() {
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#2a3a4a]">
         {paymentSuccess && (
-          <div className="mb-6 rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-[#fdf0d5] p-4 text-center">
+          <div className="mb-6 rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-[#fdf0d5] p-4 text-center">
             <p className="text-base font-semibold text-[#8a5500]">
               Payment successful. You can continue in the wizard below.
             </p>
@@ -1843,7 +1854,7 @@ export default function UploadPage() {
 
         <div
           id="erp-wizard-root"
-          className="relative flex flex-col gap-8 rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4 [color-scheme:light]"
+          className="relative flex flex-col gap-8 rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4 [color-scheme:light]"
           data-access-token={state.accessToken === "bypass" ? "bypass" : "set"}
         >
           <div
@@ -1888,7 +1899,7 @@ export default function UploadPage() {
                       <div
                         key={doc.id}
                         id={`erp-step1-doc-${idx}`}
-                        className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white p-4 md:p-5"
+                        className={step1DocumentCardClassName(doc.side)}
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-[#2a3a4a]">
@@ -2009,7 +2020,7 @@ export default function UploadPage() {
                               {showXactimateHelp && (
                                 <div
                                   id="erp-step1-xactimate-help"
-                                  className="mt-2 rounded-[10px] border border-[#d4c9b8] bg-white p-4 text-sm text-[#7a8a9a]"
+                                  className="mt-2 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4 text-sm text-[#7a8a9a]"
                                 >
                                   <p className="mb-2 font-medium text-[#2a3a4a]">
                                     Exporting from Xactimate
@@ -2424,7 +2435,7 @@ export default function UploadPage() {
 
                 {submitError && (
                   <p
-                    className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
+                    className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
                     role="alert"
                   >
                     {submitError}
@@ -2465,7 +2476,7 @@ export default function UploadPage() {
             id="erp-step2-panel"
             hidden={currentStep !== 2}
             aria-hidden={currentStep !== 2}
-            className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
           >
             <Step2AnalysisPanel
               accessToken={state.accessToken}
@@ -2480,7 +2491,7 @@ export default function UploadPage() {
             id="erp-step3-panel"
             hidden={currentStep !== 3}
             aria-hidden={currentStep !== 3}
-            className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
           >
             <Step3ComparisonPanel
               accessToken={state.accessToken}
@@ -2500,7 +2511,7 @@ export default function UploadPage() {
             id="erp-step4-panel"
             hidden={currentStep !== 4}
             aria-hidden={currentStep !== 4}
-            className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
           >
             <Step4StrategyPanel
               analysis={state.analysis}
@@ -2515,7 +2526,7 @@ export default function UploadPage() {
             id="erp-step5-panel"
             hidden={currentStep !== 5}
             aria-hidden={currentStep !== 5}
-            className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
           >
             <Step5SummaryPanel
               accessToken={state.accessToken}
@@ -2533,7 +2544,7 @@ export default function UploadPage() {
             id="erp-step6-panel"
             hidden={currentStep !== 6}
             aria-hidden={currentStep !== 6}
-            className="rounded-[10px] border-[0.5px] border-[#d4c9b8] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
+            className="rounded-r-[10px] border-[0.5px] border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-[18px] py-4 md:px-[18px] md:py-4"
           >
             <Step6LetterPanel
               accessToken={state.accessToken}

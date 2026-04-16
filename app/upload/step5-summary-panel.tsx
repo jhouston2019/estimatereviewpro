@@ -230,6 +230,11 @@ function alignClaimLine(label: string, value: string): string {
 
 const STEP5_ACTIONS_KEY = "erp_actions_step5";
 
+const ERP_RAIL_NAVY_PANEL =
+  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-4 py-3";
+const ERP_RAIL_AMBER_PANEL =
+  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white px-4 py-3";
+
 function strategyRationaleFromAnalysis(
   analysis: AnalysisResult | null,
   strategy: string | null
@@ -409,7 +414,7 @@ export function Step5SummaryPanel({
       >
         <section
           id="erp-step5-claim-block"
-          className="rounded-[10px] border border-[#d4c9b8] bg-white p-4"
+          className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
@@ -483,7 +488,7 @@ export function Step5SummaryPanel({
           <div className="flex flex-col gap-0">
             <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Scope omissions</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {!a?.scopeOmissions?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -511,7 +516,7 @@ export function Step5SummaryPanel({
 
             <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Pricing suppression flags</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {!a?.pricingFlags?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -539,7 +544,7 @@ export function Step5SummaryPanel({
 
             <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Code upgrade gaps</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {!a?.codeUpgradeGaps?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -567,7 +572,7 @@ export function Step5SummaryPanel({
 
             <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>O&amp;P findings</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {!a?.opFindings?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -595,7 +600,7 @@ export function Step5SummaryPanel({
 
             <div className="border-b border-[#e8e0d4] pb-3 last:border-0 last:pb-0">
               <h3 className={sectionHeading}>Procedural defects</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {!a?.proceduralDefects?.length ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -626,11 +631,11 @@ export function Step5SummaryPanel({
             {comparison && (
               <section
                 id="erp-step5-comparison-block"
-                className="mb-4 rounded-[10px] border border-[#d4c9b8] bg-white p-4"
+                className="mb-4 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4"
               >
                 <h3 className={sectionHeading}>Comparison totals</h3>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-2 pl-3 pr-2">
+                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white py-2 pl-3 pr-2">
                     <p className="text-xl font-medium text-[#0f2744]">
                       {formatMoney(comparison.totalCarrier)}
                     </p>
@@ -659,46 +664,50 @@ export function Step5SummaryPanel({
               className="border-b border-[#e8e0d4] pb-3"
             >
               <h3 className={sectionHeading}>Selected strategy</h3>
-              <p className="py-2 text-sm font-medium text-[#0f2744]">
-                {strategy ? formatStrategyLabel(strategy) : "—"}
-              </p>
-              <p className="text-sm text-[#7a8a9a]">
-                {strategyRationaleFromAnalysis(analysis, strategy)}
-              </p>
+              <div className={`${ERP_RAIL_AMBER_PANEL} mt-1`}>
+                <p className="py-2 text-sm font-medium text-[#0f2744]">
+                  {strategy ? formatStrategyLabel(strategy) : "—"}
+                </p>
+                <p className="text-sm text-[#7a8a9a]">
+                  {strategyRationaleFromAnalysis(analysis, strategy)}
+                </p>
+              </div>
             </section>
 
             <section className="pb-2 pt-2">
               <h3 className={sectionHeading}>Action items</h3>
-              {!a?.actionItems?.length ? (
-                <p className="py-2 text-sm italic text-[#7a8a9a]">None listed.</p>
-              ) : (
-                <ul
-                  id="erp-step5-action-list"
-                  className="flex flex-col gap-1.5 py-2 text-[#2a3a4a]"
-                >
-                  {actions.map((t, i) => (
-                    <li key={i} id={`erp-step5-action-${i + 1}`} className="flex gap-2">
-                      <input
-                        type="checkbox"
-                        className="erp-action-check"
-                        checked={checkedActions.has(i)}
-                        onChange={() => toggleActionItem(i)}
-                        aria-labelledby={`erp-step5-action-label-${i + 1}`}
-                      />
-                      <span id={`erp-step5-action-label-${i + 1}`} className="text-sm">
-                        {t}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className={`${ERP_RAIL_AMBER_PANEL} mt-1`}>
+                {!a?.actionItems?.length ? (
+                  <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
+                ) : (
+                  <ul
+                    id="erp-step5-action-list"
+                    className="flex flex-col gap-1.5 text-[#2a3a4a]"
+                  >
+                    {actions.map((t, i) => (
+                      <li key={i} id={`erp-step5-action-${i + 1}`} className="flex gap-2">
+                        <input
+                          type="checkbox"
+                          className="erp-action-check"
+                          checked={checkedActions.has(i)}
+                          onChange={() => toggleActionItem(i)}
+                          aria-labelledby={`erp-step5-action-label-${i + 1}`}
+                        />
+                        <span id={`erp-step5-action-label-${i + 1}`} className="text-sm">
+                          {t}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </section>
           </div>
         </div>
 
         <section className="border-b border-[#e8e0d4] pb-3">
           <h3 className={sectionHeading}>Required documents</h3>
-          <div className="py-2">
+          <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
             {!a?.requiredDocuments?.length ? (
               <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
@@ -726,7 +735,7 @@ export function Step5SummaryPanel({
 
         <section className="pb-2">
           <h3 className={sectionHeading}>Escalation options</h3>
-          <div className="py-2">
+          <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
             {!a?.escalationOptions?.length ? (
               <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (

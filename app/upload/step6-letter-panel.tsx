@@ -269,10 +269,10 @@ export function Step6LetterPanel({
                   onLetterTypeChange(opt.value);
                 }
               }}
-              className={`cursor-pointer rounded-[10px] border p-4 text-left text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
+              className={`cursor-pointer rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] p-4 text-left text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
                 selected
-                  ? "border-[#d4860f] bg-[#fffbf5] text-[#0f2744]"
-                  : "border-[#d4c9b8] bg-white text-[#0f2744] hover:border-[#c8d4e0]"
+                  ? "border-l-[#d4860f] bg-[#fffbf5] text-[#0f2744]"
+                  : "border-l-[#888780] bg-white text-[#0f2744] hover:border-[#c8d4e0]"
               }`}
             >
               {opt.label}
@@ -295,6 +295,7 @@ export function Step6LetterPanel({
 
       {showLetterEditor && (
         <div className="mt-10 space-y-6 border-t border-[#e8e0d4] pt-8">
+          <div className="space-y-6 rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white p-4 md:p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label
@@ -443,10 +444,12 @@ export function Step6LetterPanel({
             id="erp-step6-letter-editor"
             rows={18}
             spellCheck={false}
-            className="w-full rounded-[10px] border border-[#d4c9b8] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
+            className="w-full rounded-md border border-[#d4c9b8] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#d4860f] focus:outline-none focus:ring-1 focus:ring-[#d4860f]"
             value={letterRaw ?? ""}
             onChange={onEditorChange}
           />
+
+          </div>
 
           <pre
             id="erp-step6-letter-export-source"

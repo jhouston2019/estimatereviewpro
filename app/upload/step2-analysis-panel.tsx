@@ -224,6 +224,11 @@ type Props = {
 
 const STEP2_ACTIONS_KEY = "erp_actions_step2";
 
+const ERP_RAIL_NAVY_PANEL =
+  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white px-4 py-3";
+const ERP_RAIL_AMBER_PANEL =
+  "rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white px-4 py-3";
+
 export function Step2AnalysisPanel({
   accessToken,
   analysis,
@@ -467,10 +472,12 @@ export function Step2AnalysisPanel({
 
         {comparison && (
           <div className="mt-4 border-b border-[#e8e0d4] pb-3 text-sm text-[#2a3a4a]">
-            <h3 className={sectionHeading}>Comparison</h3>
-            <p className="py-2 text-sm text-[#7a8a9a]">
-              {comparisonSummaryLine(comparison)}
-            </p>
+            <div className={ERP_RAIL_NAVY_PANEL}>
+              <h3 className={sectionHeading}>Comparison</h3>
+              <p className="py-2 text-sm text-[#7a8a9a]">
+                {comparisonSummaryLine(comparison)}
+              </p>
+            </div>
           </div>
         )}
 
@@ -505,7 +512,7 @@ export function Step2AnalysisPanel({
 
             <section id="erp-step2-card-procedural" className="text-sm">
               <h3 className={sectionHeading}>Procedural defects</h3>
-              <div className="py-2">
+              <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                 {analysis.proceduralDefects.length === 0 ? (
                   <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
@@ -533,7 +540,7 @@ export function Step2AnalysisPanel({
             <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-scope-omissions">
                 <h3 className={sectionHeading}>Scope omissions</h3>
-                <div className="py-2">
+                <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                   {!analysis.scopeOmissions.length ? (
                     <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
@@ -560,7 +567,7 @@ export function Step2AnalysisPanel({
             <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-pricing">
                 <h3 className={sectionHeading}>Pricing flags</h3>
-                <div className="py-2">
+                <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                   {!analysis.pricingFlags.length ? (
                     <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
@@ -587,7 +594,7 @@ export function Step2AnalysisPanel({
             <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-code-upgrade">
                 <h3 className={sectionHeading}>Code / upgrade gaps</h3>
-                <div className="py-2">
+                <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                   {!analysis.codeUpgradeGaps.length ? (
                     <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
@@ -614,7 +621,7 @@ export function Step2AnalysisPanel({
             <div className="border-b border-[#e8e0d4] pb-3 last:border-0 last:pb-0">
               <section id="erp-step2-card-op">
                 <h3 className={sectionHeading}>OP / supplement findings</h3>
-                <div className="py-2">
+                <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
                   {!analysis.opFindings.length ? (
                     <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
@@ -646,7 +653,7 @@ export function Step2AnalysisPanel({
             className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Dispute angles</h3>
-            <div className="py-2">
+            <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
               {!analysis.disputeAngles.length ? (
                 <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
@@ -674,24 +681,26 @@ export function Step2AnalysisPanel({
             className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Action items</h3>
-            {!analysis.actionItems.length ? (
-              <p className="py-2 text-sm italic text-[#7a8a9a]">None listed.</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5 py-2 text-sm text-[#2a3a4a]">
-                {actionItems.map((t, i) => (
-                  <li key={i} id={`erp-step2-action-${i + 1}`} className="flex gap-2">
-                    <input
-                      type="checkbox"
-                      className="erp-action-check"
-                      checked={checkedActions.has(i)}
-                      onChange={() => toggleActionItem(i)}
-                      aria-labelledby={`erp-step2-action-label-${i + 1}`}
-                    />
-                    <span id={`erp-step2-action-label-${i + 1}`}>{t}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className={`${ERP_RAIL_AMBER_PANEL} mt-1`}>
+              {!analysis.actionItems.length ? (
+                <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5 text-sm text-[#2a3a4a]">
+                  {actionItems.map((t, i) => (
+                    <li key={i} id={`erp-step2-action-${i + 1}`} className="flex gap-2">
+                      <input
+                        type="checkbox"
+                        className="erp-action-check"
+                        checked={checkedActions.has(i)}
+                        onChange={() => toggleActionItem(i)}
+                        aria-labelledby={`erp-step2-action-label-${i + 1}`}
+                      />
+                      <span id={`erp-step2-action-label-${i + 1}`}>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </section>
 
           <section
@@ -699,7 +708,7 @@ export function Step2AnalysisPanel({
             className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Required documents</h3>
-            <div className="py-2">
+            <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
               {!analysis.requiredDocuments.length ? (
                 <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
@@ -727,7 +736,7 @@ export function Step2AnalysisPanel({
             className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Escalation options</h3>
-            <div className="py-2">
+            <div className={`${ERP_RAIL_NAVY_PANEL} mt-1`}>
               {!analysis.escalationOptions.length ? (
                 <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (

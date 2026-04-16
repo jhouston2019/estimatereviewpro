@@ -253,7 +253,7 @@ export function Step3ComparisonPanel({
             </button>
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-[10px] border border-[#d4c9b8] bg-white">
+          <div className="mt-6 overflow-x-auto rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#1e3f6e] bg-white">
             <table
               id="erp-step3-table"
               className="w-full min-w-[720px] border-collapse bg-white text-left text-sm text-[#2a3a4a]"
@@ -384,7 +384,12 @@ export function Step3ComparisonPanel({
                   </tr>
                 ))}
                 <tr className="border-t-2 border-[#d4c9b8] bg-[#f5f3ef] font-semibold">
-                  <td colSpan={2} className="bg-[#f5f3ef] px-3 py-3 text-[#0f2744]">
+                  <td
+                    colSpan={2}
+                    className={`bg-[#f5f3ef] px-3 py-3 text-[#0f2744] border-l-[3px] ${
+                      totalDelta > 0 ? "border-l-[#b83030]" : "border-l-[#888780]"
+                    }`}
+                  >
                     Totals
                   </td>
                   <td

@@ -165,10 +165,10 @@ export function Step4StrategyPanel({
                   onStrategyChange(code);
                 }
               }}
-              className={`relative cursor-pointer rounded-[10px] border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
+              className={`relative cursor-pointer rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4860f] ${
                 selected
-                  ? "border-[#d4860f] bg-[#fffbf5] shadow-sm"
-                  : "border-[#d4c9b8] bg-white hover:border-[#c8d4e0]"
+                  ? "border-l-[#d4860f] bg-[#fffbf5] shadow-sm"
+                  : "border-l-[#888780] bg-white hover:border-[#c8d4e0]"
               }`}
             >
               {recommended && (
