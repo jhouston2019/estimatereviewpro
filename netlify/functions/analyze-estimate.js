@@ -202,6 +202,8 @@ exports.handler = async (event) => {
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
 
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
   let body;
   try {
     body = JSON.parse(event.body || "{}");
@@ -226,6 +228,11 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: "No images provided", code: "NO_IMAGES" }),
       };
     }
+    console.log(
+      "OCR ENV CHECK:",
+      !!process.env.OPENAI_API_KEY,
+      Object.keys(process.env).filter((k) => k.includes("OPENAI"))
+    );
     if (!process.env.OPENAI_API_KEY) {
       return {
         statusCode: 500,
@@ -236,7 +243,6 @@ exports.handler = async (event) => {
         }),
       };
     }
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const content = [
       {
         type: "text",
@@ -306,7 +312,6 @@ exports.handler = async (event) => {
     };
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const userMessage = buildUserPayload(body, carrierAmount);
   const systemPrompt = buildAnalysisSystemPrompt(body.category);
 
