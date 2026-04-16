@@ -228,7 +228,7 @@ exports.handler = async (event) => {
     }
     if (!process.env.OPENAI_API_KEY) {
       return {
-        statusCode: 503,
+        statusCode: 500,
         headers: corsHeaders,
         body: JSON.stringify({
           error: "OpenAI API key not configured",
@@ -248,8 +248,12 @@ exports.handler = async (event) => {
       })),
     ];
     try {
+      console.log("OCR INPUT:", {
+        imageCount: images.length,
+        firstImageSize: images[0]?.length,
+      });
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         max_tokens: 4000,
         messages: [{ role: "user", content }],
       });
@@ -264,11 +268,15 @@ exports.handler = async (event) => {
         }),
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      console.error("OCR ERROR:", err);
       return {
         statusCode: 500,
         headers: corsHeaders,
-        body: JSON.stringify({ error: message, code: "EXTRACTION_FAILED" }),
+        body: JSON.stringify({
+          error: err.message || String(err),
+          stack: err.stack || null,
+          code: "OCR_FAILED",
+        }),
       };
     }
   }
@@ -289,7 +297,7 @@ exports.handler = async (event) => {
 
   if (!process.env.OPENAI_API_KEY) {
     return {
-      statusCode: 503,
+      statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({
         error: "OpenAI API key not configured",
