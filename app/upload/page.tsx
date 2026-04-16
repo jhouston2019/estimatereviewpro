@@ -325,7 +325,6 @@ type WizardState = {
     claimNumber: string;
     dateOfLoss: string;
     adjusterName: string;
-    disputedAmount: string;
     responseDeadline: string;
   };
   analysis: AnalysisResult | null;
@@ -512,7 +511,6 @@ const initialWizardState = (): WizardState => {
       claimNumber: "",
       dateOfLoss: "",
       adjusterName: "",
-      disputedAmount: "",
       responseDeadline: "",
     },
     analysis: null,
@@ -533,19 +531,11 @@ const CLAIM_META_AUTO_EXTRACT_KEYS = new Set([
   "adjusterName",
   "carrierName",
   "insuredName",
-  "disputedAmount",
 ]);
 
 function extractClaimMetaFromText(
   rawText: string
 ): Partial<ClaimMetaFields> {
-  console.log(
-    "EXTRACT DEBUG:",
-    rawText.slice(
-      rawText.toLowerCase().indexOf("net claim") - 50,
-      rawText.toLowerCase().indexOf("net claim") + 200
-    )
-  );
   let text = rawText.replace(/\t/g, " ");
   for (let pass = 0; pass < 20; pass++) {
     const before = text;
@@ -602,17 +592,6 @@ function extractClaimMetaFromText(
     /(?:insured|customer|property\s+owner|owner)\s*[:\-]?\s*([A-Za-z][A-Za-z\s\.\,]{2,50})(?:\s*(?:property|address|phone|\n|$))/i
   );
 
-  // First try: look for Net Claim specifically (common Xactimate final payable line)
-  let amountMatch = text.match(
-    /net\s+claim\s*[\w\s\(\)\.,$]{0,60}?\$\s*([\d,]{4,}\.?\d{0,2})/i
-  );
-  // Second try: broader label match
-  if (!amountMatch) {
-    amountMatch = text.match(
-      /(?:amount\s+due|total\s+amount\s+due|rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total|estimate\s+total|net\s+claim)\s*[:\$]?\s*\$?\s*([\d,]+\.?\d{0,2})/i
-    );
-  }
-
   let dateOfLoss = "";
   if (dolMatch?.[1]) {
     try {
@@ -632,7 +611,6 @@ function extractClaimMetaFromText(
     adjusterName: adjusterMatch?.[1]?.trim() ?? "",
     carrierName: carrierMatch?.[1]?.trim() ?? "",
     insuredName: insuredMatch?.[1]?.trim() ?? "",
-    disputedAmount: amountMatch?.[1]?.replace(/,/g, "") ?? "",
   };
 }
 
@@ -652,10 +630,6 @@ function mergeExtractedClaimMeta(
     extractedKeys.push(key);
   }
   return { claimMeta: next, extractedKeys };
-}
-
-function normalizeDisputedAmount(raw: string): string {
-  return raw.replace(/\$/g, "").replace(/,/g, "").replace(/\s/g, "").trim();
 }
 
 function getDocumentText(carrierText: string | null): string {
@@ -1271,7 +1245,6 @@ export default function UploadPage() {
           claimNumber: "DEMO-CLM-9921",
           dateOfLoss: "2024-05-10",
           adjusterName: "Demo Adjuster",
-          disputedAmount: "18200.00",
           responseDeadline: "2026-05-01",
         },
         prefillApplied: false,
@@ -1370,7 +1343,6 @@ export default function UploadPage() {
         claimNumber: m.claimNumber,
         dateOfLoss: m.dateOfLoss,
         adjusterName: m.adjusterName,
-        disputedAmount: m.disputedAmount,
         responseDeadline: m.responseDeadline || "",
       };
 
@@ -2394,34 +2366,6 @@ export default function UploadPage() {
                         onChange={(e) =>
                           patchClaimMeta({ carrierName: e.target.value })
                         }
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="erp-step1-disputed-amount"
-                        className="mb-2 block text-sm font-medium text-[#475569]"
-                      >
-                        Disputed amount
-                        {autoExtractedFields.has("disputedAmount") && (
-                          <span className="ml-2 text-xs font-normal text-green-600">
-                            Auto-extracted
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        id="erp-step1-disputed-amount"
-                        type="text"
-                        inputMode="decimal"
-                        autoComplete="off"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-[#1E293B] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={state.claimMeta.disputedAmount}
-                        onChange={(e) =>
-                          patchClaimMeta({ disputedAmount: e.target.value })
-                        }
-                        onBlur={(e) => {
-                          const n = normalizeDisputedAmount(e.target.value);
-                          patchClaimMeta({ disputedAmount: n });
-                        }}
                       />
                     </div>
                     <div className="md:col-span-2">

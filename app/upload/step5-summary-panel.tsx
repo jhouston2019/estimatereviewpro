@@ -17,7 +17,6 @@ type ClaimMeta = {
   claimNumber: string;
   dateOfLoss: string;
   adjusterName: string;
-  disputedAmount: string;
   responseDeadline: string;
 };
 

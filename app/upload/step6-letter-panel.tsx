@@ -34,25 +34,8 @@ export type ClaimMetaSlice = {
   claimNumber: string;
   dateOfLoss: string;
   adjusterName: string;
-  disputedAmount: string;
   responseDeadline: string;
 };
-
-function formatDisputedAmountPlaceholder(raw: string): string {
-  const n = parseFloat(
-    String(raw || "")
-      .replace(/\$/g, "")
-      .replace(/,/g, "")
-      .replace(/\s/g, "")
-      .trim()
-  );
-  if (!Number.isFinite(n)) return raw ?? "";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(n);
-}
 
 export function letterPlaceholdersFromClaimMeta(
   meta: ClaimMetaSlice
@@ -64,7 +47,7 @@ export function letterPlaceholdersFromClaimMeta(
     dol: meta.dateOfLoss ?? "",
     adjuster: meta.adjusterName ?? "",
     carrier: meta.carrierName?.trim() ?? "",
-    amount: formatDisputedAmountPlaceholder(meta.disputedAmount ?? ""),
+    amount: "",
     deadline: meta.responseDeadline ?? "",
   };
 }
