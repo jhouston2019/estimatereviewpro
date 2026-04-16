@@ -597,7 +597,7 @@ function extractClaimMetaFromText(
 
   // First try: look for Net Claim specifically (common Xactimate final payable line)
   let amountMatch = text.match(
-    /net\s+claim\s+[\w\s\(\)\.]*?\$?\s*([\d,]+\.?\d{0,2})/i
+    /net\s+claim\s+(?:if\s+depreciation\s+is\s+recovered\s+)?[\$\s]*([\d,]{4,}\.?\d{0,2})/i
   );
   // Second try: broader label match
   if (!amountMatch) {
