@@ -595,9 +595,16 @@ function extractClaimMetaFromText(
     /(?:insured|customer|property\s+owner|owner)\s*[:\-]?\s*([A-Za-z][A-Za-z\s\.\,]{2,50})(?:\s*(?:property|address|phone|\n|$))/i
   );
 
-  const amountMatch = text.match(
-    /(?:net\s+claim|amount\s+due|total\s+amount\s+due|rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total|estimate\s+total|total\s+repairs?|total\s+replacement)\s*[:\$]?\s*\$?([\d,]+\.?\d{0,2})/i
+  // First try: look for Net Claim specifically (common Xactimate final payable line)
+  let amountMatch = text.match(
+    /net\s+claim\s+[\w\s\(\)\.]*?\$?\s*([\d,]+\.?\d{0,2})/i
   );
+  // Second try: broader label match
+  if (!amountMatch) {
+    amountMatch = text.match(
+      /(?:amount\s+due|total\s+amount\s+due|rcv|replacement\s+cost\s+value|grand\s+total|total\s+rcv|claim\s+total|estimate\s+total|net\s+claim)\s*[:\$]?\s*\$?\s*([\d,]+\.?\d{0,2})/i
+    );
+  }
 
   let dateOfLoss = "";
   if (dolMatch?.[1]) {
