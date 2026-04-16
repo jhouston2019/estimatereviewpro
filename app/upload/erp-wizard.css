@@ -1,0 +1,49 @@
+/* Estimate Review Pro — wizard-only design tokens (imported from upload/page.tsx) */
+
+.erp-action-check {
+  appearance: none;
+  margin-top: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border: 1.5px solid #a0b4c8;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.erp-action-check:checked {
+  background-color: #0f2744;
+  border-color: #0f2744;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2' d='M2 6l3 3 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px 10px;
+}
+
+.erp-action-check:checked + span {
+  color: #9aacbc;
+  text-decoration: line-through;
+}
+
+.erp-find-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  margin-right: 0.5rem;
+}
+
+.erp-find-dot-amber {
+  background: #d4860f;
+}
+
+.erp-find-dot-red {
+  background: #b83030;
+}
+
+.erp-find-dot-navy {
+  background: #1e3f6e;
+}

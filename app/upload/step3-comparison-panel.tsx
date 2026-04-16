@@ -44,9 +44,9 @@ function otherColumnHeaders(mode: string): { item: string; amt: string } {
 }
 
 function deltaClass(delta: number): string {
-  if (delta > 0) return "text-emerald-700 font-medium tabular-nums";
-  if (delta === 0) return "text-slate-500 tabular-nums";
-  return "text-red-600 font-medium tabular-nums";
+  if (delta > 0) return "text-[#b83030] font-medium tabular-nums";
+  if (delta === 0) return "text-[#7a8a9a] tabular-nums";
+  return "text-[#1e3f6e] font-medium tabular-nums";
 }
 
 function modeLineForReport(mode: string): string {
@@ -215,19 +215,19 @@ export function Step3ComparisonPanel({
     otherColumnHeaders(mode);
 
   return (
-    <div className="text-[#475569]">
+    <div className="text-[#2a3a4a]">
       <h2
         id="erp-step3-heading"
-        className="text-2xl font-bold text-[#1E293B]"
+        className="text-2xl font-bold text-[#0f2744]"
       >
         Step 3 — Comparison
       </h2>
-      <p id="erp-step3-mode-label" className="mt-2 text-sm text-[#475569]">
+      <p id="erp-step3-mode-label" className="mt-2 text-sm text-[#7a8a9a]">
         {comparison ? modeLabel(mode) : "—"}
       </p>
 
       {!comparison && (
-        <p className="mt-6 text-sm text-[#475569]">
+        <p className="mt-6 text-sm text-[#7a8a9a]">
           No comparison data available
         </p>
       )}
@@ -238,7 +238,7 @@ export function Step3ComparisonPanel({
             <button
               id="erp-step3-download-pdf"
               type="button"
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+              className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
               onClick={() => void downloadPdf()}
             >
               Download PDF
@@ -246,73 +246,73 @@ export function Step3ComparisonPanel({
             <button
               id="erp-step3-download-word"
               type="button"
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+              className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
               onClick={() => void downloadWord()}
             >
               Download Word
             </button>
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200 bg-gray-50">
+          <div className="mt-6 overflow-x-auto rounded-[10px] border border-[#d4c9b8] bg-white">
             <table
               id="erp-step3-table"
-              className="w-full min-w-[720px] border-collapse bg-gray-50 text-left text-sm text-[#1E293B]"
+              className="w-full min-w-[720px] border-collapse bg-white text-left text-sm text-[#2a3a4a]"
             >
               <thead>
-                <tr className="border-b border-slate-200 bg-gray-50">
+                <tr className="border-b border-[#e8e0d4] bg-[#f5f3ef]">
                   <th
                     id="erp-step3-colhead-trade"
                     scope="col"
-                    className="bg-gray-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#f5f3ef] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Trade
                   </th>
                   <th
                     id="erp-step3-colhead-carrier-item"
                     scope="col"
-                    className="bg-gray-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#f5f3ef] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Carrier item
                   </th>
                   <th
                     id="erp-step3-colhead-carrier-amount"
                     scope="col"
-                    className="border-r border-slate-300 bg-blue-50 px-3 py-3 font-bold text-[#475569]"
+                    className="border-r border-[#d4c9b8] bg-[#fdf6ea] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Carrier amount
                   </th>
                   <th
                     id="erp-step3-colhead-contractor-or-recon"
                     scope="col"
-                    className="bg-gray-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#f5f3ef] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     {otherItemLabel}
                   </th>
                   <th
                     id="erp-step3-colhead-contractor-or-recon-amt"
                     scope="col"
-                    className="bg-green-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#eef3f8] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     {otherAmtLabel}
                   </th>
                   <th
                     id="erp-step3-colhead-delta"
                     scope="col"
-                    className="border-r border-slate-300 bg-yellow-50 px-3 py-3 font-bold text-[#475569]"
+                    className="border-r border-[#d4c9b8] bg-[#fdf0d5]/60 px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Delta
                   </th>
                   <th
                     id="erp-step3-colhead-flag"
                     scope="col"
-                    className="bg-gray-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#f5f3ef] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Flag
                   </th>
                   <th
                     id="erp-step3-colhead-reason"
                     scope="col"
-                    className="bg-gray-50 px-3 py-3 font-bold text-[#475569]"
+                    className="bg-[#f5f3ef] px-3 py-3 font-bold text-[#0f2744]"
                   >
                     Reason
                   </th>
@@ -323,90 +323,90 @@ export function Step3ComparisonPanel({
                   <tr
                     key={n}
                     id={`erp-step3-row-${n}`}
-                    className="border-b border-slate-100 bg-gray-50"
+                    className="border-b border-[#e8e0d4] bg-white"
                   >
                     <td
                       id={`erp-step3-cell-${n}-trade`}
-                      className="bg-gray-50 px-3 py-2 align-top"
+                      className="bg-white px-3 py-2 align-top"
                     >
                       {row.trade}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-carrier-item`}
-                      className="bg-gray-50 px-3 py-2 align-top"
+                      className="bg-white px-3 py-2 align-top"
                     >
                       {row.carrierItem}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-carrier-amt`}
-                      className="border-r border-slate-300 bg-blue-50 px-3 py-2 align-top tabular-nums"
+                      className="border-r border-[#d4c9b8] bg-[#fdf6ea] px-3 py-2 align-top tabular-nums text-[#0f2744]"
                     >
                       {formatMoney(row.carrierAmount)}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-other-item`}
-                      className="bg-gray-50 px-3 py-2 align-top"
+                      className="bg-white px-3 py-2 align-top"
                     >
                       {row.contractorItem}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-other-amt`}
-                      className="bg-green-50 px-3 py-2 align-top tabular-nums"
+                      className="bg-[#eef3f8] px-3 py-2 align-top tabular-nums text-[#0f2744]"
                     >
                       {formatMoney(row.contractorAmount)}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-delta`}
-                      className={`border-r border-slate-300 bg-yellow-50 px-3 py-2 align-top ${deltaClass(row.delta)}`}
+                      className={`border-r border-[#d4c9b8] bg-[#fdf0d5]/40 px-3 py-2 align-top ${deltaClass(row.delta)}`}
                     >
                       {formatMoney(row.delta)}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-flag`}
-                      className="bg-gray-50 px-3 py-2 align-top"
+                      className="bg-white px-3 py-2 align-top"
                     >
                       {row.flagged ? (
-                        <span className="font-bold text-orange-500" aria-label="Flagged">
+                        <span className="font-bold text-[#d4860f]" aria-label="Flagged">
                           ●
                         </span>
                       ) : (
-                        <span className="text-slate-300" aria-label="Not flagged">
+                        <span className="text-[#c8d4e0]" aria-label="Not flagged">
                           –
                         </span>
                       )}
                     </td>
                     <td
                       id={`erp-step3-cell-${n}-reason`}
-                      className="bg-gray-50 px-3 py-2 align-top text-[#475569]"
+                      className="bg-white px-3 py-2 align-top text-[#7a8a9a]"
                     >
                       {row.reason}
                     </td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-slate-300 bg-gray-100 font-semibold">
-                  <td colSpan={2} className="bg-gray-100 px-3 py-3 text-[#1E293B]">
+                <tr className="border-t-2 border-[#d4c9b8] bg-[#f5f3ef] font-semibold">
+                  <td colSpan={2} className="bg-[#f5f3ef] px-3 py-3 text-[#0f2744]">
                     Totals
                   </td>
                   <td
                     id="erp-step3-total-carrier"
-                    className="border-r border-slate-300 bg-blue-50 px-3 py-3 tabular-nums text-[#1E293B]"
+                    className="border-r border-[#d4c9b8] bg-[#fdf6ea] px-3 py-3 tabular-nums text-[#0f2744]"
                   >
                     {formatMoney(totalCarrier)}
                   </td>
-                  <td className="bg-gray-100 px-3 py-3" aria-hidden />
+                  <td className="bg-[#f5f3ef] px-3 py-3" aria-hidden />
                   <td
                     id="erp-step3-total-contractor-or-recon"
-                    className="bg-green-50 px-3 py-3 tabular-nums text-[#1E293B]"
+                    className="bg-[#eef3f8] px-3 py-3 tabular-nums text-[#0f2744]"
                   >
                     {formatMoney(totalOther)}
                   </td>
                   <td
                     id="erp-step3-total-delta"
-                    className={`border-r border-slate-300 bg-yellow-50 px-3 py-3 tabular-nums ${deltaClass(totalDelta)}`}
+                    className={`border-r border-[#d4c9b8] bg-[#fdf0d5]/50 px-3 py-3 tabular-nums ${deltaClass(totalDelta)}`}
                   >
                     {formatMoney(totalDelta)}
                   </td>
-                  <td colSpan={2} className="bg-gray-100 px-3 py-3" aria-hidden />
+                  <td colSpan={2} className="bg-[#f5f3ef] px-3 py-3" aria-hidden />
                 </tr>
               </tbody>
             </table>
@@ -414,11 +414,11 @@ export function Step3ComparisonPanel({
         </>
       )}
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-slate-200 pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
         <button
           id="erp-step3-back"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
           onClick={onBack}
         >
           Back
@@ -426,7 +426,7 @@ export function Step3ComparisonPanel({
         <button
           id="erp-step3-next"
           type="button"
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95"
           onClick={onNext}
         >
           Continue

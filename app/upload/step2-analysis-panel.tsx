@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 
 export type AnalysisResult = {
@@ -209,12 +209,8 @@ export function formatStrategyLabel(code: string): string {
   return STRATEGY_DISPLAY_LABELS[key] ?? key;
 }
 
-function riskBadgeClass(risk: AnalysisResult["riskLevel"]): string {
-  if (risk === "low")
-    return "border-emerald-300 bg-emerald-50 text-emerald-800";
-  if (risk === "high")
-    return "border-red-300 bg-red-50 text-red-800";
-  return "border-amber-300 bg-amber-50 text-amber-900";
+function riskBadgeClass(_risk: AnalysisResult["riskLevel"]): string {
+  return "border-transparent bg-[#d4860f] text-white";
 }
 
 type Props = {
@@ -226,6 +222,8 @@ type Props = {
   announce: (message: string) => void;
 };
 
+const STEP2_ACTIONS_KEY = "erp_actions_step2";
+
 export function Step2AnalysisPanel({
   accessToken,
   analysis,
@@ -234,6 +232,46 @@ export function Step2AnalysisPanel({
   onNext,
   announce,
 }: Props) {
+  const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!analysis?.actionItems?.length) {
+      setCheckedActions(new Set());
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(STEP2_ACTIONS_KEY);
+      if (!raw) {
+        setCheckedActions(new Set());
+        return;
+      }
+      const arr = JSON.parse(raw) as number[];
+      const len = analysis.actionItems.length;
+      setCheckedActions(
+        new Set(arr.filter((i) => Number.isInteger(i) && i >= 0 && i < len))
+      );
+    } catch {
+      setCheckedActions(new Set());
+    }
+  }, [analysis]);
+
+  useEffect(() => {
+    if (!analysis?.actionItems?.length) return;
+    localStorage.setItem(
+      STEP2_ACTIONS_KEY,
+      JSON.stringify([...checkedActions].sort((a, b) => a - b))
+    );
+  }, [checkedActions, analysis]);
+
+  const toggleActionItem = useCallback((index: number) => {
+    setCheckedActions((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
   const downloadPdf = useCallback(async () => {
     const root = document.getElementById("erp-step2-print-root");
     if (!root) {
@@ -349,7 +387,7 @@ export function Step2AnalysisPanel({
 
   if (!analysis) {
     return (
-      <div className="text-[#475569]">
+      <div className="text-[#7a8a9a]">
         <p className="text-sm">
           No analysis loaded. Go back to Step 1 and run Continue to generate
           analysis.
@@ -358,7 +396,7 @@ export function Step2AnalysisPanel({
           <button
             id="erp-step2-back"
             type="button"
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+            className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
             onClick={onBack}
           >
             Back to Step 1
@@ -374,23 +412,25 @@ export function Step2AnalysisPanel({
   const gapDisplay =
     gapDollars > 0 ? formatMoney(gapDollars) : "Within carrier range";
   const gapNumberClass =
-    gapDollars > 0 ? "text-2xl font-bold text-green-600" : "text-2xl font-bold text-slate-400";
+    gapDollars > 0
+      ? "text-[22px] font-medium text-[#b83030]"
+      : "text-[22px] font-medium text-[#7a8a9a]";
 
   const sectionHeading =
-    "text-xs font-semibold uppercase tracking-wide text-slate-500 border-l-4 border-blue-400 pl-2";
+    "mb-2 block text-[11px] font-semibold uppercase tracking-[0.07em] text-[#0f2744] border-b-[0.5px] border-[#e8e0d4] pb-2";
 
   return (
-    <div className="text-[#475569]">
+    <div className="text-[#2a3a4a]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h2 className="text-2xl font-bold text-[#1E293B]">Step 2 — Analysis</h2>
+        <h2 className="text-2xl font-bold text-[#0f2744]">Step 2 — Analysis</h2>
         <div
           id="erp-step2-badge-risk"
-          className={`inline-flex shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold ${riskBadgeClass(analysis.riskLevel)}`}
+          className={`inline-flex shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold ${riskBadgeClass(analysis.riskLevel)}`}
         >
           {`Risk level: ${analysis.riskLevel.charAt(0).toUpperCase()}${analysis.riskLevel.slice(1)}`}
         </div>
       </div>
-      <p className="mt-2 text-sm text-[#475569]">
+      <p className="mt-2 text-sm text-[#7a8a9a]">
         Structured findings from the carrier estimate.
       </p>
 
@@ -398,7 +438,7 @@ export function Step2AnalysisPanel({
         <button
           id="erp-step2-download-analysis-pdf"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
           onClick={() => void downloadPdf()}
         >
           Download PDF
@@ -406,7 +446,7 @@ export function Step2AnalysisPanel({
         <button
           id="erp-step2-download-analysis-word"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
           onClick={() => void downloadWord()}
         >
           Download Word
@@ -415,20 +455,20 @@ export function Step2AnalysisPanel({
 
       <div
         id="erp-step2-print-root"
-        className="mt-8 border-t border-slate-200 pt-8 text-[#1E293B]"
+        className="mt-8 border-t border-[#e8e0d4] pt-8 text-[#2a3a4a]"
       >
-        <p className="text-sm font-semibold text-[#475569]">
+        <p className="text-sm font-semibold text-[#7a8a9a]">
           Estimate Review Pro — Analysis Summary
         </p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-[#7a8a9a]">
           Risk level:{" "}
           {`${analysis.riskLevel.charAt(0).toUpperCase()}${analysis.riskLevel.slice(1)}`}
         </p>
 
         {comparison && (
-          <div className="mt-4 border-b border-slate-100 pb-3 text-sm text-[#1E293B]">
+          <div className="mt-4 border-b border-[#e8e0d4] pb-3 text-sm text-[#2a3a4a]">
             <h3 className={sectionHeading}>Comparison</h3>
-            <p className="py-2 text-sm text-[#475569]">
+            <p className="py-2 text-sm text-[#7a8a9a]">
               {comparisonSummaryLine(comparison)}
             </p>
           </div>
@@ -436,28 +476,29 @@ export function Step2AnalysisPanel({
 
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
-            <section
-              id="erp-step2-card-gap"
-              className="rounded-xl bg-blue-50 p-6 text-[#1E293B]"
-            >
+            <section id="erp-step2-card-gap" className="flex flex-col gap-3">
               <h3 className={sectionHeading}>Carrier vs true loss range</h3>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">
-                    {formatMoney(analysis.carrierAmount)}
-                  </p>
-                  <p className="text-xs text-slate-500">Carrier amount</p>
+              <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-3 pl-4 pr-3">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[22px] font-medium text-[#0f2744]">
+                      {formatMoney(analysis.carrierAmount)}
+                    </p>
+                    <p className="text-xs text-[#7a8a9a]">Carrier amount</p>
+                  </div>
+                  <div>
+                    <p className="text-[22px] font-medium text-[#0f2744]">
+                      {formatMoney(analysis.trueLossRange.low)} –{" "}
+                      {formatMoney(analysis.trueLossRange.high)}
+                    </p>
+                    <p className="text-xs text-[#7a8a9a]">True loss range</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-blue-700">
-                    {formatMoney(analysis.trueLossRange.low)} –{" "}
-                    {formatMoney(analysis.trueLossRange.high)}
-                  </p>
-                  <p className="text-xs text-slate-500">True loss range</p>
-                </div>
+              </div>
+              <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-white py-3 pl-4 pr-3">
                 <div>
                   <p className={gapNumberClass}>{gapDisplay}</p>
-                  <p className="text-xs text-slate-500">Estimated gap</p>
+                  <p className="text-xs text-[#7a8a9a]">Estimated gap</p>
                 </div>
               </div>
             </section>
@@ -466,12 +507,20 @@ export function Step2AnalysisPanel({
               <h3 className={sectionHeading}>Procedural defects</h3>
               <div className="py-2">
                 {analysis.proceduralDefects.length === 0 ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
-                  <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                  <ul className="flex flex-col gap-1.5">
                     {procItems.map((t, i) => (
-                      <li key={i} id={`erp-step2-proc-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step2-proc-${i + 1}`}
+                        className="flex gap-2 text-sm text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-red"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -481,17 +530,25 @@ export function Step2AnalysisPanel({
           </div>
 
           <div className="flex flex-col gap-0">
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-scope-omissions">
                 <h3 className={sectionHeading}>Scope omissions</h3>
                 <div className="py-2">
                   {!analysis.scopeOmissions.length ? (
-                    <p className="text-sm italic text-slate-400">None identified.</p>
+                    <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
-                    <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                    <ul className="flex flex-col gap-1.5">
                       {omissionItems.map((t, i) => (
-                        <li key={i} id={`erp-step2-omission-${i + 1}`}>
-                          {t}
+                        <li
+                          key={i}
+                          id={`erp-step2-omission-${i + 1}`}
+                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-amber"
+                            aria-hidden
+                          />
+                          <span>{t}</span>
                         </li>
                       ))}
                     </ul>
@@ -500,17 +557,25 @@ export function Step2AnalysisPanel({
               </section>
             </div>
 
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-pricing">
                 <h3 className={sectionHeading}>Pricing flags</h3>
                 <div className="py-2">
                   {!analysis.pricingFlags.length ? (
-                    <p className="text-sm italic text-slate-400">None identified.</p>
+                    <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
-                    <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                    <ul className="flex flex-col gap-1.5">
                       {pricingItems.map((t, i) => (
-                        <li key={i} id={`erp-step2-pricing-${i + 1}`}>
-                          {t}
+                        <li
+                          key={i}
+                          id={`erp-step2-pricing-${i + 1}`}
+                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-amber"
+                            aria-hidden
+                          />
+                          <span>{t}</span>
                         </li>
                       ))}
                     </ul>
@@ -519,17 +584,25 @@ export function Step2AnalysisPanel({
               </section>
             </div>
 
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <section id="erp-step2-card-code-upgrade">
                 <h3 className={sectionHeading}>Code / upgrade gaps</h3>
                 <div className="py-2">
                   {!analysis.codeUpgradeGaps.length ? (
-                    <p className="text-sm italic text-slate-400">None identified.</p>
+                    <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
-                    <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                    <ul className="flex flex-col gap-1.5">
                       {codeItems.map((t, i) => (
-                        <li key={i} id={`erp-step2-code-${i + 1}`}>
-                          {t}
+                        <li
+                          key={i}
+                          id={`erp-step2-code-${i + 1}`}
+                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-navy"
+                            aria-hidden
+                          />
+                          <span>{t}</span>
                         </li>
                       ))}
                     </ul>
@@ -538,17 +611,25 @@ export function Step2AnalysisPanel({
               </section>
             </div>
 
-            <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+            <div className="border-b border-[#e8e0d4] pb-3 last:border-0 last:pb-0">
               <section id="erp-step2-card-op">
                 <h3 className={sectionHeading}>OP / supplement findings</h3>
                 <div className="py-2">
                   {!analysis.opFindings.length ? (
-                    <p className="text-sm italic text-slate-400">None identified.</p>
+                    <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                   ) : (
-                    <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                    <ul className="flex flex-col gap-1.5">
                       {opItems.map((t, i) => (
-                        <li key={i} id={`erp-step2-op-${i + 1}`}>
-                          {t}
+                        <li
+                          key={i}
+                          id={`erp-step2-op-${i + 1}`}
+                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-navy"
+                            aria-hidden
+                          />
+                          <span>{t}</span>
                         </li>
                       ))}
                     </ul>
@@ -562,17 +643,25 @@ export function Step2AnalysisPanel({
         <div className="mt-6 space-y-0">
           <section
             id="erp-step2-section-dispute-angles"
-            className="border-b border-slate-100 pb-3"
+            className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Dispute angles</h3>
             <div className="py-2">
               {!analysis.disputeAngles.length ? (
-                <p className="text-sm italic text-slate-400">None listed.</p>
+                <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
-                <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                <ul className="flex flex-col gap-1.5">
                   {angleItems.map((t, i) => (
-                    <li key={i} id={`erp-step2-angle-${i + 1}`}>
-                      {t}
+                    <li
+                      key={i}
+                      id={`erp-step2-angle-${i + 1}`}
+                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                    >
+                      <span
+                        className="erp-find-dot erp-find-dot-red"
+                        aria-hidden
+                      />
+                      <span>{t}</span>
                     </li>
                   ))}
                 </ul>
@@ -582,17 +671,23 @@ export function Step2AnalysisPanel({
 
           <section
             id="erp-step2-section-action-items"
-            className="border-b border-slate-100 pb-3"
+            className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Action items</h3>
             {!analysis.actionItems.length ? (
-              <p className="py-2 text-sm italic text-slate-400">None listed.</p>
+              <p className="py-2 text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
-              <ul className="space-y-0.5 py-2 text-sm text-[#1E293B]">
+              <ul className="flex flex-col gap-1.5 py-2 text-sm text-[#2a3a4a]">
                 {actionItems.map((t, i) => (
                   <li key={i} id={`erp-step2-action-${i + 1}`} className="flex gap-2">
-                    <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{t}</span>
+                    <input
+                      type="checkbox"
+                      className="erp-action-check"
+                      checked={checkedActions.has(i)}
+                      onChange={() => toggleActionItem(i)}
+                      aria-labelledby={`erp-step2-action-label-${i + 1}`}
+                    />
+                    <span id={`erp-step2-action-label-${i + 1}`}>{t}</span>
                   </li>
                 ))}
               </ul>
@@ -601,17 +696,25 @@ export function Step2AnalysisPanel({
 
           <section
             id="erp-step2-section-required-docs"
-            className="border-b border-slate-100 pb-3"
+            className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Required documents</h3>
             <div className="py-2">
               {!analysis.requiredDocuments.length ? (
-                <p className="text-sm italic text-slate-400">None listed.</p>
+                <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
-                <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                <ul className="flex flex-col gap-1.5">
                   {docItems.map((t, i) => (
-                    <li key={i} id={`erp-step2-doc-${i + 1}`}>
-                      {t}
+                    <li
+                      key={i}
+                      id={`erp-step2-doc-${i + 1}`}
+                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                    >
+                      <span
+                        className="erp-find-dot erp-find-dot-navy"
+                        aria-hidden
+                      />
+                      <span>{t}</span>
                     </li>
                   ))}
                 </ul>
@@ -621,17 +724,25 @@ export function Step2AnalysisPanel({
 
           <section
             id="erp-step2-section-escalation"
-            className="border-b border-slate-100 pb-3"
+            className="border-b border-[#e8e0d4] pb-3"
           >
             <h3 className={sectionHeading}>Escalation options</h3>
             <div className="py-2">
               {!analysis.escalationOptions.length ? (
-                <p className="text-sm italic text-slate-400">None listed.</p>
+                <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
-                <ul className="list-disc space-y-0.5 pl-5 text-sm text-[#1E293B]">
+                <ul className="flex flex-col gap-1.5">
                   {escalationItems.map((t, i) => (
-                    <li key={i} id={`erp-step2-escalation-${i + 1}`}>
-                      {t}
+                    <li
+                      key={i}
+                      id={`erp-step2-escalation-${i + 1}`}
+                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                    >
+                      <span
+                        className="erp-find-dot erp-find-dot-navy"
+                        aria-hidden
+                      />
+                      <span>{t}</span>
                     </li>
                   ))}
                 </ul>
@@ -640,27 +751,35 @@ export function Step2AnalysisPanel({
           </section>
 
           <section className="pb-2 pt-2">
-            <h3 className={sectionHeading}>Recommended strategy</h3>
-            <p className="py-2 text-sm text-[#1E293B]">
-              {analysis.recommendedStrategy
-                ? formatStrategyLabel(analysis.recommendedStrategy)
-                : "—"}
-            </p>
-            <h3 className={`${sectionHeading} mt-3`}>Available strategies</h3>
-            <p className="py-2 text-sm text-[#1E293B]">
-              {analysis.availableStrategies.length > 0
-                ? analysis.availableStrategies.map(formatStrategyLabel).join(", ")
-                : "—"}
-            </p>
+            <div className="w-full rounded-[10px] bg-[#0f2744] px-[18px] py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-[#6a9ac0]">
+                Recommended strategy
+              </p>
+              <p className="mt-2 text-base font-semibold text-white">
+                {analysis.recommendedStrategy
+                  ? formatStrategyLabel(analysis.recommendedStrategy)
+                  : "—"}
+              </p>
+              <p className="mt-2 text-[13px] leading-snug text-[#8aacc8]">
+                {analysis.availableStrategies.length > 0
+                  ? `Also consider: ${analysis.availableStrategies.map(formatStrategyLabel).join(", ")}.`
+                  : "No additional strategies listed."}
+              </p>
+              {analysis.recommendedStrategy ? (
+                <div className="mt-3 inline-flex rounded-md bg-[#d4860f] px-3 py-1 text-xs font-semibold text-white">
+                  {formatStrategyLabel(analysis.recommendedStrategy)}
+                </div>
+              ) : null}
+            </div>
           </section>
         </div>
       </div>
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-slate-200 pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
         <button
           id="erp-step2-back"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
           onClick={onBack}
         >
           Back
@@ -668,7 +787,7 @@ export function Step2AnalysisPanel({
         <button
           id="erp-step2-next"
           type="button"
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95"
           onClick={onNext}
         >
           Continue

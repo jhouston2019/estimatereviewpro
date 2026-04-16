@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
   formatStrategyLabel,
@@ -228,6 +228,8 @@ function alignClaimLine(label: string, value: string): string {
   return `${base}${value}`;
 }
 
+const STEP5_ACTIONS_KEY = "erp_actions_step5";
+
 function strategyRationaleFromAnalysis(
   analysis: AnalysisResult | null,
   strategy: string | null
@@ -259,6 +261,46 @@ export function Step5SummaryPanel({
   onStartOver,
   announce,
 }: Props) {
+  const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!analysis?.actionItems?.length) {
+      setCheckedActions(new Set());
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(STEP5_ACTIONS_KEY);
+      if (!raw) {
+        setCheckedActions(new Set());
+        return;
+      }
+      const arr = JSON.parse(raw) as number[];
+      const len = analysis.actionItems.length;
+      setCheckedActions(
+        new Set(arr.filter((i) => Number.isInteger(i) && i >= 0 && i < len))
+      );
+    } catch {
+      setCheckedActions(new Set());
+    }
+  }, [analysis]);
+
+  useEffect(() => {
+    if (!analysis?.actionItems?.length) return;
+    localStorage.setItem(
+      STEP5_ACTIONS_KEY,
+      JSON.stringify([...checkedActions].sort((a, b) => a - b))
+    );
+  }, [checkedActions, analysis]);
+
+  const toggleActionItem = useCallback((index: number) => {
+    setCheckedActions((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
   const downloadPdf = useCallback(async () => {
     const text = buildSummaryText(analysis, comparison, claimMeta, strategy);
     const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
@@ -339,118 +381,127 @@ export function Step5SummaryPanel({
     : ["None listed."];
 
   const sectionHeading =
-    "text-xs font-semibold uppercase tracking-wide text-slate-500 border-l-4 border-blue-400 pl-2";
+    "mb-2 block text-[11px] font-semibold uppercase tracking-[0.07em] text-[#0f2744] border-b-[0.5px] border-[#e8e0d4] pb-2";
 
   const gm = a ? getSummaryIdentifiedGap(a, claimMeta) : null;
+  const gapValueClass =
+    !gm
+      ? "text-[22px] font-medium text-[#7a8a9a]"
+      : gm.estimatedGap > 0
+        ? "text-[22px] font-medium text-[#b83030]"
+        : "text-[22px] font-medium text-[#7a8a9a]";
 
   return (
-    <div className="text-[#475569]">
+    <div className="text-[#2a3a4a]">
       <h2
         id="erp-step5-heading"
-        className="text-2xl font-bold text-[#1E293B]"
+        className="text-2xl font-bold text-[#0f2744]"
       >
         Step 5 — Summary
       </h2>
-      <p className="mt-2 text-sm text-[#475569]">
+      <p className="mt-2 text-sm text-[#7a8a9a]">
         Complete findings summary. Export as PDF or Word.
       </p>
 
       <div
         id="erp-step5-print-root"
-        className="mt-6 space-y-6 text-sm text-[#1E293B]"
+        className="mt-6 space-y-6 text-sm text-[#2a3a4a]"
       >
-        <section id="erp-step5-claim-block" className="rounded-lg bg-gray-50 p-4">
+        <section
+          id="erp-step5-claim-block"
+          className="rounded-[10px] border border-[#d4c9b8] bg-white p-4"
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-xs text-slate-500">Insured name</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Insured name</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {claimMeta.insuredName?.trim() || "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Policy number</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Policy number</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {claimMeta.policyNumber || "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Claim number</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Claim number</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {claimMeta.claimNumber || "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Date of loss</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Date of loss</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {claimMeta.dateOfLoss || "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Adjuster name</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Adjuster name</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {claimMeta.adjusterName || "—"}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Carrier name</p>
-              <p className="text-sm font-medium text-slate-800">
+              <p className="text-xs text-[#7a8a9a]">Carrier name</p>
+              <p className="text-sm font-medium text-[#0f2744]">
                 {carrierNameDisplay}
               </p>
             </div>
           </div>
         </section>
 
-        <section
-          id="erp-step5-gap-card"
-          className="rounded-lg bg-slate-50 p-6 text-[#1E293B]"
-        >
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div>
-              <p className="text-2xl font-bold text-slate-800">
-                {a ? formatMoney(a.carrierAmount) : "—"}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Carrier amount</p>
+        <section id="erp-step5-gap-card" className="flex flex-col gap-3">
+          <h3 className={sectionHeading}>Identified gap</h3>
+          <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-3 pl-4 pr-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-[22px] font-medium text-[#0f2744]">
+                  {a ? formatMoney(a.carrierAmount) : "—"}
+                </p>
+                <p className="mt-1 text-xs text-[#7a8a9a]">Carrier amount</p>
+              </div>
+              <div>
+                <p className="text-[22px] font-medium text-[#0f2744]">
+                  {gm
+                    ? `${formatMoney(gm.displayLow)} – ${formatMoney(gm.displayHigh)}`
+                    : "—"}
+                </p>
+                <p className="mt-1 text-xs text-[#7a8a9a]">True loss range</p>
+              </div>
             </div>
+          </div>
+          <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-white py-3 pl-4 pr-3">
             <div>
-              <p className="text-2xl font-bold text-blue-600">
-                {gm
-                  ? `${formatMoney(gm.displayLow)} – ${formatMoney(gm.displayHigh)}`
-                  : "—"}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">True loss range</p>
-            </div>
-            <div>
-              <p
-                className={`text-2xl font-bold ${
-                  !gm
-                    ? "text-slate-400"
-                    : gm.estimatedGap > 0
-                      ? "text-green-600"
-                      : "text-slate-400"
-                }`}
-              >
-                {gm ? gm.estimatedGapLabel : "—"}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">Estimated gap</p>
+              <p className={gapValueClass}>{gm ? gm.estimatedGapLabel : "—"}</p>
+              <p className="mt-1 text-xs text-[#7a8a9a]">Estimated gap</p>
             </div>
           </div>
         </section>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-0">
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Scope omissions</h3>
               <div className="py-2">
                 {!a?.scopeOmissions?.length ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
                   <ul
                     id="erp-step5-scope-list"
-                    className="list-disc space-y-0.5 pl-5 text-sm"
+                    className="flex flex-col gap-1.5 text-sm"
                   >
                     {omissions.map((t, i) => (
-                      <li key={i} id={`erp-step5-scope-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step5-scope-${i + 1}`}
+                        className="flex gap-2 text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-amber"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -458,19 +509,27 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Pricing suppression flags</h3>
               <div className="py-2">
                 {!a?.pricingFlags?.length ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
                   <ul
                     id="erp-step5-pricing-list"
-                    className="list-disc space-y-0.5 pl-5 text-sm"
+                    className="flex flex-col gap-1.5 text-sm"
                   >
                     {pricing.map((t, i) => (
-                      <li key={i} id={`erp-step5-pricing-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step5-pricing-${i + 1}`}
+                        className="flex gap-2 text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-amber"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -478,19 +537,27 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>Code upgrade gaps</h3>
               <div className="py-2">
                 {!a?.codeUpgradeGaps?.length ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
                   <ul
                     id="erp-step5-code-list"
-                    className="list-disc space-y-0.5 pl-5 text-sm"
+                    className="flex flex-col gap-1.5 text-sm"
                   >
                     {codes.map((t, i) => (
-                      <li key={i} id={`erp-step5-code-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step5-code-${i + 1}`}
+                        className="flex gap-2 text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-navy"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -498,19 +565,27 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-slate-100 pb-3">
+            <div className="border-b border-[#e8e0d4] pb-3">
               <h3 className={sectionHeading}>O&amp;P findings</h3>
               <div className="py-2">
                 {!a?.opFindings?.length ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
                   <ul
                     id="erp-step5-op-list"
-                    className="list-disc space-y-0.5 pl-5 text-sm"
+                    className="flex flex-col gap-1.5 text-sm"
                   >
                     {ops.map((t, i) => (
-                      <li key={i} id={`erp-step5-op-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step5-op-${i + 1}`}
+                        className="flex gap-2 text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-navy"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -518,19 +593,27 @@ export function Step5SummaryPanel({
               </div>
             </div>
 
-            <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+            <div className="border-b border-[#e8e0d4] pb-3 last:border-0 last:pb-0">
               <h3 className={sectionHeading}>Procedural defects</h3>
               <div className="py-2">
                 {!a?.proceduralDefects?.length ? (
-                  <p className="text-sm italic text-slate-400">None identified.</p>
+                  <p className="text-sm italic text-[#7a8a9a]">None identified.</p>
                 ) : (
                   <ul
                     id="erp-step5-procedural-list"
-                    className="list-disc space-y-0.5 pl-5 text-sm"
+                    className="flex flex-col gap-1.5 text-sm"
                   >
                     {procs.map((t, i) => (
-                      <li key={i} id={`erp-step5-proc-${i + 1}`}>
-                        {t}
+                      <li
+                        key={i}
+                        id={`erp-step5-proc-${i + 1}`}
+                        className="flex gap-2 text-[#2a3a4a]"
+                      >
+                        <span
+                          className="erp-find-dot erp-find-dot-red"
+                          aria-hidden
+                        />
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
@@ -543,29 +626,29 @@ export function Step5SummaryPanel({
             {comparison && (
               <section
                 id="erp-step5-comparison-block"
-                className="mb-4 rounded-lg bg-slate-50 p-4"
+                className="mb-4 rounded-[10px] border border-[#d4c9b8] bg-white p-4"
               >
                 <h3 className={sectionHeading}>Comparison totals</h3>
-                <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xl font-bold text-slate-800">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-2 pl-3 pr-2">
+                    <p className="text-xl font-medium text-[#0f2744]">
                       {formatMoney(comparison.totalCarrier)}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">Total carrier</p>
+                    <p className="mt-1 text-xs text-[#7a8a9a]">Total carrier</p>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold text-slate-800">
+                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#d4860f] bg-white py-2 pl-3 pr-2">
+                    <p className="text-xl font-medium text-[#0f2744]">
                       {formatMoney(comparison.totalContractor)}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-[#7a8a9a]">
                       Total contractor / recon
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xl font-bold text-slate-800">
+                  <div className="rounded-r-[10px] border border-[#d4c9b8] border-l-[3px] border-l-[#b83030] bg-white py-2 pl-3 pr-2">
+                    <p className="text-xl font-medium text-[#b83030]">
                       {formatMoney(comparison.totalDelta)}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">Total delta</p>
+                    <p className="mt-1 text-xs text-[#7a8a9a]">Total delta</p>
                   </div>
                 </div>
               </section>
@@ -573,13 +656,13 @@ export function Step5SummaryPanel({
 
             <section
               id="erp-step5-strategy-block"
-              className="border-b border-slate-100 pb-3"
+              className="border-b border-[#e8e0d4] pb-3"
             >
               <h3 className={sectionHeading}>Selected strategy</h3>
-              <p className="py-2 text-sm font-medium text-[#1E293B]">
+              <p className="py-2 text-sm font-medium text-[#0f2744]">
                 {strategy ? formatStrategyLabel(strategy) : "—"}
               </p>
-              <p className="text-sm text-[#475569]">
+              <p className="text-sm text-[#7a8a9a]">
                 {strategyRationaleFromAnalysis(analysis, strategy)}
               </p>
             </section>
@@ -587,16 +670,24 @@ export function Step5SummaryPanel({
             <section className="pb-2 pt-2">
               <h3 className={sectionHeading}>Action items</h3>
               {!a?.actionItems?.length ? (
-                <p className="py-2 text-sm italic text-slate-400">None listed.</p>
+                <p className="py-2 text-sm italic text-[#7a8a9a]">None listed.</p>
               ) : (
                 <ul
                   id="erp-step5-action-list"
-                  className="space-y-0.5 py-2 text-[#1E293B]"
+                  className="flex flex-col gap-1.5 py-2 text-[#2a3a4a]"
                 >
                   {actions.map((t, i) => (
                     <li key={i} id={`erp-step5-action-${i + 1}`} className="flex gap-2">
-                      <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" />
-                      <span className="text-sm">{t}</span>
+                      <input
+                        type="checkbox"
+                        className="erp-action-check"
+                        checked={checkedActions.has(i)}
+                        onChange={() => toggleActionItem(i)}
+                        aria-labelledby={`erp-step5-action-label-${i + 1}`}
+                      />
+                      <span id={`erp-step5-action-label-${i + 1}`} className="text-sm">
+                        {t}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -605,16 +696,27 @@ export function Step5SummaryPanel({
           </div>
         </div>
 
-        <section className="border-b border-slate-100 pb-3">
+        <section className="border-b border-[#e8e0d4] pb-3">
           <h3 className={sectionHeading}>Required documents</h3>
           <div className="py-2">
             {!a?.requiredDocuments?.length ? (
-              <p className="text-sm italic text-slate-400">None listed.</p>
+              <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
-              <ul id="erp-step5-docs-list" className="list-disc space-y-0.5 pl-5 text-sm">
+              <ul
+                id="erp-step5-docs-list"
+                className="flex flex-col gap-1.5 text-sm"
+              >
                 {docs.map((t, i) => (
-                  <li key={i} id={`erp-step5-doc-${i + 1}`}>
-                    {t}
+                  <li
+                    key={i}
+                    id={`erp-step5-doc-${i + 1}`}
+                    className="flex gap-2 text-[#2a3a4a]"
+                  >
+                    <span
+                      className="erp-find-dot erp-find-dot-navy"
+                      aria-hidden
+                    />
+                    <span>{t}</span>
                   </li>
                 ))}
               </ul>
@@ -626,15 +728,23 @@ export function Step5SummaryPanel({
           <h3 className={sectionHeading}>Escalation options</h3>
           <div className="py-2">
             {!a?.escalationOptions?.length ? (
-              <p className="text-sm italic text-slate-400">None listed.</p>
+              <p className="text-sm italic text-[#7a8a9a]">None listed.</p>
             ) : (
               <ul
                 id="erp-step5-escalation-list"
-                className="list-disc space-y-0.5 pl-5 text-sm"
+                className="flex flex-col gap-1.5 text-sm"
               >
                 {esc.map((t, i) => (
-                  <li key={i} id={`erp-step5-escalation-${i + 1}`}>
-                    {t}
+                  <li
+                    key={i}
+                    id={`erp-step5-escalation-${i + 1}`}
+                    className="flex gap-2 text-[#2a3a4a]"
+                  >
+                    <span
+                      className="erp-find-dot erp-find-dot-navy"
+                      aria-hidden
+                    />
+                    <span>{t}</span>
                   </li>
                 ))}
               </ul>
@@ -643,11 +753,11 @@ export function Step5SummaryPanel({
         </section>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-200 pt-6">
+      <div className="mt-8 flex flex-wrap gap-3 border-t border-[#e8e0d4] pt-6">
         <button
           id="erp-step5-download-pdf"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
           onClick={() => void downloadPdf()}
         >
           Download PDF
@@ -655,18 +765,18 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-download-word"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
           onClick={() => void downloadWord()}
         >
           Download Word
         </button>
       </div>
 
-      <div className="mt-10 flex flex-wrap gap-4 border-t border-slate-200 pt-6">
+      <div className="mt-10 flex flex-wrap gap-4 border-t border-[#e8e0d4] pt-6">
         <button
           id="erp-step5-back"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#4a6070] hover:bg-[#f5f3ef]"
           onClick={onBack}
         >
           Back
@@ -674,7 +784,7 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-go-to-letter"
           type="button"
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-md bg-[#d4860f] px-6 py-2 text-sm font-semibold text-white hover:opacity-95"
           onClick={onGoToLetter}
         >
           Generate Letter (Optional)
@@ -682,7 +792,7 @@ export function Step5SummaryPanel({
         <button
           id="erp-step5-start-over"
           type="button"
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-[#1E293B] hover:bg-slate-50"
+          className="rounded-md border border-[#c8d4e0] bg-white px-4 py-2 text-sm font-semibold text-[#0f2744] hover:bg-[#f5f3ef]"
           onClick={onStartOver}
         >
           Start over
