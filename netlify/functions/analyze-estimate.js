@@ -202,8 +202,6 @@ exports.handler = async (event) => {
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
   let body;
   try {
     body = JSON.parse(event.body || "{}");
@@ -258,6 +256,7 @@ exports.handler = async (event) => {
         imageCount: images.length,
         firstImageSize: images[0]?.length,
       });
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 4000,
@@ -317,6 +316,7 @@ exports.handler = async (event) => {
 
   let parsed;
   try {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.2,
