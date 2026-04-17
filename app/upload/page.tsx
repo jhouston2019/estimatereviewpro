@@ -421,7 +421,7 @@ function extractStatusClassName(doc: ClaimDocument): string {
   if (doc.extractStatus === "error") return "text-sm text-[#b83030]";
   if (doc.extractStatus === "done") return "text-sm text-[#1e3f6e]";
   if (doc.statusMessage?.trim()) return "text-sm text-[#f0a050]";
-  return "text-sm text-[#7a6040]";
+  return "text-sm text-[#4a5a6a]";
 }
 
 const PDFJS_CDN_VERSION = "4.4.168";
@@ -1886,7 +1886,7 @@ export default function UploadPage() {
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
         {paymentSuccess && (
           <div className="mb-6 rounded-[10px] border border-[#e0e0dc] bg-[#fdf0d5] p-4 text-center">
-            <p className="text-base font-semibold text-[#8a5500]">
+            <p className="text-base font-semibold text-[#4a5a6a]">
               Payment successful. You can continue in the wizard below.
             </p>
           </div>
@@ -1942,7 +1942,7 @@ export default function UploadPage() {
                         className="rounded-[10px] border border-[#e0e0dc] bg-[#f4f4f0] p-4 md:p-5"
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-[#2a1f0f]">
+                          <span className="text-sm font-semibold text-[#1a2a3a]">
                             Document {idx + 1}
                           </span>
                           <button
@@ -1956,7 +1956,7 @@ export default function UploadPage() {
                         </div>
                         <div className="space-y-4">
                           <div>
-                            <span className="mb-2 block text-sm font-medium text-[#7a6040]">
+                            <span className="mb-2 block text-sm font-medium text-[#4a5a6a]">
                               File (PDF, images, or .txt)
                             </span>
                             <div
@@ -2011,7 +2011,7 @@ export default function UploadPage() {
                                   );
                                 }
                               }}
-                              className={`block cursor-pointer rounded-lg border-[1.5px] border-dashed px-4 py-8 text-center text-sm text-[#7a6040] transition-colors ${
+                              className={`block cursor-pointer rounded-lg border-[1.5px] border-dashed px-4 py-8 text-center text-sm text-[#4a5a6a] transition-colors ${
                                 docDragOverIndex === idx
                                   ? "border-[#f0a050] bg-white"
                                   : "border-[#b8b8b4] bg-white hover:border-[#f0a050]/70"
@@ -2102,7 +2102,7 @@ export default function UploadPage() {
                           <div>
                             <label
                               htmlFor={step1DocPasteId(idx)}
-                              className="mb-2 block text-sm font-medium text-[#7a6040]"
+                              className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                             >
                               {doc.side === "CARRIER"
                                 ? "Paste carrier estimate text"
@@ -2112,7 +2112,7 @@ export default function UploadPage() {
                               id={step1DocPasteId(idx)}
                               name={step1DocPasteId(idx)}
                               rows={idx === 0 ? 8 : 6}
-                              className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                              className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                               placeholder={
                                 doc.side === "CARRIER"
                                   ? "Paste line items and totals…"
@@ -2127,7 +2127,7 @@ export default function UploadPage() {
                           <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="min-w-0">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a6040]"
+                                className="mb-1 block text-xs font-medium text-[#4a5a6a]"
                                 htmlFor={`erp-step1-doc-${idx}-side`}
                               >
                                 Side
@@ -2157,13 +2157,13 @@ export default function UploadPage() {
                             <div className="min-w-0">
                               <div className="mb-1 flex flex-wrap items-center gap-2">
                                 <label
-                                  className="text-xs font-medium text-[#7a6040]"
+                                  className="text-xs font-medium text-[#4a5a6a]"
                                   htmlFor={`erp-step1-doc-${idx}-category`}
                                 >
                                   Category
                                 </label>
                                 {doc.autoDetected && (
-                                  <span className="rounded bg-[#fdf0d5] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#8a5500]">
+                                  <span className="rounded bg-[#fdf0d5] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#4a5a6a]">
                                     Auto-detected
                                   </span>
                                 )}
@@ -2192,7 +2192,7 @@ export default function UploadPage() {
                             </div>
                             <div className="min-w-0">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a6040]"
+                                className="mb-1 block text-xs font-medium text-[#4a5a6a]"
                                 htmlFor={`erp-step1-doc-${idx}-version`}
                               >
                                 Version
@@ -2221,25 +2221,25 @@ export default function UploadPage() {
                             </div>
                             <div className="min-w-0 sm:col-span-2 lg:col-span-1">
                               <label
-                                className="mb-1 block text-xs font-medium text-[#7a6040]"
+                                className="mb-1 block text-xs font-medium text-[#4a5a6a]"
                                 htmlFor={`erp-step1-doc-${idx}-label`}
                               >
                                 Label{" "}
-                                <span className="font-normal text-[#7a6040]/80">
+                                <span className="font-normal text-[#4a5a6a]/80">
                                   (optional)
                                 </span>
                               </label>
                               <input
                                 id={`erp-step1-doc-${idx}-label`}
                                 type="text"
-                                className="w-full max-w-md rounded-md border-[0.5px] border-[#d0d0cc] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full max-w-md rounded-md border-[0.5px] border-[#d0d0cc] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 placeholder="Optional note — defaults from selections"
                                 value={doc.label}
                                 onChange={(e) =>
                                   updateDocumentLabel(doc.id, e.target.value)
                                 }
                               />
-                              <p className="mt-1 text-xs text-[#7a6040]">
+                              <p className="mt-1 text-xs text-[#4a5a6a]">
                                 {documentSideSubtitle(doc.side)}
                               </p>
                             </div>
@@ -2263,11 +2263,11 @@ export default function UploadPage() {
                 <div>
                   <label
                     htmlFor="erp-step1-insured-name"
-                    className="mb-2 block text-sm font-medium text-[#7a6040]"
+                    className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                   >
                     Insured name <span className="text-[#b83030]">*</span>
                     {autoExtractedFields.has("insuredName") && (
-                      <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                      <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                         Auto-extracted
                       </span>
                     )}
@@ -2293,7 +2293,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-claim-type"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Claim type <span className="text-[#b83030]">*</span>
                       </label>
@@ -2316,7 +2316,7 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-state"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         State <span className="text-[#b83030]">*</span>
                       </label>
@@ -2340,11 +2340,11 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-policy-number"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Policy number <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("policyNumber") && (
-                          <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                          <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                             Auto-extracted
                           </span>
                         )}
@@ -2364,11 +2364,11 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-claim-number"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Claim number <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("claimNumber") && (
-                          <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                          <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                             Auto-extracted
                           </span>
                         )}
@@ -2388,11 +2388,11 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-date-of-loss"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Date of loss <span className="text-[#b83030]">*</span>
                         {autoExtractedFields.has("dateOfLoss") && (
-                          <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                          <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                             Auto-extracted
                           </span>
                         )}
@@ -2411,11 +2411,11 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-adjuster-name"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Adjuster name
                         {autoExtractedFields.has("adjusterName") && (
-                          <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                          <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                             Auto-extracted
                           </span>
                         )}
@@ -2434,11 +2434,11 @@ export default function UploadPage() {
                     <div>
                       <label
                         htmlFor="erp-step1-carrier-name"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Carrier name
                         {autoExtractedFields.has("carrierName") && (
-                          <span className="ml-2 text-xs font-normal text-[#8a5500]">
+                          <span className="ml-2 text-xs font-normal text-[#4a5a6a]">
                             Auto-extracted
                           </span>
                         )}
@@ -2457,7 +2457,7 @@ export default function UploadPage() {
                     <div className="md:col-span-2">
                       <label
                         htmlFor="erp-step1-response-deadline"
-                        className="mb-2 block text-sm font-medium text-[#7a6040]"
+                        className="mb-2 block text-sm font-medium text-[#4a5a6a]"
                       >
                         Response deadline (optional)
                       </label>
