@@ -696,6 +696,30 @@ function step1DocExtractStatusId(idx: number): string {
   return `erp-step1-doc-${idx}-extract-status`;
 }
 
+/** Whether the user may jump to this step from the header step indicator. */
+function stepIsNavigable(
+  step: number,
+  analysis: AnalysisResult | null,
+  comparison: ComparisonResult | null,
+  letterRaw: string | null,
+  stepNow: number
+): boolean {
+  switch (step) {
+    case 1:
+      return true;
+    case 2:
+    case 4:
+    case 5:
+      return analysis !== null;
+    case 3:
+      return comparison !== null;
+    case 6:
+      return letterRaw !== null || stepNow >= 6;
+    default:
+      return false;
+  }
+}
+
 export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<WizardState>(() => initialWizardState());
@@ -1780,38 +1804,68 @@ export default function UploadPage() {
                 const n = i + 1;
                 const isActive = n === currentStep;
                 const isDone = n < currentStep;
+                const navigable = stepIsNavigable(
+                  n,
+                  state.analysis,
+                  state.comparison,
+                  state.letterRaw,
+                  currentStep
+                );
+                const circleClass = `flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
+                  isActive
+                    ? "bg-[#f0a050] text-white"
+                    : isDone
+                      ? "bg-[#2c5a8a] text-[#a8c8e8]"
+                      : "bg-[#1e3f6e] text-[#6a8fb8]"
+                }`;
+                const labelClass = `whitespace-nowrap text-xs font-semibold ${
+                  isActive
+                    ? "text-white"
+                    : isDone
+                      ? "text-[#8aacc8]"
+                      : "text-[#6a8fb8]"
+                }`;
+                const barClass = `flex flex-col items-center border-b-2 pb-1.5 ${
+                  isActive ? "border-[#f0a050]" : "border-transparent"
+                }`;
+                const inner = (
+                  <div className="flex items-center gap-2">
+                    <span className={circleClass}>{n}</span>
+                    <span
+                      className={`${labelClass} ${
+                        navigable
+                          ? "underline decoration-current/40 underline-offset-2"
+                          : ""
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
                 return (
-                  <div
-                    key={n}
-                    className={`flex flex-col items-center border-b-2 pb-1.5 ${
-                      isActive ? "border-[#f0a050]" : "border-transparent"
-                    }`}
-                    aria-current={isActive ? "step" : undefined}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
-                          isActive
-                            ? "bg-[#f0a050] text-white"
-                            : isDone
-                              ? "bg-[#2c5a8a] text-[#a8c8e8]"
-                              : "bg-[#1e3f6e] text-[#6a8fb8]"
-                        }`}
+                  <div key={n} className={barClass}>
+                    {navigable ? (
+                      <button
+                        type="button"
+                        id={`erp-wizard-step-${n}-nav`}
+                        className="flex cursor-pointer flex-col items-center rounded-sm opacity-100 outline-none transition hover:opacity-95 focus-visible:ring-2 focus-visible:ring-[#f0a050] focus-visible:ring-offset-2 focus-visible:ring-offset-[#091c33]"
+                        aria-current={isActive ? "step" : undefined}
+                        aria-label={`Go to step ${n}: ${label}`}
+                        onClick={() => {
+                          setCurrentStep(n);
+                          announce(`Step ${n}. ${label}.`);
+                        }}
                       >
-                        {n}
-                      </span>
-                      <span
-                        className={`whitespace-nowrap text-xs font-semibold ${
-                          isActive
-                            ? "text-white"
-                            : isDone
-                              ? "text-[#8aacc8]"
-                              : "text-[#6a8fb8]"
-                        }`}
+                        {inner}
+                      </button>
+                    ) : (
+                      <div
+                        className="flex cursor-default flex-col items-center opacity-55"
+                        aria-current={isActive ? "step" : undefined}
                       >
-                        {label}
-                      </span>
-                    </div>
+                        {inner}
+                      </div>
+                    )}
                   </div>
                 );
               })}
