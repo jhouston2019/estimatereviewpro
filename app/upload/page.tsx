@@ -1885,7 +1885,7 @@ export default function UploadPage() {
                       <div
                         key={doc.id}
                         id={`erp-step1-doc-${idx}`}
-                        className="rounded-[10px] border border-[#e8d8c0] bg-[#faf4eb] p-4 md:p-5"
+                        className="rounded-[10px] border border-[#eedccc] bg-[#fdf8f2] p-4 md:p-5"
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-[#2a1f0f]">
@@ -1960,7 +1960,7 @@ export default function UploadPage() {
                               className={`block cursor-pointer rounded-lg border-[1.5px] border-dashed px-4 py-8 text-center text-sm text-[#7a6040] transition-colors ${
                                 docDragOverIndex === idx
                                   ? "border-[#f0a050] bg-white"
-                                  : "border-[#d0b890] bg-white hover:border-[#f0a050]/70"
+                                  : "border-[#dcc8a8] bg-white hover:border-[#f0a050]/70"
                               }`}
                             >
                               Drag and drop PDF, image, or .txt file here, or
@@ -2058,7 +2058,7 @@ export default function UploadPage() {
                               id={step1DocPasteId(idx)}
                               name={step1DocPasteId(idx)}
                               rows={idx === 0 ? 8 : 6}
-                              className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                              className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                               placeholder={
                                 doc.side === "CARRIER"
                                   ? "Paste line items and totals…"
@@ -2080,7 +2080,7 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-side`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={doc.side}
                                 onChange={(e) =>
                                   updateDocumentSide(
@@ -2116,7 +2116,7 @@ export default function UploadPage() {
                               </div>
                               <select
                                 id={`erp-step1-doc-${idx}-category`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={categorySelectValue(doc.category)}
                                 onChange={(e) =>
                                   updateDocumentCategory(
@@ -2145,7 +2145,7 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-version`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={versionSelectValue(doc.version)}
                                 onChange={(e) =>
                                   updateDocumentVersion(
@@ -2178,7 +2178,7 @@ export default function UploadPage() {
                               <input
                                 id={`erp-step1-doc-${idx}-label`}
                                 type="text"
-                                className="w-full max-w-md rounded-md border-[0.5px] border-[#dcc8a8] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full max-w-md rounded-md border-[0.5px] border-[#e8d8c8] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#7a6040]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 placeholder="Optional note — defaults from selections"
                                 value={doc.label}
                                 onChange={(e) =>
@@ -2205,7 +2205,7 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[10px] border border-[#e8d8c0] bg-[#faf4eb] p-4 md:p-5 space-y-6">
+                <div className="rounded-[10px] border border-[#eedccc] bg-[#fdf8f2] p-4 md:p-5 space-y-6">
                 <div>
                   <label
                     htmlFor="erp-step1-insured-name"
@@ -2223,7 +2223,7 @@ export default function UploadPage() {
                     type="text"
                     required
                     autoComplete="name"
-                    className="w-full max-w-xl rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                    className="w-full max-w-xl rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                     value={state.claimMeta.insuredName}
                     onChange={(e) =>
                       patchClaimMeta({ insuredName: e.target.value })
@@ -2246,7 +2246,7 @@ export default function UploadPage() {
                       <select
                         id="erp-step1-claim-type"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimType}
                         onChange={(e) =>
                           patchClaimMeta({ claimType: e.target.value })
@@ -2269,7 +2269,7 @@ export default function UploadPage() {
                       <select
                         id="erp-step1-state"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.state}
                         onChange={(e) =>
                           patchClaimMeta({ state: e.target.value })
@@ -2300,7 +2300,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.policyNumber}
                         onChange={(e) =>
                           patchClaimMeta({ policyNumber: e.target.value })
@@ -2324,7 +2324,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimNumber}
                         onChange={(e) =>
                           patchClaimMeta({ claimNumber: e.target.value })
@@ -2347,7 +2347,7 @@ export default function UploadPage() {
                         id="erp-step1-date-of-loss"
                         type="date"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.dateOfLoss}
                         onChange={(e) =>
                           patchClaimMeta({ dateOfLoss: e.target.value })
@@ -2370,7 +2370,7 @@ export default function UploadPage() {
                         id="erp-step1-adjuster-name"
                         type="text"
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.adjusterName}
                         onChange={(e) =>
                           patchClaimMeta({ adjusterName: e.target.value })
@@ -2393,7 +2393,7 @@ export default function UploadPage() {
                         id="erp-step1-carrier-name"
                         type="text"
                         autoComplete="organization"
-                        className="w-full rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.carrierName}
                         onChange={(e) =>
                           patchClaimMeta({ carrierName: e.target.value })
@@ -2410,7 +2410,7 @@ export default function UploadPage() {
                       <input
                         id="erp-step1-response-deadline"
                         type="date"
-                        className="w-full max-w-xs rounded-lg border-[0.5px] border-[#dcc8a8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full max-w-xs rounded-lg border-[0.5px] border-[#e8d8c8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.responseDeadline}
                         onChange={(e) =>
                           patchClaimMeta({ responseDeadline: e.target.value })
