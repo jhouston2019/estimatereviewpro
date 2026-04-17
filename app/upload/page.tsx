@@ -1885,7 +1885,7 @@ export default function UploadPage() {
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
         {paymentSuccess && (
-          <div className="mb-6 rounded-[10px] border border-[#e0e0dc] bg-[#fdf0d5] p-4 text-center">
+          <div className="mb-6 rounded-[10px] border border-[#e4e4e4] bg-[#fdf0d5] p-4 text-center">
             <p className="text-base font-semibold text-[#4a5a6a]">
               Payment successful. You can continue in the wizard below.
             </p>
@@ -1939,7 +1939,7 @@ export default function UploadPage() {
                       <div
                         key={doc.id}
                         id={`erp-step1-doc-${idx}`}
-                        className="rounded-[10px] border border-[#e0e0dc] bg-[#f4f4f0] p-4 md:p-5"
+                        className="rounded-[10px] border border-[#e4e4e4] bg-[#f8f8f8] p-4 md:p-5"
                       >
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm font-semibold text-[#1a2a3a]">
@@ -2014,7 +2014,7 @@ export default function UploadPage() {
                               className={`block cursor-pointer rounded-lg border-[1.5px] border-dashed px-4 py-8 text-center text-sm text-[#4a5a6a] transition-colors ${
                                 docDragOverIndex === idx
                                   ? "border-[#f0a050] bg-white"
-                                  : "border-[#b8b8b4] bg-white hover:border-[#f0a050]/70"
+                                  : "border-[#cccccc] bg-white hover:border-[#f0a050]/70"
                               }`}
                             >
                               Drag and drop PDF, image, or .txt file here, or
@@ -2060,7 +2060,7 @@ export default function UploadPage() {
                               {showXactimateHelp && (
                                 <div
                                   id="erp-step1-xactimate-help"
-                                  className="mt-2 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4 text-sm text-[#7a8a9a]"
+                                  className="mt-2 rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white p-4 text-sm text-[#7a8a9a]"
                                 >
                                   <p className="mb-2 font-medium text-[#2a3a4a]">
                                     Exporting from Xactimate
@@ -2112,7 +2112,7 @@ export default function UploadPage() {
                               id={step1DocPasteId(idx)}
                               name={step1DocPasteId(idx)}
                               rows={idx === 0 ? 8 : 6}
-                              className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                              className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                               placeholder={
                                 doc.side === "CARRIER"
                                   ? "Paste line items and totals…"
@@ -2134,7 +2134,7 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-side`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={doc.side}
                                 onChange={(e) =>
                                   updateDocumentSide(
@@ -2170,7 +2170,7 @@ export default function UploadPage() {
                               </div>
                               <select
                                 id={`erp-step1-doc-${idx}-category`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={categorySelectValue(doc.category)}
                                 onChange={(e) =>
                                   updateDocumentCategory(
@@ -2199,7 +2199,7 @@ export default function UploadPage() {
                               </label>
                               <select
                                 id={`erp-step1-doc-${idx}-version`}
-                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full min-w-0 rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-2 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 value={versionSelectValue(doc.version)}
                                 onChange={(e) =>
                                   updateDocumentVersion(
@@ -2232,7 +2232,7 @@ export default function UploadPage() {
                               <input
                                 id={`erp-step1-doc-${idx}-label`}
                                 type="text"
-                                className="w-full max-w-md rounded-md border-[0.5px] border-[#d0d0cc] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                className="w-full max-w-md rounded-md border-[0.5px] border-[#d8d8d8] bg-white px-2 py-1 text-sm font-normal text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                                 placeholder="Optional note — defaults from selections"
                                 value={doc.label}
                                 onChange={(e) =>
@@ -2259,7 +2259,7 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[10px] border border-[#e0e0dc] bg-[#f4f4f0] p-4 md:p-5 space-y-6">
+                <div className="rounded-[10px] border border-[#e4e4e4] bg-[#f8f8f8] p-4 md:p-5 space-y-6">
                 <div>
                   <label
                     htmlFor="erp-step1-insured-name"
@@ -2277,7 +2277,7 @@ export default function UploadPage() {
                     type="text"
                     required
                     autoComplete="name"
-                    className="w-full max-w-xl rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                    className="w-full max-w-xl rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                     value={state.claimMeta.insuredName}
                     onChange={(e) =>
                       patchClaimMeta({ insuredName: e.target.value })
@@ -2300,7 +2300,7 @@ export default function UploadPage() {
                       <select
                         id="erp-step1-claim-type"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimType}
                         onChange={(e) =>
                           patchClaimMeta({ claimType: e.target.value })
@@ -2323,7 +2323,7 @@ export default function UploadPage() {
                       <select
                         id="erp-step1-state"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.state}
                         onChange={(e) =>
                           patchClaimMeta({ state: e.target.value })
@@ -2354,7 +2354,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.policyNumber}
                         onChange={(e) =>
                           patchClaimMeta({ policyNumber: e.target.value })
@@ -2378,7 +2378,7 @@ export default function UploadPage() {
                         type="text"
                         required
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.claimNumber}
                         onChange={(e) =>
                           patchClaimMeta({ claimNumber: e.target.value })
@@ -2401,7 +2401,7 @@ export default function UploadPage() {
                         id="erp-step1-date-of-loss"
                         type="date"
                         required
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.dateOfLoss}
                         onChange={(e) =>
                           patchClaimMeta({ dateOfLoss: e.target.value })
@@ -2424,7 +2424,7 @@ export default function UploadPage() {
                         id="erp-step1-adjuster-name"
                         type="text"
                         autoComplete="off"
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.adjusterName}
                         onChange={(e) =>
                           patchClaimMeta({ adjusterName: e.target.value })
@@ -2447,7 +2447,7 @@ export default function UploadPage() {
                         id="erp-step1-carrier-name"
                         type="text"
                         autoComplete="organization"
-                        className="w-full rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.carrierName}
                         onChange={(e) =>
                           patchClaimMeta({ carrierName: e.target.value })
@@ -2464,7 +2464,7 @@ export default function UploadPage() {
                       <input
                         id="erp-step1-response-deadline"
                         type="date"
-                        className="w-full max-w-xs rounded-lg border-[0.5px] border-[#d0d0cc] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                        className="w-full max-w-xs rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 text-sm text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
                         value={state.claimMeta.responseDeadline}
                         onChange={(e) =>
                           patchClaimMeta({ responseDeadline: e.target.value })
@@ -2477,7 +2477,7 @@ export default function UploadPage() {
 
                 {submitError && (
                   <p
-                    className="rounded-[10px] border border-[#e0e0dc] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
+                    className="rounded-[10px] border border-[#e4e4e4] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
                     role="alert"
                   >
                     {submitError}
@@ -2518,7 +2518,7 @@ export default function UploadPage() {
             id="erp-step2-panel"
             hidden={currentStep !== 2}
             aria-hidden={currentStep !== 2}
-            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step2AnalysisPanel
               accessToken={state.accessToken}
@@ -2533,7 +2533,7 @@ export default function UploadPage() {
             id="erp-step3-panel"
             hidden={currentStep !== 3}
             aria-hidden={currentStep !== 3}
-            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step3ComparisonPanel
               accessToken={state.accessToken}
@@ -2553,7 +2553,7 @@ export default function UploadPage() {
             id="erp-step4-panel"
             hidden={currentStep !== 4}
             aria-hidden={currentStep !== 4}
-            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step4StrategyPanel
               analysis={state.analysis}
@@ -2568,7 +2568,7 @@ export default function UploadPage() {
             id="erp-step5-panel"
             hidden={currentStep !== 5}
             aria-hidden={currentStep !== 5}
-            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step5SummaryPanel
               accessToken={state.accessToken}
@@ -2586,7 +2586,7 @@ export default function UploadPage() {
             id="erp-step6-panel"
             hidden={currentStep !== 6}
             aria-hidden={currentStep !== 6}
-            className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
+            className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step6LetterPanel
               accessToken={state.accessToken}
