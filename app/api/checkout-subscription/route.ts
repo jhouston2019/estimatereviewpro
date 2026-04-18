@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { appAbsoluteUrl } from '@/lib/appUrl';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-11-17.clover',
@@ -81,8 +82,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?subscription=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?subscription=cancelled`,
+      success_url: appAbsoluteUrl('dashboard?subscription=success'),
+      cancel_url: appAbsoluteUrl('pricing?subscription=cancelled'),
       subscription_data: {
         metadata: {
           user_id: userId,

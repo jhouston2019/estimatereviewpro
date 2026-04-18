@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { appAbsoluteUrl } from '@/lib/appUrl';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-11-17.clover',
@@ -65,8 +66,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upload?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+      success_url: appAbsoluteUrl('upload?payment=success'),
+      cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
       metadata: {
         user_id: userId,
         type: 'single_plan',

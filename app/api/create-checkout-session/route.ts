@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { appAbsoluteUrl } from '@/lib/appUrl';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2025-11-17.clover';
@@ -95,8 +96,10 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upload?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        success_url: appAbsoluteUrl(
+          'upload?payment=success&session_id={CHECKOUT_SESSION_ID}'
+        ),
+        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: undefined,
         metadata: {
           plan_type: 'single',
@@ -125,8 +128,10 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        success_url: appAbsoluteUrl(
+          'dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}'
+        ),
+        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -163,8 +168,10 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        success_url: appAbsoluteUrl(
+          'dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}'
+        ),
+        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -207,8 +214,10 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/upload?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?payment=cancelled`,
+        success_url: appAbsoluteUrl(
+          'upload?payment=success&session_id={CHECKOUT_SESSION_ID}'
+        ),
+        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
