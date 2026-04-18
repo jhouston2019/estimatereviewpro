@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 
-export default async function DashboardPage() {
-  const supabase = createSupabaseServerComponentClient();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string; subscription?: string }>;
+}) {
+  const sp = await searchParams;
+  const paymentReturn =
+    sp.payment === "success" || sp.subscription === "success";
+  const supabase = await createSupabaseServerComponentClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -60,6 +68,7 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8">
+        <PaymentActivationNotice enabled={paymentReturn} />
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">

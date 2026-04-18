@@ -19,7 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: NextRequest) {
   try {
-    const authClient = createSupabaseRouteHandlerClient();
+    const authClient = await createSupabaseRouteHandlerClient();
     const {
       data: { session: authSession },
     } = await authClient.auth.getSession();

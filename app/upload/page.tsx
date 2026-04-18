@@ -29,6 +29,7 @@ import {
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
 import "./erp-wizard.css";
+import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 
 const US_STATES: { code: string; name: string }[] = [
   { code: "AL", name: "Alabama" },
@@ -647,33 +648,59 @@ function isStep1AcceptedEstimateFile(file: File): boolean {
   return false;
 }
 
+function UploadPaymentActivationBanner() {
+  const searchParams = useSearchParams();
+  const enabled =
+    searchParams?.get("payment") === "success" ||
+    searchParams?.get("subscription") === "success";
+  return <PaymentActivationNotice enabled={!!enabled} />;
+}
+
 function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) => void }) {
   const searchParams = useSearchParams();
   useEffect(() => {
     const handlePaymentSuccess = async () => {
-      if (searchParams?.get("payment") === "success") {
-        const sessionId = searchParams.get("session_id");
-        if (sessionId) {
-          try {
-            const response = await fetch("/api/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sessionId }),
-            });
-            const data = await response.json();
-            if (data.success && data.loginUrl) {
-              window.location.href = data.loginUrl;
-              return;
-            }
-          } catch {
-            /* ignore */
+      if (searchParams?.get("payment") !== "success") return;
+
+      const sessionId = searchParams.get("session_id");
+      if (sessionId) {
+        try {
+          const verify = await fetch("/api/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
+          const data = await verify.json();
+          if (data.success && data.loginUrl) {
+            window.location.href = data.loginUrl;
+            return;
           }
+        } catch {
+          /* ignore */
         }
-        onSuccess(true);
-        setTimeout(() => onSuccess(false), 5000);
       }
+
+      const started = Date.now();
+      const poll = async () => {
+        try {
+          const res = await fetch("/api/billing/status", { cache: "no-store" });
+          if (res.status === 401) return;
+          const j = await res.json();
+          if (j.hasPaidAccess) {
+            onSuccess(true);
+            setTimeout(() => onSuccess(false), 5000);
+            return;
+          }
+          if (Date.now() - started < 90_000) {
+            setTimeout(poll, 2500);
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+      await poll();
     };
-    handlePaymentSuccess();
+    void handlePaymentSuccess();
   }, [searchParams, onSuccess]);
   return null;
 }
@@ -1768,6 +1795,7 @@ export default function UploadPage() {
   return (
     <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
       <Suspense fallback={null}>
+        <UploadPaymentActivationBanner />
         <PaymentSuccessHandler onSuccess={setPaymentSuccess} />
       </Suspense>
 

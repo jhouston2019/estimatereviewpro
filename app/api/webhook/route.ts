@@ -11,9 +11,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
+  if (!webhookSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET is not configured');
+    return NextResponse.json(
+      { error: 'Webhook not configured' },
+      { status: process.env.NODE_ENV === 'production' ? 503 : 500 }
+    );
+  }
+
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
@@ -27,13 +35,29 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    // Verify webhook signature
+    // Verify webhook signature (requires STRIPE_WEBHOOK_SECRET)
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
+    );
+  }
+
+  const { error: idemError } = await supabase
+    .from('stripe_webhook_events')
+    .insert({ id: event.id, type: event.type });
+
+  if (idemError) {
+    const code = (idemError as { code?: string }).code;
+    if (code === '23505') {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    console.error('stripe_webhook_events insert failed:', idemError);
+    return NextResponse.json(
+      { error: 'Failed to record event' },
+      { status: 500 }
     );
   }
 
@@ -171,71 +195,114 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 }
 
+function normalizeUserPlanType(
+  raw: string | undefined,
+  planName: string | undefined
+): 'professional' | 'enterprise' | null {
+  const p = (raw || '').toLowerCase();
+  const n = (planName || '').toLowerCase();
+  if (!p && !n) return null;
+  if (p === 'professional' || n.includes('professional')) return 'professional';
+  if (
+    p === 'subscription' ||
+    p === 'enterprise' ||
+    p === 'premier' ||
+    n.includes('enterprise') ||
+    n.includes('premier')
+  ) {
+    return 'enterprise';
+  }
+  if (p === 'single') return null;
+  return 'enterprise';
+}
+
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const metadata = subscription.metadata;
-  const planType = metadata.plan_type;
-  const reviewLimit = parseInt(metadata.review_limit || '0');
-  const overagePrice = parseInt(metadata.overage_price || '0');
+  const planNameMeta = metadata.plan_name;
+  const planType = normalizeUserPlanType(metadata.plan_type, planNameMeta);
+  const reviewLimit = parseInt(metadata.review_limit || '0', 10);
+  const overagePrice = parseInt(metadata.overage_price || '0', 10);
+  const metaUserId = metadata.user_id?.trim();
 
   if (!planType) return;
 
-  // Get customer email to find/create user
+  const subStatus = subscription.status;
+
+  let userId: string | null = null;
+
+  if (metaUserId) {
+    const { data: userByMeta } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', metaUserId)
+      .maybeSingle();
+    if (userByMeta?.id) {
+      userId = userByMeta.id;
+    }
+  }
+
   const customer = await stripe.customers.retrieve(subscription.customer as string);
   if (!customer || customer.deleted) return;
 
   const customerEmail = customer.email;
-  if (!customerEmail) return;
+  if (!userId && !customerEmail) return;
 
-  // Find or create user
-  let userId: string;
-  const { data: existingUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', customerEmail)
-    .single();
+  if (!userId && customerEmail) {
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', customerEmail)
+      .maybeSingle();
 
-  if (existingUser) {
-    userId = existingUser.id;
-  } else {
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: customerEmail,
-      email_confirm: true,
-    });
+    if (existingUser?.id) {
+      userId = existingUser.id;
+    } else {
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: customerEmail,
+        email_confirm: true,
+      });
 
-    if (authError || !authUser.user) {
-      console.error('Failed to create auth user:', authError);
-      return;
+      if (authError || !authUser.user) {
+        console.error('Failed to create auth user:', authError);
+        return;
+      }
+
+      userId = authUser.user.id;
     }
-
-    userId = authUser.user.id;
   }
 
-  // Check if team already exists
+  if (!userId) return;
+
   const { data: existingTeam } = await supabase
     .from('teams')
     .select('*')
     .eq('stripe_subscription_id', subscription.id)
-    .single();
+    .maybeSingle();
 
   if (existingTeam) {
-    // Update existing team
     await supabase
       .from('teams')
       .update({
         plan_type: planType,
         review_limit: reviewLimit,
         overage_price: overagePrice,
+        stripe_subscription_status: subStatus,
       })
       .eq('id', existingTeam.id);
+
+    await supabase
+      .from('users')
+      .update({ plan_type: planType })
+      .eq('team_id', existingTeam.id);
   } else {
-    // Create new team
     const { data: team, error: teamError } = await supabase
       .from('teams')
       .insert({
         name: `${planType.charAt(0).toUpperCase() + planType.slice(1)} Team`,
         owner_id: userId,
-        plan_type: planType as 'professional' | 'enterprise',
+        plan_type: planType,
         stripe_subscription_id: subscription.id,
+        stripe_subscription_status: subStatus,
         review_limit: reviewLimit,
         overage_price: overagePrice,
       })
@@ -247,7 +314,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       return;
     }
 
-    // Update user with team and plan
     await supabase
       .from('users')
       .update({
@@ -309,30 +375,37 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       .single();
 
     if (team) {
+      await supabase
+        .from('teams')
+        .update({ stripe_subscription_status: subscription.status })
+        .eq('id', team.id);
       console.log(`Invoice paid for team ${team.id}, subscription ${subscription.id}`);
     }
   }
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  // Handle failed payment
   const invoiceAny = invoice as any;
   const subscriptionId = invoiceAny.subscription;
-  
+
   if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(
       typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
     );
-    
+
+    await supabase
+      .from('teams')
+      .update({ stripe_subscription_status: subscription.status })
+      .eq('stripe_subscription_id', subscription.id);
+
     const { data: team } = await supabase
       .from('teams')
       .select('*')
       .eq('stripe_subscription_id', subscription.id)
-      .single();
+      .maybeSingle();
 
     if (team) {
       console.error(`Payment failed for team ${team.id}, subscription ${subscription.id}`);
-      // Could send notification email here
     }
   }
 }

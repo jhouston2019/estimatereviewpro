@@ -17,6 +17,7 @@ export interface Database {
           plan_type: "single" | "professional" | "enterprise" | null;
           team_id: string | null;
           role: "owner" | "member" | null;
+          is_admin: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +28,7 @@ export interface Database {
           plan_type?: "single" | "professional" | "enterprise" | null;
           team_id?: string | null;
           role?: "owner" | "member" | null;
+          is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -37,6 +39,7 @@ export interface Database {
           plan_type?: "single" | "professional" | "enterprise" | null;
           team_id?: string | null;
           role?: "owner" | "member" | null;
+          is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -74,6 +77,7 @@ export interface Database {
           owner_id: string;
           plan_type: "professional" | "enterprise";
           stripe_subscription_id: string | null;
+          stripe_subscription_status: string | null;
           review_limit: number;
           overage_price: number;
           created_at: string;
@@ -85,6 +89,7 @@ export interface Database {
           owner_id: string;
           plan_type: "professional" | "enterprise";
           stripe_subscription_id?: string | null;
+          stripe_subscription_status?: string | null;
           review_limit: number;
           overage_price: number;
           created_at?: string;
@@ -96,6 +101,7 @@ export interface Database {
           owner_id?: string;
           plan_type?: "professional" | "enterprise";
           stripe_subscription_id?: string | null;
+          stripe_subscription_status?: string | null;
           review_limit?: number;
           overage_price?: number;
           created_at?: string;
@@ -169,6 +175,23 @@ export interface Database {
           updated_at?: string;
         };
       };
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          type: string;
+          received_at: string;
+        };
+        Insert: {
+          id: string;
+          type: string;
+          received_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          received_at?: string;
+        };
+      };
       reviews: {
         Row: {
           id: string;
@@ -203,6 +226,12 @@ export interface Database {
           pdf_report_url?: string | null;
           created_at?: string;
         };
+      };
+    };
+    Functions: {
+      user_has_paid_access: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
     };
     Enums: {

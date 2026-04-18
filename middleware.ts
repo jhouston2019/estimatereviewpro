@@ -1,76 +1,134 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./lib/supabase-types";
+import {
+  isPaymentBypassActive,
+  productionBypassPaymentMisconfigurationResponse,
+} from "./lib/billing/devBypass";
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+export async function middleware(request: NextRequest) {
+  if (productionBypassPaymentMisconfigurationResponse()) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
-  const supabase = createMiddlewareClient<Database>({ req, res });
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const pathname = req.nextUrl.pathname;
+  /** Preserve refreshed auth cookies on redirects. */
+  const redirectWithSessionCookies = (url: URL | string) => {
+    const r = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => {
+      r.cookies.set(c.name, c.value, {
+        path: "/",
+      });
+    });
+    return r;
+  };
+
+  const pathname = request.nextUrl.pathname;
 
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/account") ||
-    pathname.startsWith("/estimate-review");
+    pathname.startsWith("/estimate-review") ||
+    pathname.startsWith("/upload");
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isAdminRoute = pathname.startsWith("/admin");
 
-  if (isProtected && !session) {
-    const redirectUrl = req.nextUrl.clone();
+  if (isAdminRoute && !session) {
+    const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirectedFrom", pathname);
-    return NextResponse.redirect(redirectUrl);
+    return redirectWithSessionCookies(redirectUrl);
+  }
+
+  if (isProtected && !session) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    return redirectWithSessionCookies(redirectUrl);
   }
 
   if (isAuthPage && session) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
-    return NextResponse.redirect(redirectUrl);
+    return redirectWithSessionCookies(
+      new URL("/dashboard", request.nextUrl.origin)
+    );
   }
 
-  // Check payment status for estimate-review pages
-  if (pathname.startsWith("/estimate-review") && session) {
-    type UserPaymentStatus = {
-      plan_type: string | null;
-      team_id: string | null;
-    };
-
-    const { data } = await supabase
-      .from('users')
-      .select('plan_type, team_id')
-      .eq('id', session.user.id)
+  if (isAdminRoute && session) {
+    const { data: adminRow } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", session.user.id)
       .maybeSingle();
 
-    const user = data as UserPaymentStatus | null;
-
-    // If user exists but has no plan and no team, redirect to pricing
-    if (user && !user.plan_type && !user.team_id) {
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.pathname = "/pricing";
-      redirectUrl.searchParams.set("message", "payment_required");
-      return NextResponse.redirect(redirectUrl);
+    const row = adminRow as { is_admin?: boolean } | null;
+    if (!row?.is_admin) {
+      return redirectWithSessionCookies(
+        new URL("/dashboard", request.nextUrl.origin)
+      );
     }
-    
-    // If user doesn't exist in our database yet (just paid), allow access
-    // The webhook will create their account shortly
   }
 
-  return res;
+  const paywallPaths =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/estimate-review") ||
+    pathname.startsWith("/upload");
+
+  if (paywallPaths && session && !isPaymentBypassActive()) {
+    const { data: paid, error: paidErr } = await supabase.rpc(
+      "user_has_paid_access"
+    );
+
+    if (paidErr) {
+      console.error("[middleware] user_has_paid_access error:", paidErr);
+    }
+
+    if (paid !== true) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/pricing";
+      redirectUrl.searchParams.set("message", "payment_required");
+      return redirectWithSessionCookies(redirectUrl);
+    }
+  }
+
+  return response;
 }
 
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/account",
+    "/account/:path*",
     "/login",
     "/register",
     "/estimate-review/:path*",
+    "/upload",
+    "/upload/:path*",
+    "/admin/:path*",
   ],
 };
-
-

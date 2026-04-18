@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-11-17.clover',
@@ -13,6 +14,18 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    const authClient = await createSupabaseRouteHandlerClient();
+    const {
+      data: { session: authSession },
+    } = await authClient.auth.getSession();
+
+    if (!authSession?.user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { sessionId } = await request.json();
 
     if (!sessionId) {
@@ -22,58 +35,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Retrieve the checkout session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
 
-    if (!session || session.payment_status !== 'paid') {
+    if (!checkoutSession || checkoutSession.payment_status !== 'paid') {
       return NextResponse.json(
         { error: 'Payment not completed' },
         { status: 400 }
       );
     }
 
-    const customerEmail = session.customer_email || session.customer_details?.email;
+    const customerEmail =
+      checkoutSession.customer_email ||
+      checkoutSession.customer_details?.email;
 
-    if (!customerEmail) {
+    if (
+      !customerEmail ||
+      customerEmail.toLowerCase() !== authSession.user.email.toLowerCase()
+    ) {
       return NextResponse.json(
-        { error: 'No email found' },
-        { status: 400 }
+        { error: 'Checkout session does not match signed-in user' },
+        { status: 403 }
       );
     }
 
-    // Check if user exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
       .eq('email', customerEmail)
-      .single();
+      .maybeSingle();
 
-    let userId: string;
-
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      // Create temporary auth user (webhook will update later)
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: customerEmail,
-        email_confirm: true,
-      });
-
-      if (authError || !authUser.user) {
-        return NextResponse.json(
-          { error: 'Failed to create user' },
-          { status: 500 }
-        );
-      }
-
-      userId = authUser.user.id;
+    if (!existingUser?.id) {
+      return NextResponse.json(
+        {
+          error:
+            'Account not provisioned yet. Wait a moment for confirmation, then refresh.',
+        },
+        { status: 409 }
+      );
     }
 
-    // Generate a magic link for auto-login
-    const { data: magicLink, error: linkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email: customerEmail,
-    });
+    const { data: magicLink, error: linkError } =
+      await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: customerEmail,
+      });
 
     if (linkError || !magicLink) {
       return NextResponse.json(
@@ -85,7 +90,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       loginUrl: magicLink.properties.action_link,
-      email: customerEmail,
     });
   } catch (error) {
     console.error('Payment verification error:', error);

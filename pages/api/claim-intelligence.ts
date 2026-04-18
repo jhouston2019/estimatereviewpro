@@ -5,7 +5,9 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabasePagesApiClient } from '../../lib/supabasePagesApi';
+import type { Database } from '../../lib/supabase-types';
+import { isPaymentBypassActive } from '../../lib/billing/devBypass';
 import { generateStructuralReport } from '../../lib/structural-unified-report-engine';
 import { normalizeInput } from '../../lib/input-normalizer';
 import { detectFormat } from '../../lib/format-detector';
@@ -66,7 +68,7 @@ export default async function handler(
     });
   }
 
-  const supabaseAuth = createPagesServerClient({ req, res });
+  const supabaseAuth = createSupabasePagesApiClient(req, res);
   const {
     data: { session },
   } = await supabaseAuth.auth.getSession();
@@ -78,6 +80,31 @@ export default async function handler(
         message: 'Authentication required',
       },
     });
+  }
+
+  if (!isPaymentBypassActive()) {
+    const { data: paid, error: paidErr } = await supabaseAuth.rpc(
+      'user_has_paid_access'
+    );
+    if (paidErr) {
+      console.error('[claim-intelligence] billing check failed:', paidErr);
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'BILLING_CHECK_FAILED',
+          message: 'Unable to verify subscription',
+        },
+      });
+    }
+    if (paid !== true) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'PAYMENT_REQUIRED',
+          message: 'Active subscription or purchase required',
+        },
+      });
+    }
   }
 
   const startTime = Date.now();

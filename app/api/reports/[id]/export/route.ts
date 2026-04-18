@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabaseServer';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 import type { Report } from '@/lib/report-types';
 import { generatePDFHTML, generatePDFHeader } from '@/lib/pdf-generator';
 import { COST_BASELINE_VERSION, COST_BASELINE_DATE, COST_BASELINE_REGION } from '@/lib/cost-baseline';
@@ -82,9 +82,16 @@ export async function GET(
     const format = searchParams.get('format') || 'pdf';
     const type = searchParams.get('type') || 'FULL'; // NEGOTIATION, PUSHBACK, APPRAISAL, FULL, ALL
 
-    const supabase = createSupabaseServerComponentClient();
+    const supabase = await createSupabaseRouteHandlerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    // Fetch report
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Fetch report (RLS also restricts; enforce explicit ownership)
     const { data, error } = await supabase
       .from('reports')
       .select('*')
@@ -96,6 +103,10 @@ export async function GET(
         { error: 'Report not found' },
         { status: 404 }
       );
+    }
+
+    if ((data as Report).user_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const report = data as Report;

@@ -78,6 +78,50 @@ npm run netlify:dev
 npm run test:safety
 ```
 
+### Local Dev Setup
+
+1. **Environment**
+   - Copy `.env.local.example` to `.env.local` (a starter `.env.local` may already exist).
+   - Fill in **Supabase** and **Stripe Test mode** values using the comments in `.env.local` as a guide:
+     - Supabase: Dashboard → **Project Settings** → **API** (URL, anon key, service role key).
+     - Stripe: [Dashboard (Test mode)](https://dashboard.stripe.com/test/apikeys) → **Developers** → **API keys** (`pk_test_…`, `sk_test_…`).
+   - For automatic billing migration from the CLI, add **`DATABASE_URL`** (or **`SUPABASE_DATABASE_URL`**) — Postgres URI from Supabase → **Project Settings** → **Database** → **Connection string** → **URI** (direct connection, port `5432`). Otherwise run `supabase/migrations/20260418_billing_access_control.sql` manually in the **SQL Editor**.
+
+2. **One-shot setup** (after API keys and optional `DATABASE_URL` are set):
+
+   ```bash
+   npm run setup:dev
+   ```
+
+   This runs Stripe key checks, seeds the test user, and applies the billing migration when a database URL is present.
+
+3. **Stripe CLI** — Install the [Stripe CLI](https://stripe.com/docs/stripe-cli) so webhooks reach your machine.
+
+4. **Run the app** — In one terminal:
+
+   ```bash
+   npm run dev
+   ```
+
+   In another:
+
+   ```bash
+   npm run stripe:listen
+   ```
+
+5. Copy the **`whsec_…`** signing secret from the Stripe CLI output into `.env.local` as **`STRIPE_WEBHOOK_SECRET`**, then restart `npm run dev`.
+
+6. **Log in** at `/login` with:
+   - **Email:** `dev-test@estimatereviewpro.local`
+   - **Password:** `DevTestPassword123!`  
+   (unless you changed `TEST_USER_*` in `.env.local`.)
+
+7. **Test checkout** with card `4242 4242 4242 4242`, any future expiry, any CVC (Test mode; no real charge).
+
+8. **UI-only work without checkout** — set `BYPASS_PAYMENT=true` in `.env.local` (development only; never in production).
+
+More detail: [docs/PAYMENT_FLOW_TESTING.md](docs/PAYMENT_FLOW_TESTING.md).
+
 **See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.**
 
 ### Database seeding and migrations

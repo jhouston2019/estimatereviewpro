@@ -13,11 +13,17 @@
     "test:safety": "node netlify/functions/test-safety.js",
     "test:premium": "node netlify/functions/test-premium-safety.js",
     "test:functions": "netlify functions:invoke test-safety",
-    "test:all": "npm run test:safety && npm run test:premium"
+    "test:all": "npm run test:safety && npm run test:premium",
+    "test:check-stripe": "node scripts/check-stripe-keys.mjs",
+    "test:seed-user": "node scripts/seed-test-user.mjs",
+    "test:apply-billing-migration": "node scripts/apply-billing-migration.mjs",
+    "setup:dev": "node scripts/setup-dev.mjs",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
-    "@supabase/supabase-js": "^2.87.1",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.3",
+    "cookie": "^1.1.1",
     "docx": "^9.6.1",
     "jszip": "^3.10.1",
     "next": "16.0.8",
@@ -35,6 +41,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/cookie": "^0.6.0",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.4",
     "@types/react": "^19",

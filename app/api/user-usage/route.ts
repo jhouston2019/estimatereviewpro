@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request: NextRequest) {
   try {
-    const authClient = createSupabaseRouteHandlerClient();
+    const authClient = await createSupabaseRouteHandlerClient();
     const {
       data: { session },
     } = await authClient.auth.getSession();
@@ -23,16 +23,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const adminKey = request.headers.get('x-admin-key');
-    const adminOk =
-      !!process.env.ADMIN_ACCESS_KEY &&
-      adminKey === process.env.ADMIN_ACCESS_KEY;
-
     const { searchParams } = new URL(request.url);
     const paramUserId = searchParams.get('userId');
 
+    const { data: adminRow } = await (supabase as any)
+      .from('users')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    const isAdmin = !!(adminRow as { is_admin?: boolean } | null)?.is_admin;
+
     let userId = session.user.id;
-    if (adminOk && paramUserId) {
+    if (paramUserId && paramUserId !== session.user.id) {
+      if (!isAdmin) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
       userId = paramUserId;
     }
 

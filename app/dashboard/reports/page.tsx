@@ -3,7 +3,7 @@ import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
 import type { Report } from "@/lib/report-types";
 
 export default async function ReportsPage() {
-  const supabase = createSupabaseServerComponentClient();
+  const supabase = await createSupabaseServerComponentClient();
   
   const {
     data: { user },
