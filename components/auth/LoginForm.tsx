@@ -30,7 +30,14 @@ export function LoginForm() {
         return;
       }
 
-      const redirectTo = searchParams?.get("redirectedFrom") || "/dashboard";
+      let redirectTo = searchParams?.get("redirectedFrom") || "/dashboard";
+      if (
+        !redirectTo.startsWith("/") ||
+        redirectTo.startsWith("//") ||
+        redirectTo.includes("://")
+      ) {
+        redirectTo = "/dashboard";
+      }
       router.push(redirectTo);
       router.refresh();
     } catch (err) {

@@ -31,8 +31,23 @@ function stripeEnvDiagnostics() {
 export async function POST(request: NextRequest) {
   const envDiag = stripeEnvDiagnostics();
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const appPublicUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   try {
+    if (!appPublicUrl || !/^https?:\/\//i.test(appPublicUrl)) {
+      console.error(
+        '[create-checkout-session] NEXT_PUBLIC_APP_URL must be an absolute URL (e.g. https://estimatereviewpro.com)'
+      );
+      return NextResponse.json(
+        {
+          error: 'App URL is not configured',
+          details:
+            'Set NEXT_PUBLIC_APP_URL to your production origin in Netlify (Site settings → Environment variables), redeploy. Trailing slash is optional.',
+        },
+        { status: 500 }
+      );
+    }
+
     if (!secretKey) {
       console.error(
         '[create-checkout-session] STRIPE_SECRET_KEY is missing or empty'
