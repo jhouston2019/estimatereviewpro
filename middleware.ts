@@ -63,18 +63,43 @@ export async function middleware(request: NextRequest) {
   if (isAdminRoute && !session) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    redirectUrl.searchParams.set(
+      "redirectedFrom",
+      pathname + (request.nextUrl.search || "")
+    );
     return redirectWithSessionCookies(redirectUrl);
   }
 
   if (isProtected && !session) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    redirectUrl.searchParams.set(
+      "redirectedFrom",
+      pathname + (request.nextUrl.search || "")
+    );
     return redirectWithSessionCookies(redirectUrl);
   }
 
   if (isAuthPage && session) {
+    const paymentReturn =
+      request.nextUrl.searchParams.get("payment") === "success" &&
+      request.nextUrl.searchParams.has("session_id");
+    if (pathname.startsWith("/register") && paymentReturn) {
+      return response;
+    }
+    const from = request.nextUrl.searchParams.get("redirectedFrom");
+    const safeFrom =
+      from &&
+      from.startsWith("/") &&
+      !from.startsWith("//") &&
+      !from.includes("://")
+        ? from
+        : null;
+    if (safeFrom) {
+      return redirectWithSessionCookies(
+        new URL(safeFrom, request.nextUrl.origin)
+      );
+    }
     return redirectWithSessionCookies(
       new URL("/dashboard", request.nextUrl.origin)
     );
@@ -92,30 +117,6 @@ export async function middleware(request: NextRequest) {
       return redirectWithSessionCookies(
         new URL("/dashboard", request.nextUrl.origin)
       );
-    }
-  }
-
-  if (
-    session &&
-    request.nextUrl.searchParams.get("payment") === "success" &&
-    request.nextUrl.searchParams.has("session_id") &&
-    (pathname === "/upload" || pathname.startsWith("/dashboard"))
-  ) {
-    const verifyUrl = new URL("/api/verify-payment", request.url);
-    verifyUrl.searchParams.set(
-      "session_id",
-      request.nextUrl.searchParams.get("session_id")!
-    );
-    try {
-      await fetch(verifyUrl, {
-        method: "GET",
-        headers: {
-          cookie: request.headers.get("cookie") ?? "",
-        },
-        cache: "no-store",
-      });
-    } catch (e) {
-      console.error("[middleware] verify-payment fetch failed:", e);
     }
   }
 

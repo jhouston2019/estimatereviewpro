@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
     }
     const userIdForStripe = trustedUserId ?? '';
 
+    const registerSuccessUrl = appAbsoluteUrl(
+      'register?payment=success&session_id={CHECKOUT_SESSION_ID}'
+    );
+
     let sessionConfig: Stripe.Checkout.SessionCreateParams;
 
     if (planType === 'single') {
@@ -111,9 +115,7 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: appAbsoluteUrl(
-          'upload?payment=success&session_id={CHECKOUT_SESSION_ID}'
-        ),
+        success_url: registerSuccessUrl,
         cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: undefined,
         metadata: {
@@ -143,9 +145,7 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: appAbsoluteUrl(
-          'dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}'
-        ),
+        success_url: registerSuccessUrl,
         cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
@@ -183,9 +183,7 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: appAbsoluteUrl(
-          'dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}'
-        ),
+        success_url: registerSuccessUrl,
         cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
@@ -229,9 +227,7 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: appAbsoluteUrl(
-          'upload?payment=success&session_id={CHECKOUT_SESSION_ID}'
-        ),
+        success_url: registerSuccessUrl,
         cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {

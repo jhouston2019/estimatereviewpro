@@ -7,6 +7,43 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
 
+export type PostPaymentDestination = "upload" | "dashboard";
+
+function getPostPaymentDestination(
+  checkoutSession: Stripe.Checkout.Session
+): PostPaymentDestination {
+  if (checkoutSession.mode === "subscription") return "dashboard";
+  return "upload";
+}
+
+function checkoutSessionMatchesUser(
+  checkoutSession: Stripe.Checkout.Session,
+  authUserId: string,
+  authEmail: string | undefined
+): boolean {
+  const stripeEmail =
+    checkoutSession.customer_email ||
+    checkoutSession.customer_details?.email ||
+    "";
+  const checkoutEmail = stripeEmail.trim().toLowerCase();
+  const userEmail = (authEmail ?? "").trim().toLowerCase();
+
+  const emailsMatch =
+    Boolean(checkoutEmail) &&
+    Boolean(userEmail) &&
+    checkoutEmail === userEmail;
+
+  const metaUid = checkoutSession.metadata?.user_id?.trim();
+
+  if (metaUid && metaUid.length > 0) {
+    if (metaUid === authUserId) return true;
+    if (emailsMatch) return true;
+    return false;
+  }
+
+  return emailsMatch;
+}
+
 async function runVerify(request: NextRequest) {
   const authClient = await createSupabaseRouteHandlerClient();
   const {
@@ -38,29 +75,17 @@ async function runVerify(request: NextRequest) {
     expand: ["subscription", "line_items"],
   });
 
-  const metaUid = checkoutSession.metadata?.user_id?.trim();
-  const email =
-    checkoutSession.customer_email ||
-    checkoutSession.customer_details?.email;
-
-  if (metaUid && metaUid !== authSession.user.id) {
+  if (
+    !checkoutSessionMatchesUser(
+      checkoutSession,
+      authSession.user.id,
+      authSession.user.email
+    )
+  ) {
     return NextResponse.json(
       { error: "Checkout session does not match signed-in user" },
       { status: 403 }
     );
-  }
-
-  if (!metaUid) {
-    if (
-      !email ||
-      !authSession.user.email ||
-      email.toLowerCase() !== authSession.user.email.toLowerCase()
-    ) {
-      return NextResponse.json(
-        { error: "Checkout session does not match signed-in user" },
-        { status: 403 }
-      );
-    }
   }
 
   const paid =
@@ -87,10 +112,15 @@ async function runVerify(request: NextRequest) {
     console.error("[verify-payment] user_has_paid_access:", rpcErr);
   }
 
+  const postPaymentDestination = getPostPaymentDestination(checkoutSession);
+
   return NextResponse.json({
     success: true,
     synced: true,
     hasPaidAccess: hasPaidAccess === true,
+    postPaymentDestination,
+    checkoutMode: checkoutSession.mode,
+    metadataPlanType: checkoutSession.metadata?.plan_type ?? null,
   });
 }
 

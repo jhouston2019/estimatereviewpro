@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
@@ -11,6 +12,55 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoVerifyDone, setAutoVerifyDone] = useState(false);
+
+  const paymentSuccess =
+    searchParams?.get("payment") === "success" &&
+    Boolean(searchParams?.get("session_id"));
+
+  useEffect(() => {
+    let cancelled = false;
+    async function existingSessionVerify() {
+      const sid = searchParams?.get("session_id");
+      const pay = searchParams?.get("payment");
+      if (pay !== "success" || !sid) return;
+
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      setIsLoading(true);
+      try {
+        const verify = await fetch(
+          `/api/verify-payment?session_id=${encodeURIComponent(sid)}`,
+          { method: "GET", cache: "no-store", credentials: "include" }
+        );
+        const data = (await verify.json()) as {
+          success?: boolean;
+          postPaymentDestination?: "upload" | "dashboard";
+        };
+        if (cancelled) return;
+        if (verify.ok && data.success) {
+          setAutoVerifyDone(true);
+          const dest =
+            data.postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
+          router.push(dest);
+          router.refresh();
+          return;
+        }
+      } catch {
+        /* fall through to registration form */
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void existingSessionVerify();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -18,9 +68,11 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
+      if (autoVerifyDone) return;
+
       const supabase = createSupabaseBrowserClient();
       const {
-        data: { user },
+        data: { user, session },
         error: signUpError,
       } = await supabase.auth.signUp({
         email,
@@ -39,6 +91,47 @@ export function RegisterForm() {
         return;
       }
 
+      const sessionId = searchParams?.get("session_id");
+      const payOk = searchParams?.get("payment") === "success";
+
+      if (payOk && sessionId) {
+        if (!session) {
+          setError(
+            "Confirm the email we sent you, then sign in with this same email so we can link your payment."
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const verify = await fetch(
+            `/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`,
+            { method: "GET", cache: "no-store", credentials: "include" }
+          );
+          const data = (await verify.json()) as {
+            success?: boolean;
+            postPaymentDestination?: "upload" | "dashboard";
+            error?: string;
+          };
+
+          if (!verify.ok || !data.success) {
+            setError(data.error ?? "Could not activate your plan. Try signing in, or contact support.");
+            setIsLoading(false);
+            return;
+          }
+
+          const dest =
+            data.postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
+          router.push(dest);
+          router.refresh();
+          return;
+        } catch {
+          setError("Could not activate your plan. Try signing in from the login page.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const plan = searchParams?.get("plan");
       const redirectTo = plan ? `/dashboard?plan=${plan}` : "/dashboard";
       router.push(redirectTo);
@@ -55,6 +148,13 @@ export function RegisterForm() {
       onSubmit={handleSubmit}
       className="mt-6 space-y-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60"
     >
+      {paymentSuccess && (
+        <p className="rounded-lg border border-emerald-800/80 bg-emerald-950/40 px-3 py-2 text-[11px] text-emerald-200">
+          Payment received. Create your account with the{" "}
+          <span className="font-semibold">same email you used at checkout</span>{" "}
+          so we can link your plan.
+        </p>
+      )}
       <div className="space-y-1 text-sm">
         <label
           htmlFor="email"
@@ -102,7 +202,7 @@ export function RegisterForm() {
 
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || autoVerifyDone}
         className="flex w-full items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isLoading ? "Creating account…" : "Create account"}
@@ -112,8 +212,19 @@ export function RegisterForm() {
         in your secure dashboard. You can delete your account and data at any
         time.
       </p>
+      {paymentSuccess && searchParams?.get("session_id") && (
+        <p className="text-center text-[11px] text-slate-400">
+          Already have an account?{" "}
+          <Link
+            className="font-semibold text-blue-300 hover:underline"
+            href={`/login?redirectedFrom=${encodeURIComponent(
+              `/register?payment=success&session_id=${searchParams.get("session_id")}`
+            )}`}
+          >
+            Sign in
+          </Link>
+        </p>
+      )}
     </form>
   );
 }
-
-
