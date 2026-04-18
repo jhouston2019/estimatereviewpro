@@ -665,14 +665,14 @@ function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) =>
       const sessionId = searchParams.get("session_id");
       if (sessionId) {
         try {
-          const verify = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId }),
-          });
+          const verify = await fetch(
+            `/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`,
+            { method: "GET", cache: "no-store" }
+          );
           const data = await verify.json();
-          if (data.success && data.loginUrl) {
-            window.location.href = data.loginUrl;
+          if (data.hasPaidAccess === true || data.success === true) {
+            onSuccess(true);
+            setTimeout(() => onSuccess(false), 5000);
             return;
           }
         } catch {

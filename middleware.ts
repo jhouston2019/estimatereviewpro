@@ -95,6 +95,30 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  if (
+    session &&
+    request.nextUrl.searchParams.get("payment") === "success" &&
+    request.nextUrl.searchParams.has("session_id") &&
+    (pathname === "/upload" || pathname.startsWith("/dashboard"))
+  ) {
+    const verifyUrl = new URL("/api/verify-payment", request.url);
+    verifyUrl.searchParams.set(
+      "session_id",
+      request.nextUrl.searchParams.get("session_id")!
+    );
+    try {
+      await fetch(verifyUrl, {
+        method: "GET",
+        headers: {
+          cookie: request.headers.get("cookie") ?? "",
+        },
+        cache: "no-store",
+      });
+    } catch (e) {
+      console.error("[middleware] verify-payment fetch failed:", e);
+    }
+  }
+
   const paywallPaths =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/estimate-review") ||
