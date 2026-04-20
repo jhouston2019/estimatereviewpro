@@ -192,6 +192,29 @@ export interface Database {
           received_at?: string;
         };
       };
+      processed_sessions: {
+        Row: {
+          session_id: string;
+          user_id: string | null;
+          processed_at: string;
+          status: string | null;
+          completed_at: string | null;
+        };
+        Insert: {
+          session_id: string;
+          user_id?: string | null;
+          processed_at?: string;
+          status?: string | null;
+          completed_at?: string | null;
+        };
+        Update: {
+          session_id?: string;
+          user_id?: string | null;
+          processed_at?: string;
+          status?: string | null;
+          completed_at?: string | null;
+        };
+      };
       reviews: {
         Row: {
           id: string;

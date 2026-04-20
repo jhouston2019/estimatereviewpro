@@ -1,119 +1,16 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
-
-function pushPostPaymentDestination(
-  router: ReturnType<typeof useRouter>,
-  postPaymentDestination: "upload" | "dashboard",
-  stripeSessionId: string
-) {
-  const path =
-    postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
-  const qs = new URLSearchParams({
-    payment: "success",
-    session_id: stripeSessionId,
-  });
-  router.push(`${path}?${qs.toString()}`);
-  router.refresh();
-}
-
-async function waitForPaidAccessThenPush(
-  router: ReturnType<typeof useRouter>,
-  postPaymentDestination: "upload" | "dashboard",
-  stripeSessionId: string
-) {
-  for (let i = 0; i < 24; i++) {
-    try {
-      const res = await fetch("/api/billing/status", { cache: "no-store" });
-      if (res.ok) {
-        const j = (await res.json()) as { hasPaidAccess?: boolean };
-        if (j.hasPaidAccess === true) {
-          pushPostPaymentDestination(
-            router,
-            postPaymentDestination,
-            stripeSessionId
-          );
-          return;
-        }
-      }
-    } catch {
-      /* continue polling */
-    }
-    await new Promise((r) => setTimeout(r, 300));
-  }
-  pushPostPaymentDestination(router, postPaymentDestination, stripeSessionId);
-}
 
 export function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoVerifyDone, setAutoVerifyDone] = useState(false);
-
-  const paymentSuccess =
-    searchParams?.get("payment") === "success" &&
-    Boolean(searchParams?.get("session_id"));
-
-  useEffect(() => {
-    console.log("[RegisterForm] URL search params", {
-      payment: searchParams?.get("payment"),
-      session_id: searchParams?.get("session_id"),
-      paymentSuccess,
-    });
-  }, [searchParams, paymentSuccess]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function existingSessionVerify() {
-      const sid = searchParams?.get("session_id");
-      const pay = searchParams?.get("payment");
-      if (pay !== "success" || !sid) return;
-
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) return;
-
-      setIsLoading(true);
-      try {
-        const verify = await fetch(
-          `/api/verify-payment?session_id=${encodeURIComponent(sid)}`,
-          { method: "GET", cache: "no-store", credentials: "include" }
-        );
-        const data = (await verify.json()) as {
-          success?: boolean;
-          hasPaidAccess?: boolean;
-          postPaymentDestination?: "upload" | "dashboard";
-        };
-        if (cancelled) return;
-        if (verify.ok && data.success && sid) {
-          setAutoVerifyDone(true);
-          const dest = data.postPaymentDestination ?? "upload";
-          if (data.hasPaidAccess === true) {
-            pushPostPaymentDestination(router, dest, sid);
-          } else {
-            await waitForPaidAccessThenPush(router, dest, sid);
-          }
-          return;
-        }
-      } catch {
-        /* fall through to registration form */
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-    void existingSessionVerify();
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -121,13 +18,8 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      if (autoVerifyDone) return;
-
       const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user, session },
-        error: signUpError,
-      } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -138,59 +30,7 @@ export function RegisterForm() {
         return;
       }
 
-      if (!user) {
-        setError("Unable to complete registration. Please check your email.");
-        setIsLoading(false);
-        return;
-      }
-
-      const sessionId = searchParams?.get("session_id");
-      const payOk = searchParams?.get("payment") === "success";
-
-      if (payOk && sessionId) {
-        if (!session) {
-          setError(
-            "Confirm the email we sent you, then sign in with this same email so we can link your payment."
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        try {
-          const verify = await fetch(
-            `/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`,
-            { method: "GET", cache: "no-store", credentials: "include" }
-          );
-          const data = (await verify.json()) as {
-            success?: boolean;
-            hasPaidAccess?: boolean;
-            postPaymentDestination?: "upload" | "dashboard";
-            error?: string;
-          };
-
-          if (!verify.ok || !data.success) {
-            setError(data.error ?? "Could not activate your plan. Try signing in, or contact support.");
-            setIsLoading(false);
-            return;
-          }
-
-          const dest = data.postPaymentDestination ?? "upload";
-          if (data.hasPaidAccess === true) {
-            pushPostPaymentDestination(router, dest, sessionId);
-          } else {
-            await waitForPaidAccessThenPush(router, dest, sessionId);
-          }
-          return;
-        } catch {
-          setError("Could not activate your plan. Try signing in from the login page.");
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      const plan = searchParams?.get("plan");
-      const redirectTo = plan ? `/dashboard?plan=${plan}` : "/dashboard";
-      router.push(redirectTo);
+      router.push("/app");
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -204,13 +44,6 @@ export function RegisterForm() {
       onSubmit={handleSubmit}
       className="mt-6 space-y-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/60"
     >
-      {paymentSuccess && (
-        <p className="rounded-lg border border-emerald-800/80 bg-emerald-950/40 px-3 py-2 text-[11px] text-emerald-200">
-          Payment received. Create your account with the{" "}
-          <span className="font-semibold">same email you used at checkout</span>{" "}
-          so we can link your plan.
-        </p>
-      )}
       <div className="space-y-1 text-sm">
         <label
           htmlFor="email"
@@ -258,7 +91,7 @@ export function RegisterForm() {
 
       <button
         type="submit"
-        disabled={isLoading || autoVerifyDone}
+        disabled={isLoading}
         className="flex w-full items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1e3a8a]/40 transition hover:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isLoading ? "Creating account…" : "Create account"}
@@ -268,19 +101,15 @@ export function RegisterForm() {
         in your secure dashboard. You can delete your account and data at any
         time.
       </p>
-      {paymentSuccess && searchParams?.get("session_id") && (
-        <p className="text-center text-[11px] text-slate-400">
-          Already have an account?{" "}
-          <Link
-            className="font-semibold text-blue-300 hover:underline"
-            href={`/login?redirectedFrom=${encodeURIComponent(
-              `/register?payment=success&session_id=${searchParams.get("session_id")}`
-            )}`}
-          >
-            Sign in
-          </Link>
-        </p>
-      )}
+      <p className="text-center text-[11px] text-slate-400">
+        Already have an account?{" "}
+        <Link
+          className="font-semibold text-blue-300 hover:underline"
+          href="/login"
+        >
+          Sign in
+        </Link>
+      </p>
     </form>
   );
 }

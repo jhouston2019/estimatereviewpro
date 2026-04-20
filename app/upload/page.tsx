@@ -1,15 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  Suspense,
-} from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
   Step2AnalysisPanel,
@@ -29,7 +21,6 @@ import {
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
 import "./erp-wizard.css";
-import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 
 const US_STATES: { code: string; name: string }[] = [
   { code: "AL", name: "Alabama" },
@@ -648,63 +639,6 @@ function isStep1AcceptedEstimateFile(file: File): boolean {
   return false;
 }
 
-function UploadPaymentActivationBanner() {
-  const searchParams = useSearchParams();
-  const enabled =
-    searchParams?.get("payment") === "success" ||
-    searchParams?.get("subscription") === "success";
-  return <PaymentActivationNotice enabled={!!enabled} />;
-}
-
-function PaymentSuccessHandler({ onSuccess }: { onSuccess: (success: boolean) => void }) {
-  const searchParams = useSearchParams();
-  useEffect(() => {
-    const handlePaymentSuccess = async () => {
-      if (searchParams?.get("payment") !== "success") return;
-
-      const sessionId = searchParams.get("session_id");
-      if (sessionId) {
-        try {
-          const verify = await fetch(
-            `/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`,
-            { method: "GET", cache: "no-store" }
-          );
-          const data = await verify.json();
-          if (data.hasPaidAccess === true || data.success === true) {
-            onSuccess(true);
-            setTimeout(() => onSuccess(false), 5000);
-            return;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-
-      const started = Date.now();
-      const poll = async () => {
-        try {
-          const res = await fetch("/api/billing/status", { cache: "no-store" });
-          if (res.status === 401) return;
-          const j = await res.json();
-          if (j.hasPaidAccess) {
-            onSuccess(true);
-            setTimeout(() => onSuccess(false), 5000);
-            return;
-          }
-          if (Date.now() - started < 90_000) {
-            setTimeout(poll, 2500);
-          }
-        } catch {
-          /* ignore */
-        }
-      };
-      await poll();
-    };
-    void handlePaymentSuccess();
-  }, [searchParams, onSuccess]);
-  return null;
-}
-
 function step1DocFileInputId(idx: number): string {
   if (idx === 0) return "erp-step1-carrier-file";
   if (idx === 1) return "erp-step1-contractor-file";
@@ -750,7 +684,6 @@ function stepIsNavigable(
 export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<WizardState>(() => initialWizardState());
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [step6LetterLoading, setStep6LetterLoading] = useState(false);
@@ -1794,11 +1727,6 @@ export default function UploadPage() {
 
   return (
     <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
-      <Suspense fallback={null}>
-        <UploadPaymentActivationBanner />
-        <PaymentSuccessHandler onSuccess={setPaymentSuccess} />
-      </Suspense>
-
       <header className="sticky top-0 z-[100] border-b border-[#1e3f6e] bg-[#091c33] text-white">
         <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-6">
           <Link href="/" className="flex items-center gap-2">
@@ -1912,14 +1840,6 @@ export default function UploadPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
-        {paymentSuccess && (
-          <div className="mb-6 rounded-[10px] border border-[#e4e4e4] bg-[#fdf0d5] p-4 text-center">
-            <p className="text-base font-semibold text-[#4a5a6a]">
-              Payment successful. You can continue in the wizard below.
-            </p>
-          </div>
-        )}
-
         <div
           id="erp-wizard-root"
           className="relative flex flex-col gap-8 border-0 bg-transparent px-0 py-0 [color-scheme:light]"

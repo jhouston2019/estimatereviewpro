@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
     }
     const userIdForStripe = trustedUserId ?? '';
 
-    const registerSuccessUrl = appAbsoluteUrl(
-      'register?payment=success&session_id={CHECKOUT_SESSION_ID}'
+    const successUrl = appAbsoluteUrl(
+      'success?session_id={CHECKOUT_SESSION_ID}'
     );
 
     let sessionConfig: Stripe.Checkout.SessionCreateParams;
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: registerSuccessUrl,
-        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('pricing'),
         customer_email: undefined,
         metadata: {
           plan_type: 'single',
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: registerSuccessUrl,
-        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('pricing'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -183,8 +183,8 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: registerSuccessUrl,
-        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('pricing'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
         },
         metadata: {
           plan_type: 'subscription',
-          plan_name: 'Premier',
+          plan_name: 'Enterprise',
           reviews_limit: '20',
           user_id: userIdForStripe,
         },
@@ -227,8 +227,8 @@ export async function POST(request: NextRequest) {
             quantity: 1,
           },
         ],
-        success_url: registerSuccessUrl,
-        cancel_url: appAbsoluteUrl('pricing?payment=cancelled'),
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('pricing'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {

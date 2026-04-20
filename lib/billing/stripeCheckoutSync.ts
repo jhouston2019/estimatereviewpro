@@ -1,5 +1,9 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ensureUserForPaidCheckout,
+  ensureUserForStripeSubscription,
+} from "./stripeLinkUser";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
@@ -39,58 +43,12 @@ export async function handleSubscriptionUpdate(
   const planType = normalizeUserPlanType(metadata.plan_type, planNameMeta);
   const reviewLimit = parseInt(metadata.review_limit || "0", 10);
   const overagePrice = parseInt(metadata.overage_price || "0", 10);
-  const metaUserId = metadata.user_id?.trim();
 
   if (!planType) return;
 
   const subStatus = subscription.status;
 
-  let userId: string | null = null;
-
-  if (metaUserId) {
-    const { data: userByMeta } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", metaUserId)
-      .maybeSingle();
-    if (userByMeta?.id) {
-      userId = userByMeta.id;
-    }
-  }
-
-  const customer = await stripe.customers.retrieve(
-    subscription.customer as string
-  );
-  if (!customer || customer.deleted) return;
-
-  const customerEmail = customer.email;
-  if (!userId && !customerEmail) return;
-
-  if (!userId && customerEmail) {
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", customerEmail)
-      .maybeSingle();
-
-    if (existingUser?.id) {
-      userId = existingUser.id;
-    } else {
-      const { data: authUser, error: authError } =
-        await supabase.auth.admin.createUser({
-          email: customerEmail,
-          email_confirm: true,
-        });
-
-      if (authError || !authUser.user) {
-        console.error("Failed to create auth user:", authError);
-        return;
-      }
-
-      userId = authUser.user.id;
-    }
-  }
-
+  const userId = await ensureUserForStripeSubscription(subscription);
   if (!userId) return;
 
   const { data: existingTeam } = await supabase
@@ -148,78 +106,17 @@ export async function handleSubscriptionUpdate(
 }
 
 /**
- * Mirrors webhook `checkout.session.completed` handling so the client can
- * activate access immediately after Checkout without waiting for the webhook.
- * When `trustedUserId` is set (verify-payment path), skips email-based user
- * creation and only updates that user.
+ * Checkout completion: link user via Stripe customer id / metadata, then mirror plans.
  */
 export async function syncStripeCheckoutSession(
   session: Stripe.Checkout.Session,
   opts?: { trustedUserId: string }
-): Promise<void> {
+): Promise<string | null> {
   const metadata = session.metadata;
-  const customerEmail =
-    session.customer_email || session.customer_details?.email;
 
-  let userId: string;
-
-  if (opts?.trustedUserId) {
-    userId = opts.trustedUserId;
-    let { data: row } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", userId)
-      .maybeSingle();
-    if (!row?.id) {
-      const emailForRow =
-        customerEmail ||
-        (await supabase.auth.admin.getUserById(userId)).data.user?.email;
-      if (!emailForRow) {
-        console.error(
-          "[syncStripeCheckoutSession] trusted user has no public.users row and no email"
-        );
-        return;
-      }
-      const { error: upsertErr } = await supabase.from("users").upsert(
-        { id: userId, email: emailForRow },
-        { onConflict: "id" }
-      );
-      if (upsertErr) {
-        console.error(
-          "[syncStripeCheckoutSession] users upsert failed:",
-          upsertErr
-        );
-        return;
-      }
-    }
-  } else {
-    if (!customerEmail) {
-      console.error("No customer email found in checkout session");
-      return;
-    }
-
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", customerEmail)
-      .single();
-
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      const { data: authUser, error: authError } =
-        await supabase.auth.admin.createUser({
-          email: customerEmail,
-          email_confirm: true,
-        });
-
-      if (authError || !authUser.user) {
-        console.error("Failed to create auth user:", authError);
-        return;
-      }
-
-      userId = authUser.user.id;
-    }
+  const userId = await ensureUserForPaidCheckout(session, opts?.trustedUserId);
+  if (!userId) {
+    return null;
   }
 
   const stripeCustomerId =
@@ -267,12 +164,12 @@ export async function syncStripeCheckoutSession(
     const reportId = metadata.report_id;
     const reportUserId = metadata.user_id;
 
-    if (!reportId || !reportUserId) return;
+    if (!reportId || !reportUserId) return userId;
     if (opts?.trustedUserId && reportUserId !== opts.trustedUserId) {
       console.warn(
         "[syncStripeCheckoutSession] single_review user_id mismatch, skipping"
       );
-      return;
+      return userId;
     }
 
     const expiresAt = new Date();
@@ -298,4 +195,6 @@ export async function syncStripeCheckoutSession(
         : (subField as Stripe.Subscription);
     await handleSubscriptionUpdate(subscription);
   }
+
+  return userId;
 }

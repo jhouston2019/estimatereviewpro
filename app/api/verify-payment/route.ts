@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 import { syncStripeCheckoutSession } from "@/lib/billing/stripeCheckoutSync";
+import { ensureEntitlementAfterStripeCheckout } from "@/lib/billing/ensureEntitlement";
+import { confirmPaidAccessReady } from "@/lib/billing/confirmEntitlement";
+import { checkoutSessionBelongsToUser } from "@/lib/billing/stripeLinkUser";
 import { createSupabaseRouteHandlerClient } from "@/lib/supabaseServer";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
+
+const supabaseService = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export type PostPaymentDestination = "upload" | "dashboard";
 
@@ -16,32 +25,20 @@ function getPostPaymentDestination(
   return "upload";
 }
 
-function checkoutSessionMatchesUser(
-  checkoutSession: Stripe.Checkout.Session,
-  authUserId: string,
-  authEmail: string | undefined
-): boolean {
-  const stripeEmail =
-    checkoutSession.customer_email ||
-    checkoutSession.customer_details?.email ||
-    "";
-  const checkoutEmail = stripeEmail.trim().toLowerCase();
-  const userEmail = (authEmail ?? "").trim().toLowerCase();
-
-  const emailsMatch =
-    Boolean(checkoutEmail) &&
-    Boolean(userEmail) &&
-    checkoutEmail === userEmail;
-
-  const metaUid = checkoutSession.metadata?.user_id?.trim();
-
-  if (metaUid && metaUid.length > 0) {
-    if (metaUid === authUserId) return true;
-    if (emailsMatch) return true;
-    return false;
-  }
-
-  return emailsMatch;
+async function checkoutPaymentAlreadyRecorded(
+  userId: string,
+  checkoutSession: Stripe.Checkout.Session
+): Promise<boolean> {
+  const ids = [checkoutSession.id];
+  const pi = checkoutSession.payment_intent;
+  if (typeof pi === "string") ids.push(pi);
+  const { data } = await supabaseService
+    .from("payment_transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .in("stripe_payment_id", ids)
+    .limit(1);
+  return !!(data && data.length > 0);
 }
 
 async function runVerify(request: NextRequest) {
@@ -51,8 +48,21 @@ async function runVerify(request: NextRequest) {
   } = await authClient.auth.getSession();
 
   if (!authSession?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.log({
+      tag: "[verify-payment]",
+      session_id: null,
+      user_id: null,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "NO_SESSION",
+    });
+    return NextResponse.json(
+      { error: "Unauthorized", code: "NO_SESSION" },
+      { status: 401 }
+    );
   }
+
+  const authUserId = authSession.user.id;
 
   let sessionId =
     request.nextUrl.searchParams.get("session_id") ??
@@ -68,31 +78,59 @@ async function runVerify(request: NextRequest) {
   }
 
   if (!sessionId || typeof sessionId !== "string") {
+    console.log({
+      tag: "[verify-payment]",
+      session_id: null,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "MISSING_SESSION_ID",
+    });
     return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
   }
 
-  const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
-    expand: ["subscription", "line_items"],
-  });
-
-  if (
-    !checkoutSessionMatchesUser(
-      checkoutSession,
-      authSession.user.id,
-      authSession.user.email
-    )
-  ) {
+  let checkoutSession: Stripe.Checkout.Session;
+  try {
+    checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription", "line_items", "customer"],
+    });
+  } catch (e) {
+    console.error("[verify-payment] retrieve session:", e);
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "INVALID_STRIPE_SESSION",
+    });
     return NextResponse.json(
-      { error: "Checkout session does not match signed-in user" },
-      { status: 403 }
+      { error: "Invalid or expired checkout session" },
+      { status: 400 }
     );
   }
 
-  const paid =
+  const stripePaid =
     checkoutSession.payment_status === "paid" ||
     checkoutSession.payment_status === "no_payment_required";
 
-  if (!paid) {
+  if (!stripePaid) {
+    const stripeCustomerIdForLog =
+      typeof checkoutSession.customer === "string"
+        ? checkoutSession.customer
+        : checkoutSession.customer &&
+            typeof checkoutSession.customer === "object" &&
+            "id" in checkoutSession.customer
+          ? (checkoutSession.customer as Stripe.Customer).id
+          : null;
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: stripeCustomerIdForLog,
+      reason: "NOT_PAID",
+    });
     return NextResponse.json(
       {
         error: "Payment not completed",
@@ -102,25 +140,124 @@ async function runVerify(request: NextRequest) {
     );
   }
 
-  await syncStripeCheckoutSession(checkoutSession, {
-    trustedUserId: authSession.user.id,
-  });
+  const stripeCustomerIdForLog =
+    typeof checkoutSession.customer === "string"
+      ? checkoutSession.customer
+      : checkoutSession.customer &&
+          typeof checkoutSession.customer === "object" &&
+          "id" in checkoutSession.customer
+        ? (checkoutSession.customer as Stripe.Customer).id
+        : null;
 
-  const { data: hasPaidAccess, error: rpcErr } =
-    await authClient.rpc("user_has_paid_access");
-  if (rpcErr) {
-    console.error("[verify-payment] user_has_paid_access:", rpcErr);
+  function logVerifyPayment(hasAccess: boolean) {
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess,
+      stripe_customer_id: stripeCustomerIdForLog,
+    });
   }
+
+  const belongs = await checkoutSessionBelongsToUser({
+    session: checkoutSession,
+    userId: authUserId,
+  });
 
   const postPaymentDestination = getPostPaymentDestination(checkoutSession);
 
-  return NextResponse.json({
-    success: true,
-    synced: true,
-    hasPaidAccess: hasPaidAccess === true,
+  const baseOk = {
     postPaymentDestination,
     checkoutMode: checkoutSession.mode,
     metadataPlanType: checkoutSession.metadata?.plan_type ?? null,
+  };
+
+  if (!belongs) {
+    logVerifyPayment(false);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  const { data: alreadyPaid } = await authClient.rpc("user_has_paid_access");
+  const paidRpc = alreadyPaid === true;
+  const recorded = await checkoutPaymentAlreadyRecorded(
+    authUserId,
+    checkoutSession
+  );
+
+  if (paidRpc && recorded) {
+    logVerifyPayment(true);
+    return NextResponse.json({
+      success: true,
+      synced: true,
+      pending: false,
+      hasPaidAccess: true,
+      ...baseOk,
+    });
+  }
+
+  let syncedUserId: string | null = null;
+  try {
+    syncedUserId = await syncStripeCheckoutSession(checkoutSession, {
+      trustedUserId: authUserId,
+    });
+    if (syncedUserId === authUserId) {
+      await ensureEntitlementAfterStripeCheckout(
+        checkoutSession,
+        syncedUserId
+      );
+    }
+  } catch (e) {
+    console.error("[verify-payment] sync/ensure:", e);
+    logVerifyPayment(false);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  if (!syncedUserId || syncedUserId !== authUserId) {
+    logVerifyPayment(false);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  const ready = await confirmPaidAccessReady({
+    userId: syncedUserId,
+    authClient,
+  });
+
+  if (!ready) {
+    logVerifyPayment(false);
+    return NextResponse.json({
+      success: true,
+      synced: true,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  logVerifyPayment(true);
+  return NextResponse.json({
+    success: true,
+    synced: true,
+    pending: false,
+    hasPaidAccess: true,
+    ...baseOk,
   });
 }
 
@@ -130,8 +267,13 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[verify-payment] GET:", error);
     return NextResponse.json(
-      { error: "Failed to verify payment" },
-      { status: 500 }
+      {
+        success: true,
+        pending: true,
+        synced: false,
+        hasPaidAccess: false,
+      },
+      { status: 200 }
     );
   }
 }
@@ -142,8 +284,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[verify-payment] POST:", error);
     return NextResponse.json(
-      { error: "Failed to verify payment" },
-      { status: 500 }
+      {
+        success: true,
+        pending: true,
+        synced: false,
+        hasPaidAccess: false,
+      },
+      { status: 200 }
     );
   }
 }

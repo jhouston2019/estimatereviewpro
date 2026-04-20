@@ -54,7 +54,6 @@ export async function middleware(request: NextRequest) {
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/account") ||
-    pathname.startsWith("/estimate-review") ||
     pathname.startsWith("/upload");
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
@@ -81,12 +80,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPage && session) {
-    const paymentReturn =
-      request.nextUrl.searchParams.get("payment") === "success" &&
-      request.nextUrl.searchParams.has("session_id");
-    if (pathname.startsWith("/register") && paymentReturn) {
-      return response;
-    }
     const from = request.nextUrl.searchParams.get("redirectedFrom");
     const safeFrom =
       from &&
@@ -101,7 +94,7 @@ export async function middleware(request: NextRequest) {
       );
     }
     return redirectWithSessionCookies(
-      new URL("/dashboard", request.nextUrl.origin)
+      new URL("/app", request.nextUrl.origin)
     );
   }
 
@@ -120,24 +113,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  /** Stripe return / post-verify: allow /upload or /dashboard while query carries session_id so paywall does not beat verify sync. */
-  const stripeReturnHasSession =
-    request.nextUrl.searchParams.get("payment") === "success" &&
-    request.nextUrl.searchParams.has("session_id");
-  const onUploadOrDashboard =
-    pathname === "/upload" || pathname.startsWith("/dashboard");
-  if (
-    stripeReturnHasSession &&
-    onUploadOrDashboard &&
-    session &&
-    !isPaymentBypassActive()
-  ) {
-    return response;
-  }
-
   const paywallPaths =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/estimate-review") ||
     pathname.startsWith("/upload");
 
   if (paywallPaths && session && !isPaymentBypassActive()) {
@@ -147,9 +124,10 @@ export async function middleware(request: NextRequest) {
 
     if (paidErr) {
       console.error("[middleware] user_has_paid_access error:", paidErr);
+      return response;
     }
 
-    if (paid !== true) {
+    if (paid === false) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/pricing";
       redirectUrl.searchParams.set("message", "payment_required");
@@ -166,7 +144,6 @@ export const config = {
     "/account/:path*",
     "/login",
     "/register",
-    "/estimate-review/:path*",
     "/upload",
     "/upload/:path*",
     "/admin/:path*",

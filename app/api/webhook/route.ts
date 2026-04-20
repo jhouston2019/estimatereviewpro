@@ -68,7 +68,13 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+        try {
+          await handleCheckoutCompleted(
+            event.data.object as Stripe.Checkout.Session
+          );
+        } catch (e) {
+          console.error('[webhook] checkout.session.completed:', e);
+        }
         break;
 
       case 'customer.subscription.created':
