@@ -30,7 +30,10 @@ export function LoginForm() {
         return;
       }
 
-      let redirectTo = searchParams?.get("redirectedFrom") || "/app";
+      let redirectTo =
+        searchParams?.get("redirectedFrom") ||
+        searchParams?.get("redirect") ||
+        "/app";
       if (
         !redirectTo.startsWith("/") ||
         redirectTo.startsWith("//") ||

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 
 export default async function DashboardPage({
@@ -15,31 +16,57 @@ export default async function DashboardPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: appUser } = await supabase
-    .from("users")
-    .select("plan_type, team_id")
-    .eq("id", user?.id ?? "")
-    .maybeSingle();
-
   const { data: reviews } = await supabase
     .from("reviews")
     .select("*")
     .eq("user_id", user?.id ?? "")
     .order("created_at", { ascending: false });
 
-  const planType = (appUser as { plan_type?: string | null } | null)?.plan_type;
-  const hasTeam = !!(appUser as { team_id?: string | null } | null)?.team_id;
+  let billingPlan = "—";
+  let billingStatusLabel = "—";
+  let renewalLabel: string | null = null;
+  let usedReviews = 0;
+  let limitReviews = 0;
+  let planType: string | null = null;
+  let hasTeam = false;
+
+  if (user?.id) {
+    const snap = await getBillingSnapshot(supabase, user.id);
+    billingPlan = snap.plan === "none" ? "—" : snap.plan;
+    billingStatusLabel = snap.status === "active" ? "Active" : "Inactive";
+    renewalLabel = snap.renewal_date
+      ? new Date(snap.renewal_date).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : null;
+    usedReviews = snap.usage;
+    limitReviews = snap.reviews_limit;
+    planType = snap.plan === "none" ? null : snap.plan;
+    hasTeam = snap.has_team;
+  }
+
   const tier =
     planType === "single"
       ? "oneoff"
       : planType === "professional" ||
           planType === "enterprise" ||
+          planType === "premier" ||
           hasTeam
         ? "pro"
         : "free";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
+      <div className="w-full shrink-0 border-b border-blue-900/50 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] px-4 py-5 shadow-lg shadow-blue-950/40 sm:px-6 sm:py-6">
+        <Link
+          href="/upload"
+          className="flex w-full items-center justify-center rounded-2xl bg-white px-6 py-4 text-center text-base font-bold tracking-tight text-[#1e3a8a] shadow-xl ring-2 ring-white/30 transition hover:bg-slate-50 hover:ring-white/50 sm:py-5 sm:text-lg"
+        >
+          Start New Estimate Review
+        </Link>
+      </div>
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">
@@ -69,6 +96,63 @@ export default async function DashboardPage({
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8">
         <PaymentActivationNotice enabled={paymentReturn} />
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
+            Billing &amp; usage
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">Current plan</p>
+              <p className="mt-1 text-sm font-semibold capitalize text-slate-100">
+                {billingPlan}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">
+                Billing status
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-100">
+                {billingStatusLabel}
+              </p>
+            </div>
+            {renewalLabel && (
+              <div>
+                <p className="text-[11px] font-medium text-slate-500">Renewal</p>
+                <p className="mt-1 text-sm text-slate-200">{renewalLabel}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">Reviews</p>
+              <p className="mt-1 text-sm text-slate-200">
+                {limitReviews > 0
+                  ? `${usedReviews} of ${limitReviews} reviews used`
+                  : `${usedReviews} reviews used`}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/account"
+              className="inline-flex items-center justify-center rounded-full border border-slate-600 px-4 py-2 text-xs font-semibold text-slate-100 hover:border-slate-400"
+            >
+              Manage billing
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e40af]"
+            >
+              Upgrade plan
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center rounded-full border border-blue-500/50 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
+            >
+              Buy more reviews
+            </Link>
+          </div>
+        </section>
+
         <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">

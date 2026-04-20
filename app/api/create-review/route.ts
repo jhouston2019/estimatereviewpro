@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
+import { getBillingSnapshot } from '@/lib/billing/getBillingSnapshot';
+import { incrementUserReviewUsage } from '@/lib/billing/incrementUserReviewUsage';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,6 +67,19 @@ export async function POST(request: NextRequest) {
         { error: permission.message || 'Not allowed to create review' },
         { status: 403 }
       );
+    }
+
+    if (!permission.preview_only) {
+      const usageSnap = await getBillingSnapshot(authClient, userId);
+      if (
+        usageSnap.reviews_limit > 0 &&
+        usageSnap.usage >= usageSnap.reviews_limit
+      ) {
+        return NextResponse.json(
+          { error: 'Review limit reached' },
+          { status: 403 }
+        );
+      }
     }
 
     // If preview only, create report but don't increment usage
@@ -174,6 +189,8 @@ export async function POST(request: NextRequest) {
         .update({ plan_type: null })
         .eq('id', userId);
 
+      await incrementUserReviewUsage(supabase, userId, 1);
+
       return NextResponse.json({
         success: true,
         reportId: report.id,
@@ -195,6 +212,12 @@ export async function POST(request: NextRequest) {
 
     // Increment usage (handles overage counting automatically)
     await supabase.rpc('increment_team_usage', { p_team_id: user.team_id });
+
+    await incrementUserReviewUsage(
+      supabase,
+      userId,
+      permission.review_limit ?? 0
+    );
 
     // If overage, bill immediately
     if (isOverage) {

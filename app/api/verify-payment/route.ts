@@ -149,13 +149,20 @@ async function runVerify(request: NextRequest) {
         ? (checkoutSession.customer as Stripe.Customer).id
         : null;
 
-  function logVerifyPayment(hasAccess: boolean) {
+  function logVerifyPayment(hasAccess: boolean, pending?: boolean) {
     console.log({
       tag: "[verify-payment]",
       session_id: sessionId,
       user_id: authUserId,
       hasAccess,
       stripe_customer_id: stripeCustomerIdForLog,
+      pending: pending ?? undefined,
+    });
+    console.log("[verify-payment] VERIFY_PAYMENT_FINAL", {
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess,
+      pending: pending ?? null,
     });
   }
 
@@ -173,7 +180,7 @@ async function runVerify(request: NextRequest) {
   };
 
   if (!belongs) {
-    logVerifyPayment(false);
+    logVerifyPayment(false, true);
     return NextResponse.json({
       success: true,
       synced: false,
@@ -191,7 +198,7 @@ async function runVerify(request: NextRequest) {
   );
 
   if (paidRpc && recorded) {
-    logVerifyPayment(true);
+    logVerifyPayment(true, false);
     return NextResponse.json({
       success: true,
       synced: true,
@@ -214,7 +221,7 @@ async function runVerify(request: NextRequest) {
     }
   } catch (e) {
     console.error("[verify-payment] sync/ensure:", e);
-    logVerifyPayment(false);
+    logVerifyPayment(false, true);
     return NextResponse.json({
       success: true,
       synced: false,
@@ -225,7 +232,7 @@ async function runVerify(request: NextRequest) {
   }
 
   if (!syncedUserId || syncedUserId !== authUserId) {
-    logVerifyPayment(false);
+    logVerifyPayment(false, true);
     return NextResponse.json({
       success: true,
       synced: false,
@@ -241,7 +248,7 @@ async function runVerify(request: NextRequest) {
   });
 
   if (!ready) {
-    logVerifyPayment(false);
+    logVerifyPayment(false, true);
     return NextResponse.json({
       success: true,
       synced: true,
@@ -251,7 +258,7 @@ async function runVerify(request: NextRequest) {
     });
   }
 
-  logVerifyPayment(true);
+  logVerifyPayment(true, false);
   return NextResponse.json({
     success: true,
     synced: true,

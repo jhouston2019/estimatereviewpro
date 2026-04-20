@@ -14,7 +14,9 @@ export interface Database {
           id: string;
           email: string;
           stripe_customer_id: string | null;
-          plan_type: "single" | "professional" | "enterprise" | null;
+          plan_type: "single" | "professional" | "enterprise" | "premier" | null;
+          payment_verification_status: string | null;
+          is_paid: boolean | null;
           team_id: string | null;
           role: "owner" | "member" | null;
           is_admin: boolean;
@@ -25,7 +27,9 @@ export interface Database {
           id: string;
           email: string;
           stripe_customer_id?: string | null;
-          plan_type?: "single" | "professional" | "enterprise" | null;
+          plan_type?: "single" | "professional" | "enterprise" | "premier" | null;
+          payment_verification_status?: string | null;
+          is_paid?: boolean | null;
           team_id?: string | null;
           role?: "owner" | "member" | null;
           is_admin?: boolean;
@@ -36,11 +40,33 @@ export interface Database {
           id?: string;
           email?: string;
           stripe_customer_id?: string | null;
-          plan_type?: "single" | "professional" | "enterprise" | null;
+          plan_type?: "single" | "professional" | "enterprise" | "premier" | null;
+          payment_verification_status?: string | null;
+          is_paid?: boolean | null;
           team_id?: string | null;
           role?: "owner" | "member" | null;
           is_admin?: boolean;
           created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_review_usage: {
+        Row: {
+          user_id: string;
+          reviews_used: number;
+          reviews_limit: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          reviews_used?: number;
+          reviews_limit?: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          reviews_used?: number;
+          reviews_limit?: number;
           updated_at?: string;
         };
       };
@@ -75,7 +101,7 @@ export interface Database {
           id: string;
           name: string;
           owner_id: string;
-          plan_type: "professional" | "enterprise";
+          plan_type: "professional" | "enterprise" | "premier";
           stripe_subscription_id: string | null;
           stripe_subscription_status: string | null;
           review_limit: number;
@@ -87,7 +113,7 @@ export interface Database {
           id?: string;
           name: string;
           owner_id: string;
-          plan_type: "professional" | "enterprise";
+          plan_type: "professional" | "enterprise" | "premier";
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: string | null;
           review_limit: number;
@@ -99,7 +125,7 @@ export interface Database {
           id?: string;
           name?: string;
           owner_id?: string;
-          plan_type?: "professional" | "enterprise";
+          plan_type?: "professional" | "enterprise" | "premier";
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: string | null;
           review_limit?: number;
@@ -255,6 +281,10 @@ export interface Database {
       user_has_paid_access: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      get_user_plan_usage: {
+        Args: { user_id_param: string };
+        Returns: Json;
       };
     };
     Enums: {

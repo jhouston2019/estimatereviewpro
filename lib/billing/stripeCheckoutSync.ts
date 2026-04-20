@@ -17,21 +17,20 @@ const supabase = createClient(
 function normalizeUserPlanType(
   raw: string | undefined,
   planName: string | undefined
-): "professional" | "enterprise" | null {
+): "professional" | "enterprise" | "premier" | null {
   const p = (raw || "").toLowerCase();
   const n = (planName || "").toLowerCase();
   if (!p && !n) return null;
   if (p === "professional" || n.includes("professional")) return "professional";
+  if (p === "single") return null;
+  if (p === "premier" || n.includes("premier")) return "premier";
   if (
     p === "subscription" ||
     p === "enterprise" ||
-    p === "premier" ||
-    n.includes("enterprise") ||
-    n.includes("premier")
+    n.includes("enterprise")
   ) {
     return "enterprise";
   }
-  if (p === "single") return null;
   return "enterprise";
 }
 

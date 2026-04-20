@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         success_url: successUrl,
-        cancel_url: appAbsoluteUrl('pricing'),
+        cancel_url: appAbsoluteUrl('cancel'),
         customer_email: undefined,
         metadata: {
           plan_type: 'single',
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         success_url: successUrl,
-        cancel_url: appAbsoluteUrl('pricing'),
+        cancel_url: appAbsoluteUrl('cancel'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         success_url: successUrl,
-        cancel_url: appAbsoluteUrl('pricing'),
+        cancel_url: appAbsoluteUrl('cancel'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           },
         ],
         success_url: successUrl,
-        cancel_url: appAbsoluteUrl('pricing'),
+        cancel_url: appAbsoluteUrl('cancel'),
         customer_email: authSession?.user.email ?? undefined,
         subscription_data: {
           metadata: {
