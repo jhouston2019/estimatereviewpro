@@ -165,16 +165,32 @@ export async function syncStripeCheckoutSession(
 
   if (opts?.trustedUserId) {
     userId = opts.trustedUserId;
-    const { data: row } = await supabase
+    let { data: row } = await supabase
       .from("users")
       .select("id")
       .eq("id", userId)
       .maybeSingle();
     if (!row?.id) {
-      console.error(
-        "[syncStripeCheckoutSession] trusted user not found in public.users"
+      const emailForRow =
+        customerEmail ||
+        (await supabase.auth.admin.getUserById(userId)).data.user?.email;
+      if (!emailForRow) {
+        console.error(
+          "[syncStripeCheckoutSession] trusted user has no public.users row and no email"
+        );
+        return;
+      }
+      const { error: upsertErr } = await supabase.from("users").upsert(
+        { id: userId, email: emailForRow },
+        { onConflict: "id" }
       );
-      return;
+      if (upsertErr) {
+        console.error(
+          "[syncStripeCheckoutSession] users upsert failed:",
+          upsertErr
+        );
+        return;
+      }
     }
   } else {
     if (!customerEmail) {
@@ -206,10 +222,18 @@ export async function syncStripeCheckoutSession(
     }
   }
 
-  if (session.customer) {
+  const stripeCustomerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : session.customer &&
+          typeof session.customer === "object" &&
+          "id" in session.customer
+        ? (session.customer as Stripe.Customer).id
+        : null;
+  if (stripeCustomerId) {
     await supabase
       .from("users")
-      .update({ stripe_customer_id: session.customer as string })
+      .update({ stripe_customer_id: stripeCustomerId })
       .eq("id", userId);
   }
 

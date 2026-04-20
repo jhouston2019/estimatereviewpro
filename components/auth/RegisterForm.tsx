@@ -5,6 +5,48 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
+function pushPostPaymentDestination(
+  router: ReturnType<typeof useRouter>,
+  postPaymentDestination: "upload" | "dashboard",
+  stripeSessionId: string
+) {
+  const path =
+    postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
+  const qs = new URLSearchParams({
+    payment: "success",
+    session_id: stripeSessionId,
+  });
+  router.push(`${path}?${qs.toString()}`);
+  router.refresh();
+}
+
+async function waitForPaidAccessThenPush(
+  router: ReturnType<typeof useRouter>,
+  postPaymentDestination: "upload" | "dashboard",
+  stripeSessionId: string
+) {
+  for (let i = 0; i < 24; i++) {
+    try {
+      const res = await fetch("/api/billing/status", { cache: "no-store" });
+      if (res.ok) {
+        const j = (await res.json()) as { hasPaidAccess?: boolean };
+        if (j.hasPaidAccess === true) {
+          pushPostPaymentDestination(
+            router,
+            postPaymentDestination,
+            stripeSessionId
+          );
+          return;
+        }
+      }
+    } catch {
+      /* continue polling */
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  pushPostPaymentDestination(router, postPaymentDestination, stripeSessionId);
+}
+
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,15 +89,18 @@ export function RegisterForm() {
         );
         const data = (await verify.json()) as {
           success?: boolean;
+          hasPaidAccess?: boolean;
           postPaymentDestination?: "upload" | "dashboard";
         };
         if (cancelled) return;
-        if (verify.ok && data.success) {
+        if (verify.ok && data.success && sid) {
           setAutoVerifyDone(true);
-          const dest =
-            data.postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
-          router.push(dest);
-          router.refresh();
+          const dest = data.postPaymentDestination ?? "upload";
+          if (data.hasPaidAccess === true) {
+            pushPostPaymentDestination(router, dest, sid);
+          } else {
+            await waitForPaidAccessThenPush(router, dest, sid);
+          }
           return;
         }
       } catch {
@@ -118,6 +163,7 @@ export function RegisterForm() {
           );
           const data = (await verify.json()) as {
             success?: boolean;
+            hasPaidAccess?: boolean;
             postPaymentDestination?: "upload" | "dashboard";
             error?: string;
           };
@@ -128,10 +174,12 @@ export function RegisterForm() {
             return;
           }
 
-          const dest =
-            data.postPaymentDestination === "dashboard" ? "/dashboard" : "/upload";
-          router.push(dest);
-          router.refresh();
+          const dest = data.postPaymentDestination ?? "upload";
+          if (data.hasPaidAccess === true) {
+            pushPostPaymentDestination(router, dest, sessionId);
+          } else {
+            await waitForPaidAccessThenPush(router, dest, sessionId);
+          }
           return;
         } catch {
           setError("Could not activate your plan. Try signing in from the login page.");

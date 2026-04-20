@@ -120,6 +120,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  /** Stripe return / post-verify: allow /upload or /dashboard while query carries session_id so paywall does not beat verify sync. */
+  const stripeReturnHasSession =
+    request.nextUrl.searchParams.get("payment") === "success" &&
+    request.nextUrl.searchParams.has("session_id");
+  const onUploadOrDashboard =
+    pathname === "/upload" || pathname.startsWith("/dashboard");
+  if (
+    stripeReturnHasSession &&
+    onUploadOrDashboard &&
+    session &&
+    !isPaymentBypassActive()
+  ) {
+    return response;
+  }
+
   const paywallPaths =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/estimate-review") ||
