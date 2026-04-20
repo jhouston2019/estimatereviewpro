@@ -267,8 +267,11 @@ export async function syncStripeCheckoutSession(
   }
 
   if (session.mode === "subscription" && session.subscription) {
-    const subscriptionId = session.subscription as string;
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subField = session.subscription;
+    const subscription: Stripe.Subscription =
+      typeof subField === "string"
+        ? await stripe.subscriptions.retrieve(subField)
+        : (subField as Stripe.Subscription);
     await handleSubscriptionUpdate(subscription);
   }
 }

@@ -19,6 +19,14 @@ export function RegisterForm() {
     Boolean(searchParams?.get("session_id"));
 
   useEffect(() => {
+    console.log("[RegisterForm] URL search params", {
+      payment: searchParams?.get("payment"),
+      session_id: searchParams?.get("session_id"),
+      paymentSuccess,
+    });
+  }, [searchParams, paymentSuccess]);
+
+  useEffect(() => {
     let cancelled = false;
     async function existingSessionVerify() {
       const sid = searchParams?.get("session_id");
