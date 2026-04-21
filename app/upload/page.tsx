@@ -703,6 +703,10 @@ export default function UploadPage() {
   const [autoExtractedFields, setAutoExtractedFields] = useState<Set<string>>(
     () => new Set()
   );
+  const [pendingOcrFile, setPendingOcrFile] = useState<{
+    docId: string;
+    file: File;
+  } | null>(null);
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const wizardStateRef = useRef(state);
@@ -889,6 +893,11 @@ export default function UploadPage() {
         const lower = file.name.toLowerCase();
         const isPdf =
           file.type === "application/pdf" || lower.endsWith(".pdf");
+
+        if (isPdf && !wizardStateRef.current.sessionReady) {
+          setPendingOcrFile({ docId, file });
+          return;
+        }
 
         if (isPdf) {
           setState((s) =>
@@ -1121,8 +1130,15 @@ export default function UploadPage() {
         announce("Could not read file.");
       }
     },
-    [announce]
+    [announce, setPendingOcrFile]
   );
+
+  useEffect(() => {
+    if (!state.sessionReady || !pendingOcrFile) return;
+    const p = pendingOcrFile;
+    setPendingOcrFile(null);
+    void readDocumentFile(p.docId, p.file);
+  }, [state.sessionReady, pendingOcrFile, readDocumentFile]);
 
   const updateDocumentText = useCallback(
     (docId: string, text: string) => {
@@ -1385,7 +1401,7 @@ export default function UploadPage() {
 
       const headers: HeadersInit = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${state.accessToken}`,
+        Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
       };
 
       const baseAnalyzeFields = {
@@ -1583,7 +1599,6 @@ export default function UploadPage() {
       }
     },
     [
-      state.accessToken,
       state.carrierText,
       state.contractorText,
       state.documents,
