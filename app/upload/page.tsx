@@ -304,6 +304,8 @@ function carrierVersionSegmentsForCategory(
 
 type WizardState = {
   accessToken: string;
+  /** True after getSession() resolves (or Supabase env missing); avoids racing with "bypass". */
+  sessionReady: boolean;
   carrierText: string | null;
   contractorText: string | null;
   documents: ClaimDocument[];
@@ -467,6 +469,7 @@ async function extractImagesFromPDF(file: File): Promise<string[]> {
 const initialWizardState = (): WizardState => {
   const base: WizardState = {
     accessToken: "bypass",
+    sessionReady: false,
     carrierText: null,
     contractorText: null,
     documents: [
@@ -733,6 +736,7 @@ export default function UploadPage() {
           setState((s) => ({
             ...s,
             accessToken: "bypass",
+            sessionReady: true,
           }));
         }
         return;
@@ -745,6 +749,7 @@ export default function UploadPage() {
         setState((s) => ({
           ...s,
           accessToken: token,
+          sessionReady: true,
         }));
       }
     })();
@@ -1310,6 +1315,7 @@ export default function UploadPage() {
     setState((s) => ({
       ...initialWizardState(),
       accessToken: s.accessToken,
+      sessionReady: s.sessionReady,
     }));
     setAutoExtractedFields(new Set());
     setSubmitError(null);
@@ -1732,6 +1738,7 @@ export default function UploadPage() {
     setState((s) => ({
       ...initialWizardState(),
       accessToken: s.accessToken,
+      sessionReady: s.sessionReady,
     }));
     setAutoExtractedFields(new Set());
     setCurrentStep(1);
@@ -2569,7 +2576,7 @@ export default function UploadPage() {
                   <button
                     id="erp-step1-submit"
                     type="submit"
-                    disabled={submitLoading}
+                    disabled={submitLoading || !state.sessionReady}
                     className="erp-btn-cta disabled:cursor-not-allowed"
                   >
                     {submitLoading ? "Analyzing…" : "Continue"}
