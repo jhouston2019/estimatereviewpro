@@ -1,29 +1,23 @@
-"use client";
+import { SuccessRedirect } from "./SuccessRedirect";
 
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+function sessionIdFromSearchParams(sp: {
+  session_id?: string | string[];
+}): string | null {
+  const raw = sp.session_id;
+  if (Array.isArray(raw)) {
+    const first = raw[0]?.trim();
+    return first && first.length > 0 ? first : null;
+  }
+  const s = raw?.trim();
+  return s && s.length > 0 ? s : null;
+}
 
-export default function SuccessPage() {
-  const router = useRouter();
-  const params = useSearchParams();
-
-  useEffect(() => {
-    const sid = params?.get("session_id");
-
-    if (!sid) {
-      router.replace("/pricing");
-      return;
-    }
-
-    fetch("/api/auth/create-session-from-stripe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ session_id: sid }),
-    }).finally(() => {
-      router.replace("/app");
-    });
-  }, [router, params]);
-
-  return <div>Finishing up…</div>;
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const sessionId = sessionIdFromSearchParams(sp);
+  return <SuccessRedirect sessionId={sessionId} />;
 }
