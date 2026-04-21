@@ -894,6 +894,10 @@ export default function UploadPage() {
         const isPdf =
           file.type === "application/pdf" || lower.endsWith(".pdf");
 
+        console.log("PDF_DROP:", {
+          sessionReady: wizardStateRef.current.sessionReady,
+          fileName: file.name,
+        });
         if (isPdf && !wizardStateRef.current.sessionReady) {
           setPendingOcrFile({ docId, file });
           return;
@@ -1134,6 +1138,10 @@ export default function UploadPage() {
   );
 
   useEffect(() => {
+    console.log("SESSION_EFFECT:", {
+      sessionReady: state.sessionReady,
+      hasPending: !!pendingOcrFile,
+    });
     if (!state.sessionReady || !pendingOcrFile) return;
     const p = pendingOcrFile;
     setPendingOcrFile(null);
