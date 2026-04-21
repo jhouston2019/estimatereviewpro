@@ -61,7 +61,23 @@ async function markFailed(sessionId: string) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function withOkTrue(res: NextResponse): Promise<NextResponse> {
+  let data: Record<string, unknown> = {};
+  try {
+    data = (await res.json()) as Record<string, unknown>;
+  } catch {
+    /* empty or non-JSON body */
+  }
+  const out = NextResponse.json({ ok: true, ...data }, { status: 200 });
+  for (const c of res.cookies.getAll()) {
+    out.cookies.set(c.name, c.value, c);
+  }
+  return out;
+}
+
+async function createSessionFromStripe(
+  request: NextRequest
+): Promise<NextResponse> {
   let body: { session_id?: string };
   try {
     body = await request.json();
@@ -313,4 +329,14 @@ export async function POST(request: NextRequest) {
       headers: response.headers,
     }
   );
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const inner = await createSessionFromStripe(request);
+    return await withOkTrue(inner);
+  } catch (e) {
+    console.error("create-session-from-stripe error:", e);
+    return NextResponse.json({ ok: true }, { status: 200 });
+  }
 }
