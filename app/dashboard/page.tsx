@@ -83,12 +83,6 @@ export default async function DashboardPage({
               Account
             </Link>
             <Link
-              href="/upload"
-              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500 hover:text-slate-50"
-            >
-              Upload
-            </Link>
-            <Link
               href="/pricing"
               className="rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
@@ -173,7 +167,7 @@ export default async function DashboardPage({
           <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 md:w-auto md:items-end">
             <Link
               href="/upload"
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto md:min-w-[220px] md:px-8 md:py-3"
+              className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
             >
               New review
             </Link>

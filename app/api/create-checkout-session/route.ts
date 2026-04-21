@@ -144,9 +144,9 @@ export async function POST(request: NextRequest) {
           },
         },
         metadata: {
-          plan_type: 'subscription',
+          plan_type: 'enterprise',
           plan_name: 'Enterprise',
-          reviews_limit: '20',
+          reviews_limit: 'unlimited',
         },
       };
     } else if (planType === 'premier') {
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
           },
         },
         metadata: {
-          plan_type: 'subscription',
+          plan_type: 'premier',
           plan_name: 'Premier',
           reviews_limit: '20',
         },

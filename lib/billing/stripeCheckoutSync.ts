@@ -193,6 +193,25 @@ export async function syncStripeCheckoutSession(
         ? await stripe.subscriptions.retrieve(subField)
         : (subField as Stripe.Subscription);
     await handleSubscriptionUpdate(subscription);
+
+    const sessionPlanFromCheckout = (
+      metadata?.plan_type ?? ""
+    ).toLowerCase();
+    if (
+      sessionPlanFromCheckout === "professional" ||
+      sessionPlanFromCheckout === "enterprise" ||
+      sessionPlanFromCheckout === "premier"
+    ) {
+      await supabase
+        .from("users")
+        .update({
+          plan_type: sessionPlanFromCheckout as
+            | "professional"
+            | "enterprise"
+            | "premier",
+        })
+        .eq("id", userId);
+    }
   }
 
   return userId;
