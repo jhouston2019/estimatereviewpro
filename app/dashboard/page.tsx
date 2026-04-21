@@ -59,14 +59,6 @@ export default async function DashboardPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
-      <div className="w-full shrink-0 border-b border-blue-900/50 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] px-4 py-5 shadow-lg shadow-blue-950/40 sm:px-6 sm:py-6">
-        <Link
-          href="/upload"
-          className="flex w-full items-center justify-center rounded-2xl bg-white px-6 py-4 text-center text-base font-bold tracking-tight text-gray-900 shadow-xl ring-2 ring-white/30 transition hover:bg-slate-50 hover:ring-white/50 sm:py-5 sm:text-lg"
-        >
-          Start New Estimate Review
-        </Link>
-      </div>
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">

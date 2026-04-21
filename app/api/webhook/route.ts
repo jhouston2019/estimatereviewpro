@@ -68,13 +68,9 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        try {
-          await handleCheckoutCompleted(
-            event.data.object as Stripe.Checkout.Session
-          );
-        } catch (e) {
-          console.error('[webhook] checkout.session.completed:', e);
-        }
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
 
       case 'customer.subscription.created':
@@ -109,7 +105,15 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  await syncStripeCheckoutSession(session);
+  try {
+    await syncStripeCheckoutSession(session);
+  } catch (error) {
+    console.error(
+      '[webhook] checkout.session.completed syncStripeCheckoutSession failed',
+      { session_id: session.id },
+      error
+    );
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
