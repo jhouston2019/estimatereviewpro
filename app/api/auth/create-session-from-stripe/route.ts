@@ -61,6 +61,49 @@ async function markFailed(sessionId: string) {
   }
 }
 
+type UsersPlanType = NonNullable<
+  Database["public"]["Tables"]["users"]["Row"]["plan_type"]
+>;
+
+async function resolveSubscriptionForPlan(
+  session: Stripe.Checkout.Session
+): Promise<Stripe.Subscription | null> {
+  if (session.mode !== "subscription") return null;
+  const subField = session.subscription;
+  if (!subField) return null;
+  if (typeof subField === "string") {
+    try {
+      return await stripe.subscriptions.retrieve(subField);
+    } catch (e) {
+      console.warn("[create-session-from-stripe] subscription retrieve:", e);
+      return null;
+    }
+  }
+  return subField as Stripe.Subscription;
+}
+
+function planTypeForCheckoutUser(
+  session: Stripe.Checkout.Session,
+  subscription: Stripe.Subscription | null
+): UsersPlanType {
+  if (session.mode === "payment") {
+    return "single";
+  }
+  if (session.mode === "subscription" && subscription) {
+    const m = subscription.metadata ?? {};
+    const pt = (m.plan_type ?? "").toLowerCase();
+    const pn = (m.plan_name ?? "").toLowerCase();
+    if (pt === "professional") return "professional";
+    if (pn.includes("premier")) return "premier";
+    if (pt === "enterprise" || pn.includes("enterprise")) return "enterprise";
+  }
+  const sm = session.metadata ?? {};
+  if ((sm.plan_type ?? "").toLowerCase() === "professional") {
+    return "professional";
+  }
+  return "enterprise";
+}
+
 async function withOkTrue(res: NextResponse): Promise<NextResponse> {
   let data: Record<string, unknown> = {};
   try {
@@ -119,6 +162,22 @@ async function createSessionFromStripe(
     return NextResponse.json(
       { error: "Could not resolve user for checkout" },
       { status: 400 }
+    );
+  }
+
+  const subscription = await resolveSubscriptionForPlan(checkoutSession);
+  const resolvedPlanType = planTypeForCheckoutUser(
+    checkoutSession,
+    subscription
+  );
+  const { error: planTypeUpdateErr } = await supabaseService
+    .from("users")
+    .update({ plan_type: resolvedPlanType })
+    .eq("id", userId);
+  if (planTypeUpdateErr) {
+    console.error(
+      "[create-session-from-stripe] plan_type update:",
+      planTypeUpdateErr
     );
   }
 
