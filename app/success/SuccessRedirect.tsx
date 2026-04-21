@@ -2,12 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
-type Props = {
-  sessionId: string | null;
-};
-
-export function SuccessRedirect({ sessionId }: Props) {
+export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -16,13 +13,20 @@ export function SuccessRedirect({ sessionId }: Props) {
       return;
     }
 
+    const supabase = createSupabaseBrowserClient();
+
     fetch("/api/auth/create-session-from-stripe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ session_id: sessionId }),
-    }).finally(() => {
-      router.replace("/create-account?session_id=" + encodeURIComponent(sessionId));
+    }).finally(async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/create-account?session_id=" + encodeURIComponent(sessionId));
+      }
     });
   }, [router, sessionId]);
 
