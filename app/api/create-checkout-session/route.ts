@@ -86,11 +86,17 @@ export async function POST(request: NextRequest) {
     const {
       data: { session: authSession },
     } = await authClient.auth.getSession();
-    const trustedUserId = authSession?.user.id;
-    if (bodyUserId && trustedUserId && bodyUserId !== trustedUserId) {
+    const currentUser = authSession?.user;
+    const currentUserId = currentUser?.id;
+    if (bodyUserId && currentUserId && bodyUserId !== currentUserId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    const userIdForStripe = trustedUserId ?? '';
+    if (!currentUserId) {
+      return NextResponse.json(
+        { error: 'Sign in required to checkout' },
+        { status: 401 }
+      );
+    }
 
     const successUrl = appAbsoluteUrl(
       'success?session_id={CHECKOUT_SESSION_ID}'
@@ -122,7 +128,7 @@ export async function POST(request: NextRequest) {
           plan_type: 'single',
           plan_name: 'Single Review',
           reviews_limit: '1',
-          user_id: userIdForStripe,
+          user_id: currentUserId,
         },
       };
     } else if (planType === 'enterprise') {
@@ -147,10 +153,10 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: authSession?.user.email ?? undefined,
+        customer_email: currentUser?.email ?? undefined,
         subscription_data: {
           metadata: {
-            user_id: userIdForStripe,
+            user_id: currentUserId,
             plan_type: 'enterprise',
             plan_name: 'Enterprise',
             review_limit: '20',
@@ -160,7 +166,7 @@ export async function POST(request: NextRequest) {
           plan_type: 'subscription',
           plan_name: 'Enterprise',
           reviews_limit: '20',
-          user_id: userIdForStripe,
+          user_id: currentUserId,
         },
       };
     } else if (planType === 'premier') {
@@ -185,10 +191,10 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: authSession?.user.email ?? undefined,
+        customer_email: currentUser?.email ?? undefined,
         subscription_data: {
           metadata: {
-            user_id: userIdForStripe,
+            user_id: currentUserId,
             plan_type: 'enterprise',
             plan_name: 'Premier',
             review_limit: '20',
@@ -198,7 +204,7 @@ export async function POST(request: NextRequest) {
           plan_type: 'subscription',
           plan_name: 'Enterprise',
           reviews_limit: '20',
-          user_id: userIdForStripe,
+          user_id: currentUserId,
         },
       };
     } else if (planType === 'professional') {
@@ -229,10 +235,10 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: authSession?.user.email ?? undefined,
+        customer_email: currentUser?.email ?? undefined,
         subscription_data: {
           metadata: {
-            user_id: userIdForStripe,
+            user_id: currentUserId,
             plan_type: 'professional',
             review_limit: '50',
             overage_price: '2900',
@@ -242,7 +248,7 @@ export async function POST(request: NextRequest) {
           plan_type: 'professional',
           review_limit: '50',
           overage_price: '2900',
-          user_id: userIdForStripe,
+          user_id: currentUserId,
         },
       };
     } else {

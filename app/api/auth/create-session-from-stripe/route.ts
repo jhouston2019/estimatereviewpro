@@ -107,6 +107,20 @@ export async function POST(request: NextRequest) {
   }
 
   const cid = stripeCustomerIdFromSession(checkoutSession);
+  if (cid) {
+    const { data: uStripe } = await supabaseService
+      .from("users")
+      .select("stripe_customer_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!uStripe?.stripe_customer_id) {
+      await supabaseService
+        .from("users")
+        .update({ stripe_customer_id: cid })
+        .eq("id", userId);
+    }
+  }
+
   const { data: urow } = await supabaseService
     .from("users")
     .select("id, stripe_customer_id")
