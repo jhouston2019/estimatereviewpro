@@ -53,19 +53,29 @@ function randomTempPassword(): string {
   return `${randomBytes(24).toString("base64url")}Aa1!`;
 }
 
+function isStripeCustomer(
+  c: Stripe.Customer | Stripe.DeletedCustomer | null | undefined
+): c is Stripe.Customer {
+  return !!c && typeof c === "object" && !("deleted" in c && c.deleted);
+}
+
+function getCustomerEmail(
+  customer: Stripe.Customer | Stripe.DeletedCustomer | null | undefined
+): string | undefined {
+  if (isStripeCustomer(customer) && customer.email) {
+    return customer.email;
+  }
+  return undefined;
+}
+
 function checkoutSessionEmail(session: Stripe.Checkout.Session): string | null {
   const direct = session.customer_email?.trim() ?? "";
   if (direct) return direct;
   const details = session.customer_details?.email?.trim() ?? "";
   if (details) return details;
   const c = session.customer;
-  if (
-    c &&
-    typeof c === "object" &&
-    "email" in c &&
-    !("deleted" in c && (c as Stripe.DeletedCustomer).deleted)
-  ) {
-    const em = (c as Stripe.Customer).email?.trim() ?? "";
+  if (c && typeof c !== "string") {
+    const em = getCustomerEmail(c)?.trim() ?? "";
     if (em) return em;
   }
   return null;
