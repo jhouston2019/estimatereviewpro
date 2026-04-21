@@ -47,7 +47,7 @@ exports.handler = async (event) => {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      const isSectionHeader = /^SECTION [IVX]+ —/.test(trimmed) || /^(CLOSING|Enclosures|Note):?/.test(trimmed);
+      const isSectionHeader = /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)\./.test(trimmed);
       const isEmpty = trimmed === '';
 
       children.push(new Paragraph({

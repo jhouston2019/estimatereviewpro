@@ -39,13 +39,13 @@ const PLACEHOLDERS = [
   "[RESPONSE DEADLINE]",
 ];
 
-const SECTION_HEADINGS = [
-  "BACKGROUND",
-  "BASIS FOR SUPPLEMENT",
-  "POLICY OBLIGATIONS",
-  "REGULATORY DUTIES",
-  "DEMAND",
-  "RESERVATION OF RIGHTS",
+/** Inline paragraph lead-ins validated in order (see validateLetter). */
+const INLINE_HEADINGS = [
+  "Basis for Supplement.",
+  "Policy Obligations.",
+  "Regulatory Duties.",
+  "Demand.",
+  "Reservation of Rights.",
 ];
 
 function letterTypeInstructions(letterType) {
@@ -65,24 +65,46 @@ function letterTypeInstructions(letterType) {
   }
 }
 
-const LETTER_SYSTEM_PROMPT = `You write a formal insurance correspondence letter as plain text only.
+const LETTER_SYSTEM_PROMPT = `You write a formal legal demand letter as plain text only.
 
 OUTPUT RULES (strict):
-- Output plain text only. No HTML, no markdown, no code fences, no bullet markdown syntax (you may use simple line breaks and plain dashes if needed).
-- Tone is always formal and professional (FORMAL_PROFESSIONAL): clear, respectful, precise; no slang.
-- The letter MUST contain exactly six sections in this order. Each section begins with its heading alone on the first line of that section, then a blank line, then the body:
-  1. BACKGROUND
-  2. BASIS FOR SUPPLEMENT
-  3. POLICY OBLIGATIONS
-  4. REGULATORY DUTIES
-  5. DEMAND
-  6. RESERVATION OF RIGHTS
-- The DEMAND section body MUST include the literal phrase: 10-day deadline
-- Include ALL of these placeholders somewhere in the letter (exact spelling, square brackets, ALL CAPS, spaces not underscores): [INSURED NAME], [POLICY NUMBER], [CLAIM NUMBER], [DATE OF LOSS], [ADJUSTER NAME], [CARRIER NAME], [DISPUTED AMOUNT], [RESPONSE DEADLINE]
-- Do not include any attorney-review disclaimer or any text suggesting legal advice.
-- Do not fabricate statute numbers, case citations, or specific policy contract language not supported by the supplied analysis summary. Use general duty-of-good-faith and reasonable-investigation framing without naming fake statutes or cases.
+- Output plain text only. No HTML, no markdown, no code fences.
+- The letter must follow this exact structure and order:
+
+[TODAY'S DATE]
+
+[INSURED NAME]
+
+[ADJUSTER NAME]
+[CARRIER NAME]
+
+Re: Claim No. [CLAIM NUMBER] | Policy No. [POLICY NUMBER] | Date of Loss: [DATE OF LOSS] | Insured: [INSURED NAME]
+
+Dear [ADJUSTER NAME]:
+
+[BACKGROUND paragraph — no heading, just prose]
+
+[BASIS FOR SUPPLEMENT paragraph — start with bold-equivalent lead: "Basis for Supplement.  " then prose]
+
+[POLICY OBLIGATIONS paragraph — start with "Policy Obligations.  " then prose]
+
+[REGULATORY DUTIES paragraph — start with "Regulatory Duties.  " then prose]
+
+[DEMAND paragraph — start with "Demand.  " then prose, must include phrase: 10-day deadline]
+
+[RESERVATION OF RIGHTS paragraph — start with "Reservation of Rights.  " then prose]
+
+Very truly yours,
+
+[INSURED NAME]
+
+- Do NOT use ALL-CAPS standalone section headings on their own line. Headings must be inline at the start of each paragraph followed by two spaces then the body text.
+- Include ALL placeholders: [INSURED NAME], [POLICY NUMBER], [CLAIM NUMBER], [DATE OF LOSS], [ADJUSTER NAME], [CARRIER NAME], [DISPUTED AMOUNT], [RESPONSE DEADLINE]
+- Tone: formal, professional, precise.
+- No attorney-review disclaimers.
+- No fabricated statute numbers, case citations, or specific policy language.
 - The user message specifies letterType; follow the letter-type framing instructions there. Also reflect the selected strategy code from the payload (supplement vs partial dispute vs re-inspection vs appraisal vs custom) using only facts and themes present in the analysis JSON.
-- Never output a line or sentence that begins with the word "Strategy:" or reads like an internal label (for example, do not paste phrases such as "Strategy: full supplement demand"). Instead, weave the intent of the selected strategy into normal sentences in BACKGROUND and BASIS FOR SUPPLEMENT only, in plain language, without naming the raw code string.`;
+- Never output a line or sentence that begins with the word "Strategy:" or reads like an internal label (for example, do not paste phrases such as "Strategy: full supplement demand"). Instead, weave the intent of the selected strategy into normal sentences in the background and basis paragraphs only, in plain language, without naming the raw code string.`;
 
 /** Short prose reflecting the strategy — no "Strategy:" labels (used in fallback and guides model). */
 function strategyVoiceForProse(strategy) {
@@ -125,30 +147,38 @@ function buildFallbackLetter(strategy, letterType) {
   const lt = LETTER_TYPES.includes(letterType) ? letterType : "SUPPLEMENT_DEMAND";
   const basis = basisBodyForLetterType(lt, strat);
   const bgVoice = strategyVoiceForProse(strat);
+  const todayStr = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
   return [
-    "BACKGROUND",
+    todayStr,
+    "",
+    "[INSURED NAME]",
+    "",
+    "[ADJUSTER NAME]",
+    "[CARRIER NAME]",
+    "",
+    "Re: Claim No. [CLAIM NUMBER] | Policy No. [POLICY NUMBER] | Date of Loss: [DATE OF LOSS] | Insured: [INSURED NAME]",
+    "",
+    "Dear [ADJUSTER NAME]:",
     "",
     `This correspondence relates to claim [CLAIM NUMBER] under policy [POLICY NUMBER] for [INSURED NAME], date of loss [DATE OF LOSS]. We have communicated with [ADJUSTER NAME] at [CARRIER NAME]. The amount in controversy is [DISPUTED AMOUNT]. ${bgVoice}`,
     "",
-    "BASIS FOR SUPPLEMENT",
+    `Basis for Supplement.  ${basis}`,
     "",
-    basis,
+    "Policy Obligations.  The carrier is requested to evaluate the claim file consistent with the policy’s loss-settlement and cooperation obligations, using good faith and fair dealing, without citing specific policy language not already in the file. Insured: [INSURED NAME]. Carrier: [CARRIER NAME].",
     "",
-    "POLICY OBLIGATIONS",
+    "Regulatory Duties.  The carrier should document its position and complete a reasonable review of the materials submitted, consistent with generally applicable unfair-claims-practice principles (no specific statute numbers stated here). Adjuster of record: [ADJUSTER NAME]. Response calendar: [RESPONSE DEADLINE].",
     "",
-    "The carrier is requested to evaluate the claim file consistent with the policy’s loss-settlement and cooperation obligations, using good faith and fair dealing, without citing specific policy language not already in the file. Insured: [INSURED NAME]. Carrier: [CARRIER NAME].",
+    "Demand.  Within the 10-day deadline referenced here, please provide a written response addressing the items noted above, and confirm the schedule for resolution. This 10-day deadline is offered as a reasonable response window; calendar date [RESPONSE DEADLINE] remains relevant for scheduling. Disputed amount context: [DISPUTED AMOUNT].",
     "",
-    "REGULATORY DUTIES",
+    "Reservation of Rights.  Nothing herein waives any rights or remedies available to [INSURED NAME]. All rights are expressly reserved. [CARRIER NAME] — claim [CLAIM NUMBER], policy [POLICY NUMBER], DOL [DATE OF LOSS].",
     "",
-    "The carrier should document its position and complete a reasonable review of the materials submitted, consistent with generally applicable unfair-claims-practice principles (no specific statute numbers stated here). Adjuster of record: [ADJUSTER NAME]. Response calendar: [RESPONSE DEADLINE].",
+    "Very truly yours,",
     "",
-    "DEMAND",
-    "",
-    "Within the 10-day deadline referenced here, please provide a written response addressing the items noted above, and confirm the schedule for resolution. This 10-day deadline is offered as a reasonable response window; calendar date [RESPONSE DEADLINE] remains relevant for scheduling. Disputed amount context: [DISPUTED AMOUNT].",
-    "",
-    "RESERVATION OF RIGHTS",
-    "",
-    "Nothing herein waives any rights or remedies available to [INSURED NAME]. All rights are expressly reserved. [CARRIER NAME] — claim [CLAIM NUMBER], policy [POLICY NUMBER], DOL [DATE OF LOSS].",
+    "[INSURED NAME]",
     "",
   ].join("\n");
 }
@@ -158,7 +188,7 @@ function validateLetter(text) {
   const t = text.trim();
   if (!t.toLowerCase().includes("10-day deadline")) return false;
   let last = -1;
-  for (const h of SECTION_HEADINGS) {
+  for (const h of INLINE_HEADINGS) {
     const idx = t.indexOf(h);
     if (idx === -1) return false;
     if (idx <= last) return false;

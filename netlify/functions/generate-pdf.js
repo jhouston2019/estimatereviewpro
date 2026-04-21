@@ -38,9 +38,12 @@ exports.handler = async (event) => {
 
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const fontSize = 11;
-    const lineHeight = fontSize * 1.5;
+    const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.6;
     const margin = 72;
+    const headingLineRe =
+      /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)\./;
 
     const addPage = () => {
       const p = pdfDoc.addPage([612, 792]);
@@ -79,15 +82,31 @@ exports.handler = async (event) => {
         y = next.y;
       }
       if (line.trim()) {
+        const lineFont = headingLineRe.test(line) ? boldFont : font;
         page.drawText(line, {
           x: margin,
           y,
           size: fontSize,
-          font,
+          font: lineFont,
           color: rgb(0, 0, 0)
         });
       }
       y -= lineHeight;
+    }
+
+    const pages = pdfDoc.getPages();
+    const totalPages = pages.length;
+    const pageNumSize = 10;
+    for (let i = 0; i < totalPages; i++) {
+      const label = `${i + 1} of ${totalPages}`;
+      const w = font.widthOfTextAtSize(label, pageNumSize);
+      pages[i].drawText(label, {
+        x: 306 - w / 2,
+        y: 36,
+        size: pageNumSize,
+        font,
+        color: rgb(0, 0, 0)
+      });
     }
 
     const pdfBytes = await pdfDoc.save();
