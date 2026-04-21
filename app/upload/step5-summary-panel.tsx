@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
+import { wizardFetch } from "@/lib/supabaseClient";
 import {
   formatStrategyLabel,
   type AnalysisResult,
@@ -21,7 +22,6 @@ type ClaimMeta = {
 };
 
 type Props = {
-  accessToken: string;
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
   strategy: string | null;
@@ -257,7 +257,6 @@ function strategyRationaleFromAnalysis(
 }
 
 export function Step5SummaryPanel({
-  accessToken,
   analysis,
   comparison,
   strategy,
@@ -309,12 +308,8 @@ export function Step5SummaryPanel({
 
   const downloadPdf = useCallback(async () => {
     const text = buildSummaryText(analysis, comparison, claimMeta, strategy);
-    const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ text, fileName: "wizard-summary.pdf" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -331,7 +326,7 @@ export function Step5SummaryPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary PDF downloaded.");
-  }, [announce]);
+  }, [analysis, comparison, claimMeta, strategy, announce]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step5-print-root");
@@ -340,12 +335,8 @@ export function Step5SummaryPanel({
       return;
     }
     const text = root.innerText;
-    const res = await fetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ text, fileName: "wizard-summary.docx" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -362,7 +353,7 @@ export function Step5SummaryPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary Word document downloaded.");
-  }, [accessToken, analysis, announce, claimMeta, comparison, strategy]);
+  }, [analysis, announce, claimMeta, comparison, strategy]);
 
   const carrierNameDisplay = claimMeta.carrierName?.trim() || "—";
 

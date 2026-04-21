@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
+import { wizardFetch } from "@/lib/supabaseClient";
 
 export type AnalysisResult = {
   carrierAmount: number;
@@ -214,7 +215,6 @@ function riskBadgeClass(_risk: AnalysisResult["riskLevel"]): string {
 }
 
 type Props = {
-  accessToken: string;
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
   onBack: () => void;
@@ -230,7 +230,6 @@ const ERP_WHITE_ACTION_PANEL =
   "rounded-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#f0a050] bg-white px-4 py-3";
 
 export function Step2AnalysisPanel({
-  accessToken,
   analysis,
   comparison,
   onBack,
@@ -284,12 +283,8 @@ export function Step2AnalysisPanel({
       return;
     }
     const text = root.innerText;
-    const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({
         text,
         fileName: "estimate-analysis.pdf",
@@ -309,7 +304,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [accessToken, announce]);
+  }, [announce]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step2-print-root");
@@ -318,12 +313,8 @@ export function Step2AnalysisPanel({
       return;
     }
     const text = root.innerText;
-    const res = await fetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({
         text,
         fileName: "estimate-analysis.docx",
@@ -343,7 +334,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [accessToken, announce]);
+  }, [announce]);
 
   const omissionItems = useMemo(() => {
     if (!analysis?.scopeOmissions.length) return ["None identified."];

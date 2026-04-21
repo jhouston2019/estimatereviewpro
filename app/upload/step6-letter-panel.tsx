@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
+import { wizardFetch } from "@/lib/supabaseClient";
 
 export type LetterPlaceholderFields = {
   insured: string;
@@ -105,7 +106,6 @@ function syncExportSource(text: string) {
 }
 
 type Props = {
-  accessToken: string;
   active: boolean;
   letterType: string | null;
   onLetterTypeChange: (code: string) => void;
@@ -122,7 +122,6 @@ type Props = {
 };
 
 export function Step6LetterPanel({
-  accessToken,
   active,
   letterType,
   onLetterTypeChange,
@@ -178,12 +177,8 @@ export function Step6LetterPanel({
       return;
     }
     const text = root.innerText;
-    const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ text, fileName: "estimate-letter.pdf" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -200,7 +195,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [accessToken, announce]);
+  }, [announce]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step6-letter-export-source");
@@ -209,12 +204,8 @@ export function Step6LetterPanel({
       return;
     }
     const text = root.innerText;
-    const res = await fetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ text, fileName: "estimate-letter.docx" }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -231,7 +222,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [accessToken, announce]);
+  }, [announce]);
 
   const patchField = (key: keyof LetterPlaceholderFields, value: string) => {
     onLetterPlaceholdersChange({ [key]: value });

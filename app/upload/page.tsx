@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
-import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import {
+  createSupabaseBrowserClient,
+  wizardFetch,
+} from "@/lib/supabaseClient";
 import {
   Step2AnalysisPanel,
   parseAnalysisResult,
@@ -732,33 +735,49 @@ export default function UploadPage() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !key) {
-        if (!cancelled) {
-          setState((s) => ({
-            ...s,
-            accessToken: "bypass",
-            sessionReady: true,
-          }));
-        }
-        return;
-      }
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(url, key);
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      setState((s) => ({
+        ...s,
+        accessToken: "bypass",
+        sessionReady: true,
+      }));
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const supabase = createSupabaseBrowserClient();
+
+    const initSession = async () => {
       const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token ?? "bypass";
       if (!cancelled) {
+        const token = data.session?.access_token ?? "bypass";
         setState((s) => ({
           ...s,
           accessToken: token,
           sessionReady: true,
         }));
       }
-    })();
+    };
+    void initSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
+      const token = session?.access_token ?? "bypass";
+      setState((s) => ({
+        ...s,
+        accessToken: token,
+        sessionReady: true,
+      }));
+    });
+
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -771,8 +790,7 @@ export default function UploadPage() {
         if (!cancelled) setPremierUsageWall("ok");
         return;
       }
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(url, key);
+      const supabase = createSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user?.id;
       if (!userId) {
@@ -894,10 +912,6 @@ export default function UploadPage() {
         const isPdf =
           file.type === "application/pdf" || lower.endsWith(".pdf");
 
-        console.log("PDF_DROP:", {
-          sessionReady: wizardStateRef.current.sessionReady,
-          fileName: file.name,
-        });
         if (isPdf && !wizardStateRef.current.sessionReady) {
           setPendingOcrFile({ docId, file });
           return;
@@ -953,14 +967,10 @@ export default function UploadPage() {
                       ),
                     })
                   );
-                  const ocrRes = await fetch(
+                  const ocrRes = await wizardFetch(
                     netlifyFunctionUrl("analyze-estimate"),
                     {
                       method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
-                      },
                       body: JSON.stringify({
                         mode: "extract_only",
                         images: [images[i]],
@@ -1138,10 +1148,6 @@ export default function UploadPage() {
   );
 
   useEffect(() => {
-    console.log("SESSION_EFFECT:", {
-      sessionReady: state.sessionReady,
-      hasPending: !!pendingOcrFile,
-    });
     if (!state.sessionReady || !pendingOcrFile) return;
     const p = pendingOcrFile;
     setPendingOcrFile(null);
@@ -1407,11 +1413,6 @@ export default function UploadPage() {
       setSubmitLoading(true);
       announce("Calling analysis services…");
 
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${wizardStateRef.current.accessToken}`,
-      };
-
       const baseAnalyzeFields = {
         insuredName: m.insuredName.trim(),
         claimType: m.claimType,
@@ -1463,11 +1464,13 @@ export default function UploadPage() {
               contractorText: contractorJoined,
             };
             if (docCats.length > 1) analyzePayload.category = category;
-            const res = await fetch(netlifyFunctionUrl("analyze-estimate"), {
-              method: "POST",
-              headers,
-              body: JSON.stringify(analyzePayload),
-            });
+            const res = await wizardFetch(
+              netlifyFunctionUrl("analyze-estimate"),
+              {
+                method: "POST",
+                body: JSON.stringify(analyzePayload),
+              }
+            );
             return { category, res };
           })
         );
@@ -1562,11 +1565,13 @@ export default function UploadPage() {
             if (docCats.length > 1) compareBody.category = category;
             if (versionDiff) compareBody.versionDiff = versionDiff;
 
-            const res = await fetch(netlifyFunctionUrl("compare-estimates"), {
-              method: "POST",
-              headers,
-              body: JSON.stringify(compareBody),
-            });
+            const res = await wizardFetch(
+              netlifyFunctionUrl("compare-estimates"),
+              {
+                method: "POST",
+                body: JSON.stringify(compareBody),
+              }
+            );
             return { category, res };
           })
         );
@@ -1677,14 +1682,10 @@ export default function UploadPage() {
     }
     setStep6LetterLoading(true);
     try {
-      const res = await fetch(
+      const res = await wizardFetch(
         netlifyFunctionUrl("generate-estimate-letter"),
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${s.accessToken}`,
-          },
           body: JSON.stringify({
             analysis: s.analysis,
             strategy: s.strategy,
@@ -2616,7 +2617,6 @@ export default function UploadPage() {
             className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step2AnalysisPanel
-              accessToken={state.accessToken}
               analysis={state.analysis}
               comparison={state.comparison}
               onBack={onStep2Back}
@@ -2631,7 +2631,6 @@ export default function UploadPage() {
             className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step3ComparisonPanel
-              accessToken={state.accessToken}
               comparison={state.comparison}
               claimMeta={{
                 insuredName: state.claimMeta.insuredName,
@@ -2666,7 +2665,6 @@ export default function UploadPage() {
             className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step5SummaryPanel
-              accessToken={state.accessToken}
               analysis={state.analysis}
               comparison={state.comparison}
               strategy={state.strategy}
@@ -2684,7 +2682,6 @@ export default function UploadPage() {
             className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
             <Step6LetterPanel
-              accessToken={state.accessToken}
               active={currentStep === 6}
               letterType={state.letterType}
               onLetterTypeChange={onLetterTypeChange}

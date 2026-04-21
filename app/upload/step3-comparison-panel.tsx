@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
+import { wizardFetch } from "@/lib/supabaseClient";
 import type { ComparisonResult } from "./step2-analysis-panel";
 
 export type ComparisonClaimMetaSlice = {
@@ -12,7 +13,6 @@ export type ComparisonClaimMetaSlice = {
 };
 
 type Props = {
-  accessToken: string;
   comparison: ComparisonResult | null;
   claimMeta: ComparisonClaimMetaSlice;
   onBack: () => void;
@@ -131,7 +131,6 @@ export function buildComparisonText(
 }
 
 export function Step3ComparisonPanel({
-  accessToken,
   comparison,
   claimMeta,
   onBack,
@@ -144,12 +143,8 @@ export function Step3ComparisonPanel({
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
-    const res = await fetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({
         text,
         fileName: "estimate-comparison.pdf",
@@ -169,7 +164,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison PDF downloaded.");
-  }, [accessToken, announce, comparison, claimMeta]);
+  }, [announce, comparison, claimMeta]);
 
   const downloadWord = useCallback(async () => {
     if (!comparison) {
@@ -177,12 +172,8 @@ export function Step3ComparisonPanel({
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
-    const res = await fetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({
         text,
         fileName: "estimate-comparison.docx",
@@ -202,7 +193,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison Word document downloaded.");
-  }, [accessToken, announce, comparison, claimMeta]);
+  }, [announce, comparison, claimMeta]);
 
   const mode = comparison?.mode ?? "";
   const lineItems = comparison?.lineItems ?? [];
