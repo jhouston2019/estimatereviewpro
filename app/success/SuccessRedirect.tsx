@@ -22,7 +22,7 @@ export function SuccessRedirect({ sessionId }: Props) {
       credentials: "include",
       body: JSON.stringify({ session_id: sessionId }),
     }).finally(() => {
-      router.replace("/app");
+      router.replace("/create-account?session_id=" + encodeURIComponent(sessionId));
     });
   }, [router, sessionId]);
 

@@ -1,7 +1,8 @@
 /**
  * Resolve Supabase user id for a paid Stripe Checkout session.
- * Primary keys: stripe_customer_id, metadata.user_id — not email alone.
+ * Links by stripe_customer_id when known; otherwise resolves via Stripe customer email.
  */
+import { randomBytes } from "node:crypto";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
@@ -46,6 +47,28 @@ async function stripeMetadataHasUserId(
   } catch (e) {
     console.warn("[stripeLinkUser] customer metadata update:", e);
   }
+}
+
+function randomTempPassword(): string {
+  return `${randomBytes(24).toString("base64url")}Aa1!`;
+}
+
+function checkoutSessionEmail(session: Stripe.Checkout.Session): string | null {
+  const direct = session.customer_email?.trim() ?? "";
+  if (direct) return direct;
+  const details = session.customer_details?.email?.trim() ?? "";
+  if (details) return details;
+  const c = session.customer;
+  if (
+    c &&
+    typeof c === "object" &&
+    "email" in c &&
+    !("deleted" in c && (c as Stripe.DeletedCustomer).deleted)
+  ) {
+    const em = (c as Stripe.Customer).email?.trim() ?? "";
+    if (em) return em;
+  }
+  return null;
 }
 
 export async function ensureUserForPaidCheckout(
@@ -95,52 +118,42 @@ export async function ensureUserForPaidCheckout(
     }
   }
 
-  if (metaUid.length > 0) {
-    const { data: byMeta } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", metaUid)
-      .maybeSingle();
-    if (byMeta?.id) {
-      if (cid) {
-        await supabase
-          .from("users")
-          .update({ stripe_customer_id: cid })
-          .eq("id", byMeta.id);
-        await stripeMetadataHasUserId(cid, byMeta.id);
-      }
-      return byMeta.id;
-    }
-    const { data: authByMeta } = await supabase.auth.admin.getUserById(metaUid);
-    if (authByMeta.user?.email) {
-      await upsertPublicUserRow(metaUid, authByMeta.user.email);
-      if (cid) {
-        await supabase
-          .from("users")
-          .update({ stripe_customer_id: cid })
-          .eq("id", metaUid);
-        await stripeMetadataHasUserId(cid, metaUid);
-      }
-      return metaUid;
+  let email = checkoutSessionEmail(session);
+  if (!email && cid) {
+    const customer = await stripe.customers.retrieve(cid);
+    if (!customer.deleted && "email" in customer && customer.email) {
+      email = customer.email.trim();
     }
   }
-
+  if (!email) {
+    console.error("[stripeLinkUser] could not resolve email for checkout session");
+    return null;
+  }
   if (!cid) {
     console.error("[stripeLinkUser] missing Stripe customer id on session");
     return null;
   }
 
-  const customer = await stripe.customers.retrieve(cid);
-  if (customer.deleted || !("email" in customer) || !customer.email) {
-    console.error("[stripeLinkUser] Stripe customer has no email");
-    return null;
+  const { data: existingRow } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existingRow?.id) {
+    await supabase
+      .from("users")
+      .update({ stripe_customer_id: cid })
+      .eq("id", existingRow.id);
+    await stripeMetadataHasUserId(cid, existingRow.id);
+    return existingRow.id;
   }
 
-  const email = customer.email.trim();
-
+  const tempPassword = randomTempPassword();
   const { data: created, error: createErr } =
     await supabase.auth.admin.createUser({
       email,
+      password: tempPassword,
       email_confirm: true,
     });
 
@@ -162,6 +175,22 @@ export async function ensureUserForPaidCheckout(
           .eq("id", row.id);
         await stripeMetadataHasUserId(cid, row.id);
         return row.id;
+      }
+      const { data: listData, error: listErr } =
+        await supabase.auth.admin.listUsers({ perPage: 200 });
+      if (!listErr && listData?.users) {
+        const found = listData.users.find(
+          (u) => u.email?.toLowerCase() === email.toLowerCase()
+        );
+        if (found?.id) {
+          await upsertPublicUserRow(found.id, email);
+          await supabase
+            .from("users")
+            .update({ stripe_customer_id: cid })
+            .eq("id", found.id);
+          await stripeMetadataHasUserId(cid, found.id);
+          return found.id;
+        }
       }
     }
     console.error("[stripeLinkUser] createUser:", createErr);

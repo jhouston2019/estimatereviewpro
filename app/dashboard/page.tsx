@@ -90,6 +90,18 @@ export default async function DashboardPage({
             >
               Account
             </Link>
+            <Link
+              href="/upload"
+              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500 hover:text-slate-50"
+            >
+              Upload
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500 hover:text-slate-50"
+            >
+              Buy another review
+            </Link>
           </nav>
         </div>
       </header>

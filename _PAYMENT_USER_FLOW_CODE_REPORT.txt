@@ -1,10 +1,1274 @@
+PAYMENT AND USER FLOW — FULL FILE DUMP
+Generated: 2026-04-21T03:56:34.101Z
+
+
+
+==========
+FILE: app/pricing/page.tsx
+==========
+
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+
+export default function PricingPage() {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleCheckout = async (planType: 'single' | 'premier' | 'enterprise') => {
+    setLoading(planType);
+
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planType }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[#0F172A]">
+      <header className="border-b border-slate-800/50 bg-[#0F172A]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#2563EB]">
+              <span className="text-sm font-black text-white">ER</span>
+            </div>
+            <span className="text-sm font-semibold text-white">
+              Estimate Review Pro
+            </span>
+          </Link>
+          <nav className="flex items-center gap-6 text-sm font-medium">
+            <Link href="/pricing" className="text-white">
+              Pricing
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
+            >
+              Log in
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-white mb-4">
+            Find $10,000–$40,000 in Missed Claim Value
+          </h1>
+          <p className="text-xl text-slate-300">
+            In Minutes.
+          </p>
+        </div>
+
+        <div className="grid gap-8 md:grid-cols-3">
+          {/* Single Review */}
+          <div className="rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-[#2563EB] text-white px-4 py-1 rounded-full text-sm font-semibold">
+                Most Popular
+              </span>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                Single Review
+              </h2>
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-5xl font-bold text-slate-900">$49</span>
+                <span className="text-slate-600">per estimate</span>
+              </div>
+              <p className="text-xs text-slate-600">
+                One-time payment
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span><strong>Comprehensive estimate analysis</strong></span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>12 intelligence engines</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Recovery calculation</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Litigation evidence</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>PDF export</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>30-day report access</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={() => handleCheckout('single')}
+              disabled={loading === 'single'}
+              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white hover:bg-[#1E40AF] transition disabled:opacity-50 shadow-lg"
+            >
+              {loading === 'single' ? 'Loading...' : 'Start Review'}
+            </button>
+          </div>
+
+          {/* Premier Plan */}
+          <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                Premier Plan
+              </h2>
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-5xl font-bold text-slate-900">$299</span>
+                <span className="text-slate-600">/month</span>
+              </div>
+              <p className="text-sm text-green-700 font-semibold mb-2">
+                ✓ Recovery Guarantee
+              </p>
+              <p className="text-xs text-slate-600">
+                Billed monthly
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span><strong>20 reviews per month</strong></span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Carrier intelligence reports</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Recovery analytics dashboard</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Priority support</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>API access</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-700">
+                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Bulk upload</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={() => handleCheckout('premier')}
+              disabled={loading === 'premier'}
+              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50"
+            >
+              {loading === 'premier' ? 'Loading...' : 'Start Premier Plan'}
+            </button>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div className="rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                Premium
+              </span>
+            </div>
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Enterprise Plan
+              </h2>
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-5xl font-bold text-white">$599</span>
+                <span className="text-slate-300">/month</span>
+              </div>
+              <p className="text-sm text-green-400 font-semibold mb-2">
+                ✓ Recovery Guarantee
+              </p>
+              <p className="text-xs text-slate-400">
+                Billed monthly
+              </p>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span><strong>Unlimited reviews</strong></span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Attorney-ready evidence reports</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Carrier behavior analytics</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Litigation exhibits</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Expert witness support</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Priority processing</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-slate-200">
+                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Dedicated account manager</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={() => handleCheckout('enterprise')}
+              disabled={loading === 'enterprise'}
+              className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-base font-semibold text-white hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 shadow-lg"
+            >
+              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise Plan'}
+            </button>
+          </div>
+        </div>
+
+        {/* Value Proposition */}
+        <div className="mt-16 grid gap-8 md:grid-cols-2 max-w-2xl mx-auto">
+          <div className="text-center">
+            <div className="text-4xl font-bold text-green-400 mb-2">$10K-$40K</div>
+            <p className="text-slate-300">Average recovery identified</p>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-bold text-blue-400 mb-2">12</div>
+            <p className="text-slate-300">Intelligence engines</p>
+          </div>
+        </div>
+
+        <div className="mt-12 text-center">
+          <p className="text-sm text-slate-400">
+            All plans include: Pricing validation • Labor rate analysis • Depreciation detection • Carrier tactic recognition • 
+            Code compliance checking • Trade dependency analysis • Scope reconstruction • Litigation evidence generation
+          </p>
+        </div>
+      </main>
+
+      <footer className="border-t border-slate-800/50 bg-[#0F172A]/95">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row">
+          <p>© {new Date().getFullYear()} Estimate Review Pro. All rights reserved.</p>
+          <div className="flex gap-6">
+            <Link href="/pricing" className="hover:text-slate-300 transition">
+              Pricing
+            </Link>
+            <Link href="/" className="hover:text-slate-300 transition">
+              Home
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+
+==========
+FILE: app/api/create-checkout-session/route.ts
+==========
+
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { appAbsoluteUrl } from '@/lib/appUrl';
+import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
+
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2025-11-17.clover';
+
+function maskKeyPrefix(value: string | undefined, expectedPrefix: string) {
+  if (!value?.trim()) return { present: false as const, prefix: '' };
+  const v = value.trim();
+  const ok = v.startsWith(expectedPrefix);
+  return {
+    present: true as const,
+    prefix: v.length >= 12 ? `${v.slice(0, 8)}…${v.slice(-4)}` : '(too short)',
+    looksLikeTestKey: ok,
+  };
+}
+
+function stripeEnvDiagnostics() {
+  const secret = process.env.STRIPE_SECRET_KEY;
+  const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  return {
+    STRIPE_SECRET_KEY: maskKeyPrefix(secret, 'sk_test_'),
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: maskKeyPrefix(
+      publishable,
+      'pk_test_'
+    ),
+  };
+}
+
+export async function POST(request: NextRequest) {
+  const envDiag = stripeEnvDiagnostics();
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  const appPublicUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  try {
+    if (!appPublicUrl || !/^https?:\/\//i.test(appPublicUrl)) {
+      console.error(
+        '[create-checkout-session] NEXT_PUBLIC_APP_URL must be an absolute URL (e.g. https://estimatereviewpro.com)'
+      );
+      return NextResponse.json(
+        {
+          error: 'App URL is not configured',
+          details:
+            'Set NEXT_PUBLIC_APP_URL to your production origin in Netlify (Site settings → Environment variables), redeploy. Trailing slash is optional.',
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!secretKey) {
+      console.error(
+        '[create-checkout-session] STRIPE_SECRET_KEY is missing or empty'
+      );
+      return NextResponse.json(
+        {
+          error: 'Stripe secret key is not configured',
+          details:
+            'Set STRIPE_SECRET_KEY in .env.local (Test mode: sk_test_…) and restart the dev server.',
+          stripeEnv: envDiag,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!secretKey.startsWith('sk_test_')) {
+      console.warn(
+        '[create-checkout-session] STRIPE_SECRET_KEY does not start with sk_test_'
+      );
+    }
+
+    const stripe = new Stripe(secretKey, {
+      apiVersion: STRIPE_API_VERSION,
+    });
+
+    const { planType, userId: bodyUserId } = await request.json();
+
+    if (!planType) {
+      return NextResponse.json(
+        { error: 'Missing planType' },
+        { status: 400 }
+      );
+    }
+
+    const authClient = await createSupabaseRouteHandlerClient();
+    const {
+      data: { session: authSession },
+    } = await authClient.auth.getSession();
+    const currentUser = authSession?.user;
+    const currentUserId = currentUser?.id;
+    if (bodyUserId && currentUserId && bodyUserId !== currentUserId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (!currentUserId) {
+      return NextResponse.json(
+        { error: 'Sign in required to checkout' },
+        { status: 401 }
+      );
+    }
+
+    const successUrl = appAbsoluteUrl(
+      'success?session_id={CHECKOUT_SESSION_ID}'
+    );
+
+    let sessionConfig: Stripe.Checkout.SessionCreateParams;
+
+    if (planType === 'single') {
+      // Single review - one-time payment $149
+      sessionConfig = {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Single Estimate Review',
+              },
+              unit_amount: 4900, // $49.00
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: undefined,
+        metadata: {
+          plan_type: 'single',
+          plan_name: 'Single Review',
+          reviews_limit: '1',
+          user_id: currentUserId,
+        },
+      };
+    } else if (planType === 'enterprise') {
+      // Enterprise plan - $299/month, 20 reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Enterprise Plan',
+              },
+              unit_amount: 29900, // $299.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: currentUser?.email ?? undefined,
+        subscription_data: {
+          metadata: {
+            user_id: currentUserId,
+            plan_type: 'enterprise',
+            plan_name: 'Enterprise',
+            review_limit: '20',
+          },
+        },
+        metadata: {
+          plan_type: 'subscription',
+          plan_name: 'Enterprise',
+          reviews_limit: '20',
+          user_id: currentUserId,
+        },
+      };
+    } else if (planType === 'premier') {
+      // Premier plan - $299/month, 20 reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Premier Plan',
+              },
+              unit_amount: 29900, // $299.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: currentUser?.email ?? undefined,
+        subscription_data: {
+          metadata: {
+            user_id: currentUserId,
+            plan_type: 'enterprise',
+            plan_name: 'Premier',
+            review_limit: '20',
+          },
+        },
+        metadata: {
+          plan_type: 'subscription',
+          plan_name: 'Enterprise',
+          reviews_limit: '20',
+          user_id: currentUserId,
+        },
+      };
+    } else if (planType === 'professional') {
+      // Legacy professional plan (keep for backward compatibility)
+      const priceId = process.env.STRIPE_PRICE_PROFESSIONAL?.trim();
+      if (!priceId) {
+        console.error(
+          '[create-checkout-session] STRIPE_PRICE_PROFESSIONAL is missing for plan professional'
+        );
+        return NextResponse.json(
+          {
+            error: 'STRIPE_PRICE_PROFESSIONAL is not configured',
+            details:
+              'Add STRIPE_PRICE_PROFESSIONAL=price_… to .env.local (Stripe Dashboard → Products → price id).',
+            stripeEnv: envDiag,
+          },
+          { status: 500 }
+        );
+      }
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: currentUser?.email ?? undefined,
+        subscription_data: {
+          metadata: {
+            user_id: currentUserId,
+            plan_type: 'professional',
+            review_limit: '50',
+            overage_price: '2900',
+          },
+        },
+        metadata: {
+          plan_type: 'professional',
+          review_limit: '50',
+          overage_price: '2900',
+          user_id: currentUserId,
+        },
+      };
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid plan type' },
+        { status: 400 }
+      );
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
+
+    return NextResponse.json({
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url,
+    });
+  } catch (error) {
+    const payload: Record<string, unknown> = {
+      error: 'Failed to create checkout session',
+      stripeEnv: stripeEnvDiagnostics(),
+    };
+
+    if (error instanceof Stripe.errors.StripeError) {
+      console.error('[create-checkout-session] Stripe API error:', {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        statusCode: error.statusCode,
+        requestId: error.requestId,
+        doc_url: error.doc_url,
+      });
+      payload.error = error.message;
+      payload.stripeError = {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        statusCode: error.statusCode,
+        requestId: error.requestId,
+        doc_url: error.doc_url,
+      };
+    } else if (error instanceof Error) {
+      console.error('[create-checkout-session] Error:', error.message, error.stack);
+      payload.error = error.message;
+      if (process.env.NODE_ENV === 'development') {
+        payload.details = error.stack;
+      }
+    } else {
+      console.error('[create-checkout-session] Unknown error:', error);
+      payload.details = String(error);
+    }
+
+    return NextResponse.json(payload, { status: 500 });
+  }
+}
+
+
+==========
+FILE: app/success/page.tsx
+==========
+
+import { SuccessRedirect } from "./SuccessRedirect";
+
+function sessionIdFromSearchParams(sp: {
+  session_id?: string | string[];
+}): string | null {
+  const raw = sp.session_id;
+  if (Array.isArray(raw)) {
+    const first = raw[0]?.trim();
+    return first && first.length > 0 ? first : null;
+  }
+  const s = raw?.trim();
+  return s && s.length > 0 ? s : null;
+}
+
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const sessionId = sessionIdFromSearchParams(sp);
+  return <SuccessRedirect sessionId={sessionId} />;
+}
+
+
+==========
+FILE: app/success/SuccessRedirect.tsx
+==========
+
+"use client";
+
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+type Props = {
+  sessionId: string | null;
+};
+
+export function SuccessRedirect({ sessionId }: Props) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!sessionId) {
+      router.replace("/pricing");
+      return;
+    }
+
+    fetch("/api/auth/create-session-from-stripe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ session_id: sessionId }),
+    }).finally(() => {
+      router.replace("/app");
+    });
+  }, [router, sessionId]);
+
+  return <div>Finishing up…</div>;
+}
+
+
+==========
+FILE: app/api/auth/create-session-from-stripe/route.ts
+==========
+
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
+import {
+  ensureUserForPaidCheckout,
+  stripeCustomerIdFromSession,
+} from "@/lib/billing/stripeLinkUser";
+import type { Database } from "@/lib/supabase-types";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-11-17.clover",
+});
+
+const supabaseService = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: { autoRefreshToken: false, persistSession: false },
+  }
+);
+
+async function upsertPending(sessionId: string, userId: string) {
+  const { error } = await supabaseService.from("processed_sessions").upsert(
+    {
+      session_id: sessionId,
+      user_id: userId,
+      status: "pending",
+      completed_at: null,
+    },
+    { onConflict: "session_id" }
+  );
+  if (error) {
+    console.error("[create-session-from-stripe] upsert pending:", error);
+  }
+}
+
+async function markCompleted(sessionId: string, userId: string) {
+  const now = new Date().toISOString();
+  const { error } = await supabaseService.from("processed_sessions").upsert(
+    {
+      session_id: sessionId,
+      user_id: userId,
+      status: "completed",
+      completed_at: now,
+    },
+    { onConflict: "session_id" }
+  );
+  if (error) {
+    console.error("[create-session-from-stripe] markCompleted:", error);
+  }
+}
+
+async function markFailed(sessionId: string) {
+  const { error } = await supabaseService
+    .from("processed_sessions")
+    .update({ status: "failed" })
+    .eq("session_id", sessionId);
+  if (error) {
+    console.warn("[create-session-from-stripe] markFailed:", error.message);
+  }
+}
+
+type UsersPlanType = NonNullable<
+  Database["public"]["Tables"]["users"]["Row"]["plan_type"]
+>;
+
+async function resolveSubscriptionForPlan(
+  session: Stripe.Checkout.Session
+): Promise<Stripe.Subscription | null> {
+  if (session.mode !== "subscription") return null;
+  const subField = session.subscription;
+  if (!subField) return null;
+  if (typeof subField === "string") {
+    try {
+      return await stripe.subscriptions.retrieve(subField);
+    } catch (e) {
+      console.warn("[create-session-from-stripe] subscription retrieve:", e);
+      return null;
+    }
+  }
+  return subField as Stripe.Subscription;
+}
+
+function planTypeForCheckoutUser(
+  session: Stripe.Checkout.Session,
+  subscription: Stripe.Subscription | null
+): UsersPlanType {
+  if (session.mode === "payment") {
+    return "single";
+  }
+  if (session.mode === "subscription" && subscription) {
+    const m = subscription.metadata ?? {};
+    const pt = (m.plan_type ?? "").toLowerCase();
+    const pn = (m.plan_name ?? "").toLowerCase();
+    if (pt === "professional") return "professional";
+    if (pn.includes("premier")) return "premier";
+    if (pt === "enterprise" || pn.includes("enterprise")) return "enterprise";
+  }
+  const sm = session.metadata ?? {};
+  if ((sm.plan_type ?? "").toLowerCase() === "professional") {
+    return "professional";
+  }
+  return "enterprise";
+}
+
+async function withOkTrue(res: NextResponse): Promise<NextResponse> {
+  let data: Record<string, unknown> = {};
+  try {
+    data = (await res.json()) as Record<string, unknown>;
+  } catch {
+    /* empty or non-JSON body */
+  }
+  const out = NextResponse.json({ ok: true, ...data }, { status: 200 });
+  for (const c of res.cookies.getAll()) {
+    out.cookies.set(c.name, c.value, c);
+  }
+  return out;
+}
+
+async function createSessionFromStripe(
+  request: NextRequest
+): Promise<NextResponse> {
+  let body: { session_id?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const sessionId = body.session_id?.trim();
+  if (!sessionId) {
+    return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
+  }
+
+  let checkoutSession: Stripe.Checkout.Session;
+  try {
+    checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription", "customer"],
+    });
+  } catch (e) {
+    console.error("[create-session-from-stripe] retrieve:", e);
+    return NextResponse.json(
+      { error: "Invalid checkout session" },
+      { status: 400 }
+    );
+  }
+
+  const paid =
+    checkoutSession.payment_status === "paid" ||
+    checkoutSession.payment_status === "no_payment_required";
+
+  if (!paid) {
+    return NextResponse.json(
+      { error: "Payment not completed" },
+      { status: 400 }
+    );
+  }
+
+  const userId = await ensureUserForPaidCheckout(checkoutSession);
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Could not resolve user for checkout" },
+      { status: 400 }
+    );
+  }
+
+  const subscription = await resolveSubscriptionForPlan(checkoutSession);
+  const resolvedPlanType = planTypeForCheckoutUser(
+    checkoutSession,
+    subscription
+  );
+  const { error: planTypeUpdateErr } = await supabaseService
+    .from("users")
+    .update({ plan_type: resolvedPlanType })
+    .eq("id", userId);
+  if (planTypeUpdateErr) {
+    console.error(
+      "[create-session-from-stripe] plan_type update:",
+      planTypeUpdateErr
+    );
+  }
+
+  const cid = stripeCustomerIdFromSession(checkoutSession);
+  if (cid) {
+    const { data: uStripe } = await supabaseService
+      .from("users")
+      .select("stripe_customer_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!uStripe?.stripe_customer_id) {
+      await supabaseService
+        .from("users")
+        .update({ stripe_customer_id: cid })
+        .eq("id", userId);
+    }
+  }
+
+  const { data: urow } = await supabaseService
+    .from("users")
+    .select("id, stripe_customer_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const { data: existing } = await supabaseService
+    .from("processed_sessions")
+    .select("user_id, status")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (existing?.status === "completed") {
+    if (existing.user_id && existing.user_id !== userId) {
+      return NextResponse.json(
+        { error: "Session already processed for another user" },
+        { status: 409 }
+      );
+    }
+    if (cid && urow?.stripe_customer_id && urow.stripe_customer_id !== cid) {
+      console.error(
+        "[create-session-from-stripe] stripe_customer_id mismatch for completed session"
+      );
+      return NextResponse.json({ error: "Invalid session state" }, { status: 409 });
+    }
+    console.log({
+      tag: "[create-session-from-stripe]",
+      session_id: sessionId,
+      user_id: userId,
+      stripe_customer_id: cid ?? null,
+      alreadyProcessed: true,
+    });
+    return NextResponse.json({
+      success: true,
+      userId,
+      alreadyProcessed: true,
+    });
+  }
+
+  let response = NextResponse.json({
+    success: true,
+    userId,
+    sessionEstablished: false,
+  });
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const {
+    data: { session: existingCookie },
+  } = await supabase.auth.getSession();
+
+  if (
+    existingCookie?.user?.id === userId &&
+    urow?.stripe_customer_id &&
+    cid &&
+    urow.stripe_customer_id === cid
+  ) {
+    console.log({
+      tag: "[create-session-from-stripe]",
+      session_id: sessionId,
+      user_id: userId,
+      stripe_customer_id: cid ?? null,
+      idempotentCookie: true,
+    });
+    await markCompleted(sessionId, userId);
+    console.log("SESSION_FINALIZED", {
+      session_id: sessionId,
+      user_id: userId,
+      status: "completed",
+    });
+    return NextResponse.json({
+      success: true,
+      userId,
+      sessionEstablished: true,
+      idempotent: true,
+    });
+  }
+
+  const { data: authUser, error: guErr } =
+    await supabaseService.auth.admin.getUserById(userId);
+  const email = authUser.user?.email;
+  if (guErr || !email) {
+    return NextResponse.json(
+      { error: "User record has no email" },
+      { status: 500 }
+    );
+  }
+
+  console.log({
+    tag: "[create-session-from-stripe]",
+    session_id: sessionId,
+    user_id: userId,
+    stripe_customer_id: cid ?? null,
+  });
+
+  response = NextResponse.json({
+    success: true,
+    userId,
+    sessionEstablished: false,
+  });
+
+  const supabaseOtp = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  await upsertPending(sessionId, userId);
+
+  const { data: linkData, error: glErr } =
+    await supabaseService.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+  const hashed =
+    linkData?.properties &&
+    typeof linkData.properties === "object" &&
+    "hashed_token" in linkData.properties
+      ? (linkData.properties as { hashed_token: string }).hashed_token
+      : null;
+
+  if (glErr || !hashed) {
+    console.warn(
+      "[create-session-from-stripe] generateLink:",
+      glErr?.message ?? "no token"
+    );
+    await markFailed(sessionId);
+    return NextResponse.json({
+      success: true,
+      userId,
+      sessionEstablished: false,
+    });
+  }
+
+  const { error: vErr } = await supabaseOtp.auth.verifyOtp({
+    type: "email",
+    token_hash: hashed,
+  });
+
+  const established = !vErr;
+  if (vErr) {
+    console.warn("[create-session-from-stripe] verifyOtp:", vErr.message);
+    await markFailed(sessionId);
+  }
+
+  if (established) {
+    await markCompleted(sessionId, userId);
+    console.log("SESSION_FINALIZED", {
+      session_id: sessionId,
+      user_id: userId,
+      status: "completed",
+    });
+  }
+
+  return new NextResponse(
+    JSON.stringify({
+      success: true,
+      userId,
+      sessionEstablished: established,
+    }),
+    {
+      status: 200,
+      headers: response.headers,
+    }
+  );
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const inner = await createSessionFromStripe(request);
+    return await withOkTrue(inner);
+  } catch (e) {
+    console.error("create-session-from-stripe error:", e);
+    return NextResponse.json({ ok: true }, { status: 200 });
+  }
+}
+
+
+==========
+FILE: app/app/page.tsx
+==========
+
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import type { Database } from "@/lib/supabase-types";
+
+type UserPlanRow = Pick<
+  Database["public"]["Tables"]["users"]["Row"],
+  "plan_type"
+>;
+
+async function recoverVerifyPayment(sessionId: string) {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+  const base = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  let url: string;
+  if (base) {
+    url = `${base.replace(/\/$/, "")}/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`;
+  } else {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    url = `${proto}://${host}/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`;
+  }
+  try {
+    await fetch(url, {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    });
+  } catch {
+    /* recovery best-effort */
+  }
+}
+
+type RecoverPaymentState = {
+  status: "paid" | "processing" | "none";
+  session_id: string | null;
+};
+
+async function fetchRecoverPaymentState(): Promise<RecoverPaymentState> {
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+  const base = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  let url: string;
+  if (base) {
+    url = `${base.replace(/\/$/, "")}/api/recover-payment-state`;
+  } else {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    url = `${proto}://${host}/api/recover-payment-state`;
+  }
+  try {
+    const res = await fetch(url, {
+      headers: { cookie: cookieHeader },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return { status: "none", session_id: null };
+    }
+    const j = (await res.json()) as {
+      status?: string;
+      session_id?: string | null;
+    };
+    if (j.status === "paid") {
+      return { status: "paid", session_id: j.session_id ?? null };
+    }
+    if (j.status === "processing") {
+      return { status: "processing", session_id: j.session_id ?? null };
+    }
+    return { status: "none", session_id: null };
+  } catch {
+    return { status: "none", session_id: null };
+  }
+}
+
+export default async function AppEntryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string }>;
+}) {
+  const sp = await searchParams;
+  const sessionId = sp.session_id?.trim();
+
+  const supabase = await createSupabaseServerComponentClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    const from = sessionId
+      ? `/app?session_id=${encodeURIComponent(sessionId)}`
+      : "/app";
+    redirect(`/login?redirectedFrom=${encodeURIComponent(from)}`);
+  }
+
+  if (sessionId) {
+    await recoverVerifyPayment(sessionId);
+  }
+
+  const { data: paid, error: paidErr } = await supabase.rpc(
+    "user_has_paid_access"
+  );
+
+  if (!paidErr && paid === false) {
+    const recovery = await fetchRecoverPaymentState();
+    if (recovery.status === "none") {
+      redirect("/pricing?message=payment_required");
+    }
+    if (recovery.status === "processing" && recovery.session_id) {
+      await recoverVerifyPayment(recovery.session_id);
+    }
+    const { data: paidAfterRecovery } = await supabase.rpc(
+      "user_has_paid_access"
+    );
+    if (paidAfterRecovery === false) {
+      redirect("/pricing?message=payment_required");
+    }
+  }
+
+  const { data: userData } = await supabase
+    .from("users")
+    .select("plan_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const plan = (userData as UserPlanRow | null)?.plan_type;
+
+  if (plan === "single") {
+    redirect("/upload");
+  }
+
+  if (plan === "premier" || plan === "enterprise") {
+    redirect("/dashboard");
+  }
+
+  redirect("/dashboard");
+}
+
+
+==========
+FILE: app/upload/page.tsx
+==========
+
+"use client";
+
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
-import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import {
   Step2AnalysisPanel,
   parseAnalysisResult,
@@ -684,10 +1948,6 @@ function stepIsNavigable(
 }
 
 export default function UploadPage() {
-  const router = useRouter();
-  const [premierUsageWall, setPremierUsageWall] = useState<
-    "checking" | "ok" | "blocked"
-  >("checking");
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<WizardState>(() => initialWizardState());
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -716,13 +1976,6 @@ export default function UploadPage() {
     }
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }, [router]);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -747,55 +2000,6 @@ export default function UploadPage() {
           accessToken: token,
         }));
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !key) {
-        if (!cancelled) setPremierUsageWall("ok");
-        return;
-      }
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabase = createClient(url, key);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user?.id;
-      if (!userId) {
-        if (!cancelled) setPremierUsageWall("ok");
-        return;
-      }
-      const { data: userRow, error: userErr } = await supabase
-        .from("users")
-        .select("plan_type")
-        .eq("id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      if (userErr || !userRow || userRow.plan_type !== "premier") {
-        setPremierUsageWall("ok");
-        return;
-      }
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const { count, error: countErr } = await supabase
-        .from("reviews")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("created_at", start.toISOString())
-        .lt("created_at", end.toISOString());
-      if (cancelled) return;
-      if (countErr) {
-        setPremierUsageWall("ok");
-        return;
-      }
-      const n = count ?? 0;
-      setPremierUsageWall(n >= 20 ? "blocked" : "ok");
     })();
     return () => {
       cancelled = true;
@@ -1801,27 +3005,16 @@ export default function UploadPage() {
           </Link>
           <nav className="flex items-center gap-5 text-sm font-medium">
             <Link
-              href="/dashboard"
-              className="text-[#8aacc8] transition hover:text-[#e8f0f8]"
-            >
-              Dashboard
-            </Link>
-            <Link
               href="/pricing"
               className="text-[#8aacc8] transition hover:text-[#e8f0f8]"
             >
-              Buy another review
+              Pricing
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="erp-btn-ghost text-center"
-            >
-              Log out
-            </button>
+            <Link href="/login" className="erp-btn-ghost inline-block text-center no-underline">
+              Log in
+            </Link>
           </nav>
         </div>
-        {premierUsageWall === "ok" && (
         <div>
           <div className="mx-auto max-w-6xl px-6 py-2">
             <nav
@@ -1910,52 +3103,8 @@ export default function UploadPage() {
             </div>
           </div>
         </div>
-        )}
       </header>
 
-      {premierUsageWall === "checking" ? (
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-6 py-10 text-[#e8f0f8]">
-        <p className="text-sm text-[#8aacc8]">Loading…</p>
-      </main>
-      ) : premierUsageWall === "blocked" ? (
-      <main className="relative mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-6 py-16 text-[#e8f0f8]">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[#0a1f35]/80"
-          aria-hidden
-        />
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="premier-limit-heading"
-          className="relative z-10 w-full max-w-lg rounded-2xl border border-[#1e3f6e] bg-[#091c33] px-8 py-10 text-center shadow-2xl shadow-black/40"
-        >
-          <h2
-            id="premier-limit-heading"
-            className="text-xl font-bold text-[#e8f0f8]"
-          >
-            You’ve reached your monthly limit
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-[#8aacc8]">
-            Premier includes 20 reviews per month. Upgrade to Enterprise for
-            unlimited reviews, or purchase a single review.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/pricing"
-              className="inline-flex items-center justify-center rounded-lg bg-[#f0a050] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-            >
-              Upgrade to Enterprise
-            </Link>
-            <Link
-              href="/pricing"
-              className="erp-btn-ghost inline-flex items-center justify-center px-4 py-3 text-center no-underline"
-            >
-              Buy a single review ($49)
-            </Link>
-          </div>
-        </div>
-      </main>
-      ) : (
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
         <div
           id="erp-wizard-root"
@@ -2672,7 +3821,835 @@ export default function UploadPage() {
           </section>
         </div>
       </main>
-      )}
     </div>
   );
 }
+
+
+==========
+FILE: app/dashboard/page.tsx
+==========
+
+import Link from "next/link";
+import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
+import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ payment?: string; subscription?: string }>;
+}) {
+  const sp = await searchParams;
+  const paymentReturn =
+    sp.payment === "success" || sp.subscription === "success";
+  const supabase = await createSupabaseServerComponentClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: reviews } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("user_id", user?.id ?? "")
+    .order("created_at", { ascending: false });
+
+  let billingPlan = "—";
+  let billingStatusLabel = "—";
+  let renewalLabel: string | null = null;
+  let usedReviews = 0;
+  let limitReviews = 0;
+  let planType: string | null = null;
+  let hasTeam = false;
+
+  if (user?.id) {
+    const snap = await getBillingSnapshot(supabase, user.id);
+    billingPlan = snap.plan === "none" ? "—" : snap.plan;
+    billingStatusLabel = snap.status === "active" ? "Active" : "Inactive";
+    renewalLabel = snap.renewal_date
+      ? new Date(snap.renewal_date).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : null;
+    usedReviews = snap.usage;
+    limitReviews = snap.reviews_limit;
+    planType = snap.plan === "none" ? null : snap.plan;
+    hasTeam = snap.has_team;
+  }
+
+  const tier =
+    planType === "single"
+      ? "oneoff"
+      : planType === "professional" ||
+          planType === "enterprise" ||
+          planType === "premier" ||
+          hasTeam
+        ? "pro"
+        : "free";
+
+  return (
+    <div className="flex min-h-screen flex-col bg-slate-950">
+      <div className="w-full shrink-0 border-b border-blue-900/50 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#1e40af] px-4 py-5 shadow-lg shadow-blue-950/40 sm:px-6 sm:py-6">
+        <Link
+          href="/upload"
+          className="flex w-full items-center justify-center rounded-2xl bg-white px-6 py-4 text-center text-base font-bold tracking-tight text-[#1e3a8a] shadow-xl ring-2 ring-white/30 transition hover:bg-slate-50 hover:ring-white/50 sm:py-5 sm:text-lg"
+        >
+          Start New Estimate Review
+        </Link>
+      </div>
+      <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+              <span className="text-xs font-black text-white">ER</span>
+            </div>
+            <span className="text-sm font-semibold text-slate-50">
+              Estimate Review Pro
+            </span>
+          </Link>
+          <nav className="flex items-center gap-4 text-xs font-medium text-slate-200">
+            <Link
+              href="/dashboard"
+              className="rounded-full bg-slate-900 px-3 py-1.5 text-blue-300"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/account"
+              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500 hover:text-slate-50"
+            >
+              Account
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8">
+        <PaymentActivationNotice enabled={paymentReturn} />
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
+            Billing &amp; usage
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">Current plan</p>
+              <p className="mt-1 text-sm font-semibold capitalize text-slate-100">
+                {billingPlan}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">
+                Billing status
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-100">
+                {billingStatusLabel}
+              </p>
+            </div>
+            {renewalLabel && (
+              <div>
+                <p className="text-[11px] font-medium text-slate-500">Renewal</p>
+                <p className="mt-1 text-sm text-slate-200">{renewalLabel}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-[11px] font-medium text-slate-500">Reviews</p>
+              <p className="mt-1 text-sm text-slate-200">
+                {limitReviews > 0
+                  ? `${usedReviews} of ${limitReviews} reviews used`
+                  : `${usedReviews} reviews used`}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/account"
+              className="inline-flex items-center justify-center rounded-full border border-slate-600 px-4 py-2 text-xs font-semibold text-slate-100 hover:border-slate-400"
+            >
+              Manage billing
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center rounded-full bg-[#1e3a8a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e40af]"
+            >
+              Upgrade plan
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center rounded-full border border-blue-500/50 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
+            >
+              Buy more reviews
+            </Link>
+          </div>
+        </section>
+
+        <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
+              Dashboard
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-50">
+              Your estimate reviews
+            </h1>
+            <p className="mt-1 text-xs text-slate-300">
+              Upload new estimates, download AI reports, and re‑run analysis as
+              claims evolve.
+            </p>
+          </div>
+          <div className="flex flex-col items-stretch gap-3 text-xs text-slate-200 md:items-end">
+            <Link
+              href="/upload"
+              className="inline-flex items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 hover:bg-[#1E40AF]"
+            >
+              New review
+            </Link>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>
+                Current plan:{" "}
+                <span className="font-semibold text-slate-100">
+                  {tier === "pro"
+                    ? "Unlimited"
+                    : tier === "oneoff"
+                    ? "One‑off"
+                    : "Free"}
+                </span>
+              </span>
+              {tier !== "pro" && (
+                <Link
+                  href="/account"
+                  className="ml-1 font-semibold text-blue-300 hover:underline hover:underline-offset-4"
+                >
+                  Upgrade
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5 text-xs text-slate-200 shadow-lg shadow-slate-950/60">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <h2 className="text-xs font-semibold text-slate-100">
+              Past reports
+            </h2>
+            <p className="text-[11px] text-slate-400">
+              We keep a full history of your PDF exports for audit and
+              record‑keeping.
+            </p>
+          </div>
+          <div className="mt-3 space-y-2">
+            {!reviews || reviews.length === 0 ? (
+              <p className="text-[11px] text-slate-400">
+                No reviews yet. Start by uploading a contractor and carrier
+                estimate.
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-900/80">
+                {reviews.map((review: any) => (
+                  <div
+                    key={review.id}
+                    className="flex flex-col items-start justify-between gap-3 py-3 md:flex-row md:items-center"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-slate-100">
+                        Estimate review
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Created{" "}
+                        {new Date(review.created_at).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-200">
+                        Ready
+                      </span>
+                      {review.pdf_report_url && (
+                        <a
+                          href={review.pdf_report_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 font-semibold hover:border-slate-500 hover:text-slate-50"
+                        >
+                          Download PDF
+                        </a>
+                      )}
+                      <Link
+                        href={`/dashboard/review/${review.id}`}
+                        className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 font-semibold hover:border-slate-500 hover:text-slate-50"
+                      >
+                        View details
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+
+
+
+==========
+FILE: middleware.ts
+==========
+
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import type { Database } from "./lib/supabase-types";
+import {
+  isPaymentBypassActive,
+  productionBypassPaymentMisconfigurationResponse,
+} from "./lib/billing/devBypass";
+
+export async function middleware(request: NextRequest) {
+  if (productionBypassPaymentMisconfigurationResponse()) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  /** Preserve refreshed auth cookies on redirects. */
+  const redirectWithSessionCookies = (url: URL | string) => {
+    const r = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => {
+      r.cookies.set(c.name, c.value, {
+        path: "/",
+      });
+    });
+    return r;
+  };
+
+  const pathname = request.nextUrl.pathname;
+
+  const isProtected =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/upload");
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  if (isAdminRoute && !session) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set(
+      "redirectedFrom",
+      pathname + (request.nextUrl.search || "")
+    );
+    return redirectWithSessionCookies(redirectUrl);
+  }
+
+  if (isProtected && !session) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set(
+      "redirectedFrom",
+      pathname + (request.nextUrl.search || "")
+    );
+    return redirectWithSessionCookies(redirectUrl);
+  }
+
+  if (isAuthPage && session) {
+    const from = request.nextUrl.searchParams.get("redirectedFrom");
+    const safeFrom =
+      from &&
+      from.startsWith("/") &&
+      !from.startsWith("//") &&
+      !from.includes("://")
+        ? from
+        : null;
+    if (safeFrom) {
+      return redirectWithSessionCookies(
+        new URL(safeFrom, request.nextUrl.origin)
+      );
+    }
+    return redirectWithSessionCookies(
+      new URL("/app", request.nextUrl.origin)
+    );
+  }
+
+  if (isAdminRoute && session) {
+    const { data: adminRow } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    const row = adminRow as { is_admin?: boolean } | null;
+    if (!row?.is_admin) {
+      return redirectWithSessionCookies(
+        new URL("/dashboard", request.nextUrl.origin)
+      );
+    }
+  }
+
+  const paywallPaths =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/upload");
+
+  if (paywallPaths && session && !isPaymentBypassActive()) {
+    const { data: paid, error: paidErr } = await supabase.rpc(
+      "user_has_paid_access"
+    );
+
+    if (paidErr) {
+      console.error("[middleware] user_has_paid_access error:", paidErr);
+      return response;
+    }
+
+    if (paid === false) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/pricing";
+      redirectUrl.searchParams.set("message", "payment_required");
+      return redirectWithSessionCookies(redirectUrl);
+    }
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    "/dashboard/:path*",
+    "/account/:path*",
+    "/login",
+    "/register",
+    "/upload",
+    "/upload/:path*",
+    "/admin/:path*",
+  ],
+};
+
+
+==========
+FILE: app/api/verify-payment/route.ts
+==========
+
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+import { syncStripeCheckoutSession } from "@/lib/billing/stripeCheckoutSync";
+import { ensureEntitlementAfterStripeCheckout } from "@/lib/billing/ensureEntitlement";
+import { confirmPaidAccessReady } from "@/lib/billing/confirmEntitlement";
+import { checkoutSessionBelongsToUser } from "@/lib/billing/stripeLinkUser";
+import { createSupabaseRouteHandlerClient } from "@/lib/supabaseServer";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-11-17.clover",
+});
+
+const supabaseService = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export type PostPaymentDestination = "upload" | "dashboard";
+
+function getPostPaymentDestination(
+  checkoutSession: Stripe.Checkout.Session
+): PostPaymentDestination {
+  if (checkoutSession.mode === "subscription") return "dashboard";
+  return "upload";
+}
+
+async function checkoutPaymentAlreadyRecorded(
+  userId: string,
+  checkoutSession: Stripe.Checkout.Session
+): Promise<boolean> {
+  const ids = [checkoutSession.id];
+  const pi = checkoutSession.payment_intent;
+  if (typeof pi === "string") ids.push(pi);
+  const { data } = await supabaseService
+    .from("payment_transactions")
+    .select("id")
+    .eq("user_id", userId)
+    .in("stripe_payment_id", ids)
+    .limit(1);
+  return !!(data && data.length > 0);
+}
+
+async function runVerify(request: NextRequest) {
+  const authClient = await createSupabaseRouteHandlerClient();
+  const {
+    data: { session: authSession },
+  } = await authClient.auth.getSession();
+
+  if (!authSession?.user?.id) {
+    console.log({
+      tag: "[verify-payment]",
+      session_id: null,
+      user_id: null,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "NO_SESSION",
+    });
+    return NextResponse.json(
+      { error: "Unauthorized", code: "NO_SESSION" },
+      { status: 401 }
+    );
+  }
+
+  const authUserId = authSession.user.id;
+
+  let sessionId =
+    request.nextUrl.searchParams.get("session_id") ??
+    request.nextUrl.searchParams.get("sessionId");
+
+  if (!sessionId && request.method === "POST") {
+    try {
+      const body = await request.json();
+      sessionId = body?.sessionId ?? body?.session_id;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!sessionId || typeof sessionId !== "string") {
+    console.log({
+      tag: "[verify-payment]",
+      session_id: null,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "MISSING_SESSION_ID",
+    });
+    return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
+  }
+
+  let checkoutSession: Stripe.Checkout.Session;
+  try {
+    checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["subscription", "line_items", "customer"],
+    });
+  } catch (e) {
+    console.error("[verify-payment] retrieve session:", e);
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: null,
+      reason: "INVALID_STRIPE_SESSION",
+    });
+    return NextResponse.json(
+      { error: "Invalid or expired checkout session" },
+      { status: 400 }
+    );
+  }
+
+  const stripePaid =
+    checkoutSession.payment_status === "paid" ||
+    checkoutSession.payment_status === "no_payment_required";
+
+  if (!stripePaid) {
+    const stripeCustomerIdForLog =
+      typeof checkoutSession.customer === "string"
+        ? checkoutSession.customer
+        : checkoutSession.customer &&
+            typeof checkoutSession.customer === "object" &&
+            "id" in checkoutSession.customer
+          ? (checkoutSession.customer as Stripe.Customer).id
+          : null;
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess: false,
+      stripe_customer_id: stripeCustomerIdForLog,
+      reason: "NOT_PAID",
+    });
+    return NextResponse.json(
+      {
+        error: "Payment not completed",
+        payment_status: checkoutSession.payment_status,
+      },
+      { status: 400 }
+    );
+  }
+
+  const stripeCustomerIdForLog =
+    typeof checkoutSession.customer === "string"
+      ? checkoutSession.customer
+      : checkoutSession.customer &&
+          typeof checkoutSession.customer === "object" &&
+          "id" in checkoutSession.customer
+        ? (checkoutSession.customer as Stripe.Customer).id
+        : null;
+
+  function logVerifyPayment(hasAccess: boolean, pending?: boolean) {
+    console.log({
+      tag: "[verify-payment]",
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess,
+      stripe_customer_id: stripeCustomerIdForLog,
+      pending: pending ?? undefined,
+    });
+    console.log("[verify-payment] VERIFY_PAYMENT_FINAL", {
+      session_id: sessionId,
+      user_id: authUserId,
+      hasAccess,
+      pending: pending ?? null,
+    });
+  }
+
+  const belongs = await checkoutSessionBelongsToUser({
+    session: checkoutSession,
+    userId: authUserId,
+  });
+
+  const postPaymentDestination = getPostPaymentDestination(checkoutSession);
+
+  const baseOk = {
+    postPaymentDestination,
+    checkoutMode: checkoutSession.mode,
+    metadataPlanType: checkoutSession.metadata?.plan_type ?? null,
+  };
+
+  if (!belongs) {
+    logVerifyPayment(false, true);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  const { data: alreadyPaid } = await authClient.rpc("user_has_paid_access");
+  const paidRpc = alreadyPaid === true;
+  const recorded = await checkoutPaymentAlreadyRecorded(
+    authUserId,
+    checkoutSession
+  );
+
+  if (paidRpc && recorded) {
+    logVerifyPayment(true, false);
+    return NextResponse.json({
+      success: true,
+      synced: true,
+      pending: false,
+      hasPaidAccess: true,
+      ...baseOk,
+    });
+  }
+
+  let syncedUserId: string | null = null;
+  try {
+    syncedUserId = await syncStripeCheckoutSession(checkoutSession, {
+      trustedUserId: authUserId,
+    });
+    if (syncedUserId === authUserId) {
+      await ensureEntitlementAfterStripeCheckout(
+        checkoutSession,
+        syncedUserId
+      );
+    }
+  } catch (e) {
+    console.error("[verify-payment] sync/ensure:", e);
+    logVerifyPayment(false, true);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  if (!syncedUserId || syncedUserId !== authUserId) {
+    logVerifyPayment(false, true);
+    return NextResponse.json({
+      success: true,
+      synced: false,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  const ready = await confirmPaidAccessReady({
+    userId: syncedUserId,
+    authClient,
+  });
+
+  if (!ready) {
+    logVerifyPayment(false, true);
+    return NextResponse.json({
+      success: true,
+      synced: true,
+      pending: true,
+      hasPaidAccess: false,
+      ...baseOk,
+    });
+  }
+
+  logVerifyPayment(true, false);
+  return NextResponse.json({
+    success: true,
+    synced: true,
+    pending: false,
+    hasPaidAccess: true,
+    ...baseOk,
+  });
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    return await runVerify(request);
+  } catch (error) {
+    console.error("[verify-payment] GET:", error);
+    return NextResponse.json(
+      {
+        success: true,
+        pending: true,
+        synced: false,
+        hasPaidAccess: false,
+      },
+      { status: 200 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    return await runVerify(request);
+  } catch (error) {
+    console.error("[verify-payment] POST:", error);
+    return NextResponse.json(
+      {
+        success: true,
+        pending: true,
+        synced: false,
+        hasPaidAccess: false,
+      },
+      { status: 200 }
+    );
+  }
+}
+
+
+==========
+FILE: supabase/migrations/00_create_users_table.sql
+==========
+
+-- Create users table if it doesn't exist
+-- This table extends Supabase Auth users with application-specific fields
+
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE NOT NULL,
+  stripe_customer_id TEXT,
+  plan_type TEXT CHECK (plan_type IN ('single', 'professional', 'enterprise')),
+  team_id UUID,
+  role TEXT CHECK (role IN ('owner', 'member')) DEFAULT 'owner',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy: Users can read their own data
+CREATE POLICY "Users can read own data"
+  ON public.users
+  FOR SELECT
+  USING (auth.uid() = id);
+
+-- RLS Policy: Users can update their own data
+CREATE POLICY "Users can update own data"
+  ON public.users
+  FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Create index on email for faster lookups
+CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);
+
+-- Create index on stripe_customer_id for faster lookups
+CREATE INDEX IF NOT EXISTS users_stripe_customer_id_idx ON public.users(stripe_customer_id);
+
+-- Create index on team_id for faster lookups
+CREATE INDEX IF NOT EXISTS users_team_id_idx ON public.users(team_id);
+
+-- Function to automatically create user profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email)
+  VALUES (NEW.id, NEW.email)
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create user profile on auth.users insert
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Grant permissions
+GRANT SELECT, UPDATE ON public.users TO authenticated;
+GRANT SELECT ON public.users TO anon;
+
+
+==========
+FILE: supabase/migrations/20260422_plan_type_premier.sql
+==========
+
+-- Allow 'premier' on users.plan_type and teams.plan_type
+ALTER TABLE public.users
+  DROP CONSTRAINT IF EXISTS users_plan_type_check;
+
+ALTER TABLE public.users
+  ADD CONSTRAINT users_plan_type_check
+  CHECK (
+    plan_type IS NULL
+    OR plan_type IN ('single', 'professional', 'enterprise', 'premier')
+  );
+
+ALTER TABLE public.teams
+  DROP CONSTRAINT IF EXISTS teams_plan_type_check;
+
+ALTER TABLE public.teams
+  ADD CONSTRAINT teams_plan_type_check
+  CHECK (plan_type IN ('professional', 'enterprise', 'premier'));

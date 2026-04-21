@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -51,6 +51,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  /** /create-account is intentionally omitted — post-checkout password step is public. */
   const isProtected =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/account") ||
@@ -147,5 +148,7 @@ export const config = {
     "/upload",
     "/upload/:path*",
     "/admin/:path*",
+    "/create-account",
+    "/create-account/:path*",
   ],
 };

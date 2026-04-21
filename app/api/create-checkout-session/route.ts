@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { appAbsoluteUrl } from '@/lib/appUrl';
-import { createSupabaseRouteHandlerClient } from '@/lib/supabaseServer';
 
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2025-11-17.clover';
 
@@ -73,28 +72,12 @@ export async function POST(request: NextRequest) {
       apiVersion: STRIPE_API_VERSION,
     });
 
-    const { planType, userId: bodyUserId } = await request.json();
+    const { planType } = await request.json();
 
     if (!planType) {
       return NextResponse.json(
         { error: 'Missing planType' },
         { status: 400 }
-      );
-    }
-
-    const authClient = await createSupabaseRouteHandlerClient();
-    const {
-      data: { session: authSession },
-    } = await authClient.auth.getSession();
-    const currentUser = authSession?.user;
-    const currentUserId = currentUser?.id;
-    if (bodyUserId && currentUserId && bodyUserId !== currentUserId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    if (!currentUserId) {
-      return NextResponse.json(
-        { error: 'Sign in required to checkout' },
-        { status: 401 }
       );
     }
 
@@ -128,7 +111,6 @@ export async function POST(request: NextRequest) {
           plan_type: 'single',
           plan_name: 'Single Review',
           reviews_limit: '1',
-          user_id: currentUserId,
         },
       };
     } else if (planType === 'enterprise') {
@@ -143,7 +125,7 @@ export async function POST(request: NextRequest) {
               product_data: {
                 name: 'Enterprise Plan',
               },
-              unit_amount: 29900, // $299.00
+              unit_amount: 59900, // $599.00
               recurring: {
                 interval: 'month',
               },
@@ -153,10 +135,9 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: currentUser?.email ?? undefined,
+        customer_email: undefined,
         subscription_data: {
           metadata: {
-            user_id: currentUserId,
             plan_type: 'enterprise',
             plan_name: 'Enterprise',
             review_limit: '20',
@@ -166,7 +147,6 @@ export async function POST(request: NextRequest) {
           plan_type: 'subscription',
           plan_name: 'Enterprise',
           reviews_limit: '20',
-          user_id: currentUserId,
         },
       };
     } else if (planType === 'premier') {
@@ -191,20 +171,18 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: currentUser?.email ?? undefined,
+        customer_email: undefined,
         subscription_data: {
           metadata: {
-            user_id: currentUserId,
-            plan_type: 'enterprise',
+            plan_type: 'premier',
             plan_name: 'Premier',
             review_limit: '20',
           },
         },
         metadata: {
           plan_type: 'subscription',
-          plan_name: 'Enterprise',
+          plan_name: 'Premier',
           reviews_limit: '20',
-          user_id: currentUserId,
         },
       };
     } else if (planType === 'professional') {
@@ -235,10 +213,9 @@ export async function POST(request: NextRequest) {
         ],
         success_url: successUrl,
         cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: currentUser?.email ?? undefined,
+        customer_email: undefined,
         subscription_data: {
           metadata: {
-            user_id: currentUserId,
             plan_type: 'professional',
             review_limit: '50',
             overage_price: '2900',
@@ -248,7 +225,6 @@ export async function POST(request: NextRequest) {
           plan_type: 'professional',
           review_limit: '50',
           overage_price: '2900',
-          user_id: currentUserId,
         },
       };
     } else {
