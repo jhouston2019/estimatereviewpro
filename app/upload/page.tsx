@@ -1842,7 +1842,7 @@ export default function UploadPage() {
             </Link>
             <Link
               href="/pricing"
-              className="text-[#8aacc8] transition hover:text-[#e8f0f8]"
+              className="rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
             >
               Buy another review
             </Link>

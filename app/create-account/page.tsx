@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
 import { CreateAccountForm } from "./CreateAccountForm";
 import { resolveCheckoutEmailForCreateAccount } from "./stripeSession";
 
@@ -20,6 +21,14 @@ export default async function CreateAccountPage({
 }: {
   searchParams: Promise<{ session_id?: string | string[] }>;
 }) {
+  const supabase = await createSupabaseServerComponentClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    redirect("/upload");
+  }
+
   const sp = await searchParams;
   const sessionId = sessionIdFromSearchParams(sp);
   if (!sessionId) {
