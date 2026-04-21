@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "./supabase-types";
+
+import type { Database } from "@/types/database.types";
 
 let browserSingleton: ReturnType<
   typeof createBrowserClient<Database>

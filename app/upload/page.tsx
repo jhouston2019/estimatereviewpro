@@ -797,12 +797,14 @@ export default function UploadPage() {
         if (!cancelled) setPremierUsageWall("ok");
         return;
       }
-      const { data: userRow, error: userErr } = await supabase
+      const { data, error: userErr } = await supabase
         .from("users")
         .select("plan_type")
         .eq("id", userId)
-        .returns<{ plan_type: string | null }>()
         .maybeSingle();
+
+      const userRow = data as { plan_type: string | null } | null;
+
       if (cancelled) return;
       if (userErr || !userRow || userRow.plan_type !== "premier") {
         setPremierUsageWall("ok");
