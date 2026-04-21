@@ -19,6 +19,7 @@ async function verifyWizardAuth(event) {
   const authHeader =
     event.headers.authorization || event.headers.Authorization || "";
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  console.log("AUTH_DEBUG:", JSON.stringify({ token: token ? token.substring(0, 30) + "..." : "EMPTY", hasAuth: !!authHeader }));
 
   if (!token) {
     return {
