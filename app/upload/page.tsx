@@ -801,6 +801,7 @@ export default function UploadPage() {
         .from("users")
         .select("plan_type")
         .eq("id", userId)
+        .returns<{ plan_type: string | null }>()
         .maybeSingle();
       if (cancelled) return;
       if (userErr || !userRow || userRow.plan_type !== "premier") {
