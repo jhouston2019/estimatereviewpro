@@ -76,31 +76,35 @@ export default async function DashboardPage({
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-4">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2"
+            aria-label="Estimate Review Pro home"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
               <span className="text-xs font-black text-white">ER</span>
             </div>
-            <span className="text-sm font-semibold text-slate-50">
+            <span className="truncate text-xs font-semibold text-slate-50 sm:text-sm">
               Estimate Review Pro
             </span>
           </Link>
-          <nav className="flex items-center gap-4 text-xs font-medium text-slate-200">
+          <nav className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 text-[11px] font-medium text-slate-200 sm:ml-auto sm:w-auto sm:gap-3 sm:text-xs">
             <Link
               href="/dashboard"
-              className="rounded-full bg-slate-900 px-3 py-1.5 text-blue-300"
+              className="rounded-full bg-slate-900 px-2.5 py-1.5 text-blue-300 sm:px-3"
             >
               Dashboard
             </Link>
             <Link
               href="/account"
-              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500 hover:text-slate-50"
+              className="rounded-full border border-slate-700 px-2.5 py-1.5 hover:border-slate-500 hover:text-slate-50 sm:px-3"
             >
               Account
             </Link>
             <Link
               href="/pricing"
-              className="rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
+              className="rounded-full bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
             >
               Buy another review
             </Link>
@@ -108,10 +112,10 @@ export default async function DashboardPage({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-8">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-3 py-6 sm:px-6 sm:py-8">
         <PaymentActivationNotice enabled={paymentReturn} />
 
-        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-4 shadow-lg shadow-slate-950/50 sm:p-6">
           <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
             Billing &amp; usage
           </h2>
@@ -167,12 +171,12 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
+        <section className="flex flex-col justify-between gap-4 min-[400px]:flex-row min-[400px]:items-center">
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
               Dashboard
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-50">
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-50 min-[400px]:text-2xl">
               Your estimate reviews
             </h1>
             <p className="mt-1 text-xs text-slate-300">
@@ -180,17 +184,17 @@ export default async function DashboardPage({
               claims evolve.
             </p>
           </div>
-          <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 md:w-auto md:items-end">
+          <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 min-[400px]:w-auto min-[400px]:items-end">
             <Link
               href="/upload"
               className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
             >
               New review
             </Link>
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
               {planNameDisplay ? (
-                <span>
+                <span className="min-w-0 break-words">
                   Current plan:{" "}
                   <span className="font-semibold text-slate-100">
                     {planNameDisplay}
@@ -200,7 +204,7 @@ export default async function DashboardPage({
               {tier !== "pro" && (
                 <Link
                   href="/account"
-                  className="ml-1 font-semibold text-blue-300 hover:underline hover:underline-offset-4"
+                  className="shrink-0 font-semibold text-blue-300 hover:underline hover:underline-offset-4"
                 >
                   Upgrade
                 </Link>
@@ -209,12 +213,12 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5 text-xs text-slate-200 shadow-lg shadow-slate-950/60">
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
-            <h2 className="text-xs font-semibold text-slate-100">
+        <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-200 shadow-lg shadow-slate-950/60 sm:p-5">
+          <div className="flex flex-col gap-2 border-b border-slate-800 pb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <h2 className="shrink-0 text-xs font-semibold text-slate-100">
               Past reports
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-400 sm:max-w-md sm:text-right">
               We keep a full history of your PDF exports for audit and
               record‑keeping.
             </p>

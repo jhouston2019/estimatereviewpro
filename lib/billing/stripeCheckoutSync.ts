@@ -5,6 +5,13 @@ import {
   ensureUserForStripeSubscription,
 } from "./stripeLinkUser";
 
+/** Align with SQL `NOW() + INTERVAL '1 month'` (calendar month). */
+function billingPeriodEndOneMonthFromNow(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
@@ -291,5 +298,87 @@ export async function syncStripeCheckoutSession(
     }
   }
 
+  // TODO: Optional idempotent post-purchase welcome email from webhook (Resend/Edge Function);
+  // not sent here — Auth has no generic transactional "welcome" API.
+
   return userId;
+}
+
+/**
+ * Resolves all Supabase user ids tied to a Stripe subscription (team members, or
+ * the solo subscriber from customer / metadata when no team row exists).
+ */
+export async function collectUserIdsForStripeSubscription(
+  subscription: Stripe.Subscription
+): Promise<string[]> {
+  const { data: team } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+
+  if (team) {
+    const { data: members } = await supabase
+      .from("users")
+      .select("id")
+      .eq("team_id", team.id);
+    return (members ?? []).map((m) => m.id);
+  }
+
+  const uid = await ensureUserForStripeSubscription(subscription);
+  return uid ? [uid] : [];
+}
+
+/**
+ * Deactivate usage rows when a subscription is cancelled.
+ */
+export async function deactivateUserReviewUsageForUserIds(
+  userIds: string[]
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const { error } = await supabase
+    .from("user_review_usage")
+    .update({
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in("user_id", userIds);
+  if (error) {
+    console.error(
+      "[deactivateUserReviewUsageForUserIds] user_review_usage update failed:",
+      error
+    );
+  }
+}
+
+/**
+ * On paid invoice: reset this billing period’s usage and extend the end date
+ * (matches DB interval semantics used elsewhere: ~30 days from now for period end;
+ * `billing_period_start` is set to the payment time).
+ */
+export async function resetUserReviewUsageOnSubscriptionRenewal(
+  subscription: Stripe.Subscription
+): Promise<void> {
+  const userIds = await collectUserIdsForStripeSubscription(subscription);
+  if (userIds.length === 0) return;
+
+  const start = new Date().toISOString();
+  const end = billingPeriodEndOneMonthFromNow();
+  const { error } = await supabase
+    .from("user_review_usage")
+    .update({
+      reviews_used: 0,
+      billing_period_start: start,
+      billing_period_end: end,
+      updated_at: new Date().toISOString(),
+    })
+    .in("user_id", userIds)
+    .eq("is_active", true);
+
+  if (error) {
+    console.error(
+      "[resetUserReviewUsageOnSubscriptionRenewal] user_review_usage update failed:",
+      error
+    );
+  }
 }

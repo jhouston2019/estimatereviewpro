@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import {
+  collectUserIdsForStripeSubscription,
+  deactivateUserReviewUsageForUserIds,
   handleSubscriptionUpdate,
+  resetUserReviewUsageOnSubscriptionRenewal,
   syncStripeCheckoutSession,
 } from '@/lib/billing/stripeCheckoutSync';
 
@@ -117,59 +120,78 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  // Find team by subscription ID
+  const userIds = await collectUserIdsForStripeSubscription(subscription);
+  await deactivateUserReviewUsageForUserIds(userIds);
+
   const { data: team } = await supabase
     .from('teams')
     .select('*')
     .eq('stripe_subscription_id', subscription.id)
-    .single();
+    .maybeSingle();
 
-  if (!team) return;
+  if (team) {
+    await supabase
+      .from('users')
+      .update({
+        plan_type: null,
+        team_id: null,
+      })
+      .eq('team_id', team.id);
 
-  // Remove plan from all team members
-  await supabase
-    .from('users')
-    .update({
-      plan_type: null,
-      team_id: null,
-    })
-    .eq('team_id', team.id);
+    await supabase
+      .from('teams')
+      .delete()
+      .eq('id', team.id);
 
-  // Delete team
-  await supabase
-    .from('teams')
-    .delete()
-    .eq('id', team.id);
+    console.log(
+      `Subscription ${subscription.id} cancelled, team ${team.id} deleted`
+    );
+    return;
+  }
 
-  console.log(`Subscription ${subscription.id} cancelled, team ${team.id} deleted`);
+  for (const id of userIds) {
+    await supabase
+      .from('users')
+      .update({ plan_type: null, team_id: null })
+      .eq('id', id);
+  }
+  if (userIds.length > 0) {
+    console.log(
+      `Subscription ${subscription.id} cancelled, cleared plan for user(s) ${userIds.join(', ')}`
+    );
+  }
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-  // Handle successful recurring payment
-  // Note: Invoice type may not have subscription property in latest Stripe types
-  // Cast to any to access it
-  const invoiceAny = invoice as any;
+  const invoiceAny = invoice as { subscription?: string | { id: string } | null };
   const subscriptionId = invoiceAny.subscription;
-  
-  if (subscriptionId) {
-    const subscription = await stripe.subscriptions.retrieve(
-      typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
-    );
-    
-    // Reset usage for new billing period if needed
-    const { data: team } = await supabase
-      .from('teams')
-      .select('*')
-      .eq('stripe_subscription_id', subscription.id)
-      .single();
 
-    if (team) {
-      await supabase
-        .from('teams')
-        .update({ stripe_subscription_status: subscription.status })
-        .eq('id', team.id);
-      console.log(`Invoice paid for team ${team.id}, subscription ${subscription.id}`);
-    }
+  if (!subscriptionId) return;
+
+  const subscription = await stripe.subscriptions.retrieve(
+    typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+  );
+
+  await resetUserReviewUsageOnSubscriptionRenewal(subscription);
+
+  const { data: team } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('stripe_subscription_id', subscription.id)
+    .maybeSingle();
+
+  if (team) {
+    await supabase
+      .from('teams')
+      .update({ stripe_subscription_status: subscription.status })
+      .eq('id', team.id);
+    console.log(
+      `Invoice paid for team ${team.id}, subscription ${subscription.id} (usage reset for period)`
+    );
+  } else {
+    console.log(
+      `Invoice paid, subscription ${subscription.id} (usage reset for period)`
+    );
   }
 }
 

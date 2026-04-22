@@ -11,10 +11,43 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  async function handleForgotPassword() {
+    setError(null);
+    setResetMessage(null);
+    const addr = email.trim();
+    if (!addr) {
+      setError("Enter your email address above, then try again.");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        addr,
+        { redirectTo: `${window.location.origin}/login` }
+      );
+      if (resetError) {
+        setError(resetError.message);
+        return;
+      }
+      setResetMessage(
+        "If an account exists for that address, you’ll get an email with a link to reset your password shortly. Check your inbox and spam folder."
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Could not start password reset. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setResetMessage(null);
     setIsLoading(true);
 
     try {
@@ -93,9 +126,26 @@ export function LoginForm() {
         />
       </div>
 
+      <p className="text-right text-xs">
+        <button
+          type="button"
+          onClick={() => void handleForgotPassword()}
+          disabled={resetLoading || isLoading}
+          className="font-medium text-blue-300 underline-offset-2 transition hover:text-blue-200 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {resetLoading ? "Sending…" : "Forgot password?"}
+        </button>
+      </p>
+
       {error && (
         <p className="text-xs text-rose-300" role="alert">
           {error}
+        </p>
+      )}
+
+      {resetMessage && (
+        <p className="text-xs text-emerald-200/90" role="status">
+          {resetMessage}
         </p>
       )}
 

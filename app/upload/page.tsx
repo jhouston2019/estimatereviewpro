@@ -830,7 +830,7 @@ export default function UploadPage() {
         return;
       }
       const plan = userRow.plan_type ?? null;
-      const limit =
+      const hardcodedLimit =
         plan === "essential"
           ? 10
           : plan === "professional" || plan === "premier"
@@ -838,10 +838,39 @@ export default function UploadPage() {
             : plan === "enterprise"
               ? 50
               : null;
-      if (limit === null) {
+      if (hardcodedLimit === null) {
         setPremierUsageWall("ok");
         return;
       }
+
+      // Essential, Professional, Enterprise, Premier: prefer billing usage row
+      const { data: usageRow, error: usageErr } = await supabase
+        .from("user_review_usage")
+        .select("reviews_used, reviews_limit, is_active, billing_period_end")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .gt("billing_period_end", new Date().toISOString())
+        .maybeSingle();
+
+      const ur = usageRow as {
+        reviews_used: number | null;
+        reviews_limit: number | null;
+      } | null;
+
+      if (!usageErr && ur) {
+        const used = ur.reviews_used ?? 0;
+        const lim = ur.reviews_limit;
+        if (lim != null && lim > 0) {
+          if (used >= lim) {
+            if (!cancelled) setPremierUsageWall("blocked");
+            return;
+          }
+          if (!cancelled) setPremierUsageWall("ok");
+          return;
+        }
+      }
+
+      // Fallback: calendar-month review count (when no usage row or limit not set)
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -857,7 +886,7 @@ export default function UploadPage() {
         return;
       }
       const n = count ?? 0;
-      setPremierUsageWall(n >= limit ? "blocked" : "ok");
+      setPremierUsageWall(n >= hardcodedLimit ? "blocked" : "ok");
     })();
     return () => {
       cancelled = true;
@@ -1888,32 +1917,36 @@ export default function UploadPage() {
   return (
     <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
       <header className="sticky top-0 z-[100] border-b border-[#1e3f6e] bg-[#091c33] text-white">
-        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#f0a050]">
+        <div className="mx-auto flex min-h-12 max-w-6xl flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-0">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2"
+            aria-label="Estimate Review Pro home"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#f0a050]">
               <span className="text-xs font-black text-white">ER</span>
             </div>
-            <span className="text-sm font-semibold text-[#e8f0f8]">
+            <span className="truncate text-xs font-semibold text-[#e8f0f8] sm:text-sm">
               Estimate Review Pro
             </span>
           </Link>
-          <nav className="flex items-center gap-5 text-sm font-medium">
+          <nav className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 text-[11px] font-medium sm:ml-auto sm:w-auto sm:gap-3 sm:text-sm">
             <Link
               href="/dashboard"
-              className="text-[#8aacc8] transition hover:text-[#e8f0f8]"
+              className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
             >
               Dashboard
             </Link>
             <Link
               href="/pricing"
-              className="rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
+              className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
             >
               Buy another review
             </Link>
             <button
               type="button"
               onClick={handleLogout}
-              className="erp-btn-ghost text-center"
+              className="erp-btn-ghost shrink-0 text-center"
             >
               Log out
             </button>
@@ -1921,10 +1954,10 @@ export default function UploadPage() {
         </div>
         {premierUsageWall === "ok" && (
         <div>
-          <div className="mx-auto max-w-6xl px-6 py-2">
+          <div className="mx-auto max-w-6xl px-2 py-2 sm:px-6">
             <nav
               id="erp-wizard-step-indicator"
-              className="flex flex-wrap items-end justify-center gap-2 sm:gap-5"
+              className="flex flex-wrap items-end justify-center gap-x-1.5 gap-y-1 sm:gap-5"
               aria-label="Wizard steps"
             >
               {stepLabels.map((label, i) => {
@@ -2012,11 +2045,11 @@ export default function UploadPage() {
       </header>
 
       {premierUsageWall === "checking" ? (
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-6 py-10 text-[#e8f0f8]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-3 py-10 text-[#e8f0f8] sm:px-6">
         <p className="text-sm text-[#8aacc8]">Loading…</p>
       </main>
       ) : premierUsageWall === "blocked" ? (
-      <main className="relative mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-6 py-16 text-[#e8f0f8]">
+      <main className="relative mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-center justify-center px-3 py-16 text-[#e8f0f8] sm:px-6">
         <div
           className="pointer-events-none absolute inset-0 bg-[#0a1f35]/80"
           aria-hidden
@@ -2024,37 +2057,31 @@ export default function UploadPage() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="premier-limit-heading"
+          aria-labelledby="subscription-usage-heading"
           className="relative z-10 w-full max-w-lg rounded-2xl border border-[#1e3f6e] bg-[#091c33] px-8 py-10 text-center shadow-2xl shadow-black/40"
         >
           <h2
-            id="premier-limit-heading"
+            id="subscription-usage-heading"
             className="text-xl font-bold text-[#e8f0f8]"
           >
-            You’ve reached your monthly limit
+            Out of reviews for this period
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-[#8aacc8]">
-            Premier includes 20 reviews per month. Upgrade to Enterprise for
-            unlimited reviews, or purchase a single review.
+            You&apos;ve used all your reviews for this period. Purchase
+            additional reviews or upgrade your plan.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/pricing"
               className="inline-flex items-center justify-center rounded-lg bg-[#f0a050] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
             >
-              Upgrade to Enterprise
-            </Link>
-            <Link
-              href="/pricing"
-              className="erp-btn-ghost inline-flex items-center justify-center px-4 py-3 text-center no-underline"
-            >
-              Buy a single review ($49)
+              View plans
             </Link>
           </div>
         </div>
       </main>
       ) : (
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-10 text-[#e8f0f8]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-3 py-10 text-[#e8f0f8] sm:px-6">
         <div
           id="erp-wizard-root"
           className="relative flex flex-col gap-8 border-0 bg-transparent px-0 py-0 [color-scheme:light]"
