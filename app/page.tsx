@@ -405,10 +405,10 @@ export default function Home() {
 
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
             <h2 className="mb-3 text-xl font-bold text-slate-900">
-              Carrier Letter Parsing
+              AI-Generated Dispute Letter
             </h2>
             <p className="text-sm leading-relaxed text-slate-700">
-              Convert carrier explanations and engineer letters into plain-English structured summaries.
+              Automatically generate a formal dispute letter based on your analysis — ready to send to the carrier.
             </p>
           </div>
 
@@ -448,7 +448,7 @@ export default function Home() {
                 2
               </div>
               <h3 className="mb-2 text-base font-semibold text-white">
-                Engine Analyzes Line Items
+                AI Analyzes Scope and Pricing
               </h3>
               <p className="text-sm text-slate-400">
                 Parses structure and scope
