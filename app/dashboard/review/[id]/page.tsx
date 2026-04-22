@@ -56,12 +56,24 @@ export default async function DashboardReviewDetailPage({
     redirect("/login");
   }
 
-  const { data: review, error } = await supabase
+  const { data: review, error } = (await supabase
     .from("reviews")
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
-    .maybeSingle();
+    .maybeSingle()) as {
+    data: {
+      id: string;
+      user_id: string;
+      insured_name: string | null;
+      created_at: string;
+      ai_analysis_json: unknown;
+      ai_comparison_json: unknown;
+      ai_summary_json: unknown;
+      pdf_report_url: string | null;
+    } | null;
+    error: unknown;
+  };
 
   if (error || !review) {
     redirect("/dashboard");
