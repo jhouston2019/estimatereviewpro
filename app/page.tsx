@@ -484,7 +484,7 @@ export default function Home() {
         {/* Positioning Block */}
         <section className="mb-20 rounded-lg border border-slate-800 bg-slate-900/50 p-10 text-center">
           <p className="text-lg leading-relaxed text-slate-300">
-            Built for public adjusters, contractors, and claims professionals who need structured analysis — not opinions.
+            Built for anyone who suspects their claim was underpaid.
           </p>
         </section>
 
