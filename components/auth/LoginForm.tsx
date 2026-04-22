@@ -25,9 +25,11 @@ export function LoginForm() {
     setResetLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
+      // Must match Supabase Auth → URL Configuration → Redirect allow list:
+      // https://estimatereviewpro.com/auth/reset-password
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         addr,
-        { redirectTo: `${window.location.origin}/login` }
+        { redirectTo: "https://estimatereviewpro.com/auth/reset-password" }
       );
       if (resetError) {
         setError(resetError.message);
