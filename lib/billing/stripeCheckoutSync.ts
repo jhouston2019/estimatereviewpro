@@ -14,6 +14,55 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+/**
+ * After checkout sets users.plan_type, create user_review_usage if none yet.
+ */
+export async function ensureUserReviewUsageRow(
+  userId: string,
+  planType: string
+): Promise<void> {
+  if (!planType || planType === "none") return;
+
+  const { data: existingUsage } = await supabase
+    .from("user_review_usage")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (existingUsage) return;
+
+  const { data: plan } = await supabase
+    .from("subscription_plans")
+    .select("id, reviews_per_month")
+    .eq("plan_type", planType)
+    .maybeSingle();
+
+  if (!plan) {
+    console.warn(
+      "[ensureUserReviewUsageRow] No subscription_plans row for plan_type:",
+      planType
+    );
+    return;
+  }
+
+  const { error } = await supabase.from("user_review_usage").insert({
+    user_id: userId,
+    plan_id: plan.id,
+    reviews_used: 0,
+    reviews_limit: plan.reviews_per_month ?? 0,
+    billing_period_start: new Date().toISOString(),
+    billing_period_end: new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000
+    ).toISOString(),
+    is_active: true,
+  });
+
+  if (error) {
+    console.error("[ensureUserReviewUsageRow] insert failed:", error);
+  }
+}
+
 function normalizeUserPlanType(
   raw: string | undefined,
   planName: string | undefined
@@ -147,6 +196,9 @@ export async function syncStripeCheckoutSession(
       .update({ plan_type: "single" })
       .eq("id", userId);
 
+    // Create usage row if it doesn't exist
+    await ensureUserReviewUsageRow(userId, "single");
+
     console.log(`Single plan payment completed for user ${userId}`);
   }
 
@@ -162,6 +214,10 @@ export async function syncStripeCheckoutSession(
           .from("users")
           .update({ plan_type: "single" })
           .eq("id", legacyUserId);
+
+        // Create usage row if it doesn't exist
+        await ensureUserReviewUsageRow(legacyUserId, "single");
+
         console.log(`Single plan payment completed for user ${legacyUserId}`);
       }
     }
@@ -221,6 +277,17 @@ export async function syncStripeCheckoutSession(
             | "premier",
         })
         .eq("id", userId);
+    }
+
+    // Create usage row if it doesn't exist (use final plan_type on user after subscription + checkout updates)
+    const { data: userAfterSub } = await supabase
+      .from("users")
+      .select("plan_type")
+      .eq("id", userId)
+      .maybeSingle();
+    const subPlan = userAfterSub?.plan_type;
+    if (subPlan) {
+      await ensureUserReviewUsageRow(userId, subPlan);
     }
   }
 

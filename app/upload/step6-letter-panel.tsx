@@ -272,7 +272,11 @@ export function Step6LetterPanel({
         })}
       </div>
 
-      <div className="mt-6">
+      <p className="mt-4 text-xs text-slate-400">
+        Select a type and generate again to create a different letter.
+      </p>
+
+      <div className="mt-4">
         <button
           id="erp-step6-generate"
           type="button"

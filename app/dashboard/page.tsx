@@ -3,6 +3,19 @@ import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 
+function formatDashboardPlanName(plan: string | null): string {
+  if (!plan || plan === "none") return "";
+  const k = plan.toLowerCase();
+  const labels: Record<string, string> = {
+    single: "Single",
+    essential: "Essential",
+    professional: "Professional",
+    enterprise: "Enterprise",
+    premier: "Premier",
+  };
+  return labels[k] ?? k.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -57,6 +70,8 @@ export default async function DashboardPage({
           hasTeam
         ? "pro"
         : "free";
+
+  const planNameDisplay = formatDashboardPlanName(planType);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -174,16 +189,14 @@ export default async function DashboardPage({
             </Link>
             <div className="flex items-center gap-2 text-[11px] text-slate-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              <span>
-                Current plan:{" "}
-                <span className="font-semibold text-slate-100">
-                  {tier === "pro"
-                    ? "Unlimited"
-                    : tier === "oneoff"
-                    ? "One‑off"
-                    : "Free"}
+              {planNameDisplay ? (
+                <span>
+                  Current plan:{" "}
+                  <span className="font-semibold text-slate-100">
+                    {planNameDisplay}
+                  </span>
                 </span>
-              </span>
+              ) : null}
               {tier !== "pro" && (
                 <Link
                   href="/account"
