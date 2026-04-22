@@ -17,12 +17,20 @@ const supabase = createClient(
 function normalizeUserPlanType(
   raw: string | undefined,
   planName: string | undefined
-): "professional" | "enterprise" | "premier" | null {
+):
+  | "essential"
+  | "professional"
+  | "enterprise"
+  | "premier"
+  | null {
   const p = (raw || "").toLowerCase();
   const n = (planName || "").toLowerCase();
   if (!p && !n) return null;
-  if (p === "professional" || n.includes("professional")) return "professional";
   if (p === "single") return null;
+  if (p === "essential" || n.includes("essential")) return "essential";
+  if (p === "professional" || n.includes("professional")) {
+    return "professional";
+  }
   if (p === "premier" || n.includes("premier")) return "premier";
   if (
     p === "subscription" ||
@@ -198,6 +206,7 @@ export async function syncStripeCheckoutSession(
       metadata?.plan_type ?? ""
     ).toLowerCase();
     if (
+      sessionPlanFromCheckout === "essential" ||
       sessionPlanFromCheckout === "professional" ||
       sessionPlanFromCheckout === "enterprise" ||
       sessionPlanFromCheckout === "premier"
@@ -206,6 +215,7 @@ export async function syncStripeCheckoutSession(
         .from("users")
         .update({
           plan_type: sessionPlanFromCheckout as
+            | "essential"
             | "professional"
             | "enterprise"
             | "premier",

@@ -135,9 +135,5 @@ export default async function AppEntryPage({
     redirect("/upload");
   }
 
-  if (plan === "premier" || plan === "enterprise") {
-    redirect("/dashboard");
-  }
-
   redirect("/dashboard");
 }

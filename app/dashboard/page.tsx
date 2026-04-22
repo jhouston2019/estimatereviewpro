@@ -50,7 +50,8 @@ export default async function DashboardPage({
   const tier =
     planType === "single"
       ? "oneoff"
-      : planType === "professional" ||
+      : planType === "essential" ||
+          planType === "professional" ||
           planType === "enterprise" ||
           planType === "premier" ||
           hasTeam

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     let sessionConfig: Stripe.Checkout.SessionCreateParams;
 
     if (planType === 'single') {
-      // Single review - one-time payment $149
+      // Single review — one-time $49
       sessionConfig = {
         mode: 'payment',
         payment_method_types: ['card'],
@@ -113,8 +113,82 @@ export async function POST(request: NextRequest) {
           reviews_limit: '1',
         },
       };
+    } else if (planType === 'essential') {
+      // Essential — $399/mo, 10 reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Essential Plan',
+              },
+              unit_amount: 39900, // $399.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: undefined,
+        subscription_data: {
+          metadata: {
+            plan_type: 'essential',
+            plan_name: 'Essential',
+            review_limit: '10',
+            overage_price: '0',
+          },
+        },
+        metadata: {
+          plan_type: 'essential',
+          plan_name: 'Essential',
+          reviews_limit: '10',
+        },
+      };
+    } else if (planType === 'professional') {
+      // Professional — $699/mo, 20 reviews
+      sessionConfig = {
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Professional Plan',
+              },
+              unit_amount: 69900, // $699.00
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: appAbsoluteUrl('cancel'),
+        customer_email: undefined,
+        subscription_data: {
+          metadata: {
+            plan_type: 'professional',
+            plan_name: 'Professional',
+            review_limit: '20',
+            overage_price: '0',
+          },
+        },
+        metadata: {
+          plan_type: 'professional',
+          plan_name: 'Professional',
+          reviews_limit: '20',
+        },
+      };
     } else if (planType === 'enterprise') {
-      // Enterprise plan - $299/month, 20 reviews
+      // Enterprise — $1,499/mo, 50 reviews
       sessionConfig = {
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -125,7 +199,7 @@ export async function POST(request: NextRequest) {
               product_data: {
                 name: 'Enterprise Plan',
               },
-              unit_amount: 59900, // $599.00
+              unit_amount: 149900, // $1,499.00
               recurring: {
                 interval: 'month',
               },
@@ -140,91 +214,14 @@ export async function POST(request: NextRequest) {
           metadata: {
             plan_type: 'enterprise',
             plan_name: 'Enterprise',
-            review_limit: '20',
+            review_limit: '50',
+            overage_price: '0',
           },
         },
         metadata: {
           plan_type: 'enterprise',
           plan_name: 'Enterprise',
-          reviews_limit: 'unlimited',
-        },
-      };
-    } else if (planType === 'premier') {
-      // Premier plan - $299/month, 20 reviews
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Premier Plan',
-              },
-              unit_amount: 29900, // $299.00
-              recurring: {
-                interval: 'month',
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        subscription_data: {
-          metadata: {
-            plan_type: 'premier',
-            plan_name: 'Premier',
-            review_limit: '20',
-          },
-        },
-        metadata: {
-          plan_type: 'premier',
-          plan_name: 'Premier',
-          reviews_limit: '20',
-        },
-      };
-    } else if (planType === 'professional') {
-      // Legacy professional plan (keep for backward compatibility)
-      const priceId = process.env.STRIPE_PRICE_PROFESSIONAL?.trim();
-      if (!priceId) {
-        console.error(
-          '[create-checkout-session] STRIPE_PRICE_PROFESSIONAL is missing for plan professional'
-        );
-        return NextResponse.json(
-          {
-            error: 'STRIPE_PRICE_PROFESSIONAL is not configured',
-            details:
-              'Add STRIPE_PRICE_PROFESSIONAL=price_… to .env.local (Stripe Dashboard → Products → price id).',
-            stripeEnv: envDiag,
-          },
-          { status: 500 }
-        );
-      }
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        subscription_data: {
-          metadata: {
-            plan_type: 'professional',
-            review_limit: '50',
-            overage_price: '2900',
-          },
-        },
-        metadata: {
-          plan_type: 'professional',
-          review_limit: '50',
-          overage_price: '2900',
+          reviews_limit: '50',
         },
       };
     } else {

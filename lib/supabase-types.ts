@@ -14,7 +14,13 @@ export interface Database {
           id: string;
           email: string;
           stripe_customer_id: string | null;
-          plan_type: "single" | "professional" | "enterprise" | "premier" | null;
+          plan_type:
+            | "single"
+            | "essential"
+            | "professional"
+            | "enterprise"
+            | "premier"
+            | null;
           payment_verification_status: string | null;
           is_paid: boolean | null;
           team_id: string | null;
@@ -27,7 +33,13 @@ export interface Database {
           id: string;
           email: string;
           stripe_customer_id?: string | null;
-          plan_type?: "single" | "professional" | "enterprise" | "premier" | null;
+          plan_type?:
+            | "single"
+            | "essential"
+            | "professional"
+            | "enterprise"
+            | "premier"
+            | null;
           payment_verification_status?: string | null;
           is_paid?: boolean | null;
           team_id?: string | null;
@@ -40,7 +52,13 @@ export interface Database {
           id?: string;
           email?: string;
           stripe_customer_id?: string | null;
-          plan_type?: "single" | "professional" | "enterprise" | "premier" | null;
+          plan_type?:
+            | "single"
+            | "essential"
+            | "professional"
+            | "enterprise"
+            | "premier"
+            | null;
           payment_verification_status?: string | null;
           is_paid?: boolean | null;
           team_id?: string | null;
@@ -101,7 +119,7 @@ export interface Database {
           id: string;
           name: string;
           owner_id: string;
-          plan_type: "professional" | "enterprise" | "premier";
+          plan_type: "essential" | "professional" | "enterprise" | "premier";
           stripe_subscription_id: string | null;
           stripe_subscription_status: string | null;
           review_limit: number;
@@ -113,7 +131,7 @@ export interface Database {
           id?: string;
           name: string;
           owner_id: string;
-          plan_type: "professional" | "enterprise" | "premier";
+          plan_type: "essential" | "professional" | "enterprise" | "premier";
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: string | null;
           review_limit: number;
@@ -125,7 +143,7 @@ export interface Database {
           id?: string;
           name?: string;
           owner_id?: string;
-          plan_type?: "professional" | "enterprise" | "premier";
+          plan_type?: "essential" | "professional" | "enterprise" | "premier";
           stripe_subscription_id?: string | null;
           stripe_subscription_status?: string | null;
           review_limit?: number;

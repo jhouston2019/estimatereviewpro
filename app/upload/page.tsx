@@ -806,7 +806,20 @@ export default function UploadPage() {
       const userRow = data as { plan_type: string | null } | null;
 
       if (cancelled) return;
-      if (userErr || !userRow || userRow.plan_type !== "premier") {
+      if (userErr || !userRow) {
+        setPremierUsageWall("ok");
+        return;
+      }
+      const plan = userRow.plan_type ?? null;
+      const limit =
+        plan === "essential"
+          ? 10
+          : plan === "professional" || plan === "premier"
+            ? 20
+            : plan === "enterprise"
+              ? 50
+              : null;
+      if (limit === null) {
         setPremierUsageWall("ok");
         return;
       }
@@ -825,7 +838,7 @@ export default function UploadPage() {
         return;
       }
       const n = count ?? 0;
-      setPremierUsageWall(n >= 20 ? "blocked" : "ok");
+      setPremierUsageWall(n >= limit ? "blocked" : "ok");
     })();
     return () => {
       cancelled = true;

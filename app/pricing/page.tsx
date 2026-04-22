@@ -3,16 +3,56 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export default function PricingPage() {
-  const [loading, setLoading] = useState<string | null>(null);
+type PlanKey = "single" | "essential" | "professional" | "enterprise";
 
-  const handleCheckout = async (planType: 'single' | 'premier' | 'enterprise') => {
+function Check() {
+  return (
+    <svg
+      className="h-5 w-5 flex-shrink-0 text-[#2563EB]"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+}
+
+function CheckLight() {
+  return (
+    <svg
+      className="h-5 w-5 flex-shrink-0 text-blue-400"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+}
+
+export default function PricingPage() {
+  const [loading, setLoading] = useState<PlanKey | null>(null);
+
+  const handleCheckout = async (planType: PlanKey) => {
     setLoading(planType);
 
     try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planType }),
       });
 
@@ -21,11 +61,11 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || 'Failed to create checkout session');
+        throw new Error(data.error || "Failed to create checkout session");
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      console.error("Checkout error:", error);
+      alert("Failed to start checkout. Please try again.");
     } finally {
       setLoading(null);
     }
@@ -49,7 +89,7 @@ export default function PricingPage() {
             </Link>
             <Link
               href="/login"
-              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
+              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
             >
               Log in
             </Link>
@@ -57,247 +97,191 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">
-            Find $10,000–$40,000 in Missed Claim Value
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-6 py-16">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold text-white sm:text-5xl">
+            Find What the Carrier Missed — In Minutes
           </h1>
-          <p className="text-xl text-slate-300">
-            In Minutes.
+          <p className="mx-auto max-w-2xl text-lg text-slate-300 sm:text-xl">
+            AI-powered estimate review that catches scope gaps, pricing errors,
+            and omissions — then builds your case automatically.
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
-          {/* Single Review */}
-          <div className="rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-[#2563EB] text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Most Popular
-              </span>
-            </div>
-
+        <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Single */}
+          <div className="relative rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Single Review
-              </h2>
-              <div className="flex items-baseline gap-2 mb-4">
+              <h2 className="mb-2 text-2xl font-bold text-slate-900">Single</h2>
+              <div className="mb-4 flex items-baseline gap-2">
                 <span className="text-5xl font-bold text-slate-900">$49</span>
-                <span className="text-slate-600">per estimate</span>
+                <span className="text-slate-600">(one-time)</span>
               </div>
-              <p className="text-xs text-slate-600">
-                One-time payment
-              </p>
             </div>
 
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span><strong>Comprehensive estimate analysis</strong></span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>12 intelligence engines</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Recovery calculation</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Litigation evidence</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>PDF export</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>30-day report access</span>
-              </li>
+            <ul className="mb-8 space-y-3">
+              {[
+                "1 estimate review",
+                "Scope gap and omission detection",
+                "Pricing discrepancy flags",
+                "Carrier vs. contractor comparison",
+                "Strategy recommendations",
+                "AI-generated dispute letter",
+                "PDF and Word export",
+                "Indefinite report access",
+              ].map((t) => (
+                <li
+                  key={t}
+                  className="flex items-start gap-2 text-sm text-slate-700"
+                >
+                  <Check />
+                  <span>{t}</span>
+                </li>
+              ))}
             </ul>
 
             <button
-              onClick={() => handleCheckout('single')}
-              disabled={loading === 'single'}
-              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white hover:bg-[#1E40AF] transition disabled:opacity-50 shadow-lg"
+              type="button"
+              onClick={() => handleCheckout("single")}
+              disabled={loading === "single"}
+              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-[#1E40AF] disabled:opacity-50"
             >
-              {loading === 'single' ? 'Loading...' : 'Start Review'}
+              {loading === "single" ? "Loading..." : "Start Review"}
             </button>
           </div>
 
-          {/* Premier Plan */}
+          {/* Essential */}
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Premier Plan
+              <h2 className="mb-2 text-2xl font-bold text-slate-900">
+                Essential
               </h2>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-slate-900">$299</span>
+              <div className="mb-4 flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-slate-900">$399</span>
                 <span className="text-slate-600">/month</span>
               </div>
-              <p className="text-sm text-green-700 font-semibold mb-2">
-                ✓ Recovery Guarantee
-              </p>
-              <p className="text-xs text-slate-600">
-                Billed monthly
-              </p>
+              <p className="text-xs text-slate-600">Billed monthly</p>
             </div>
 
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span><strong>20 reviews per month</strong></span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Carrier intelligence reports</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Recovery analytics dashboard</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Priority support</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>API access</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Bulk upload</span>
-              </li>
+            <ul className="mb-8 space-y-3">
+              {[
+                "10 reviews per month",
+                "Unused reviews roll over",
+                "Everything in Single",
+                "Bulk upload",
+                "Review dashboard with full history",
+              ].map((t) => (
+                <li
+                  key={t}
+                  className="flex items-start gap-2 text-sm text-slate-700"
+                >
+                  <Check />
+                  <span>{t}</span>
+                </li>
+              ))}
             </ul>
 
             <button
-              onClick={() => handleCheckout('premier')}
-              disabled={loading === 'premier'}
-              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 transition disabled:opacity-50"
+              type="button"
+              onClick={() => handleCheckout("essential")}
+              disabled={loading === "essential"}
+              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
             >
-              {loading === 'premier' ? 'Loading...' : 'Start Premier Plan'}
+              {loading === "essential"
+                ? "Loading..."
+                : "Start Essential Plan"}
             </button>
           </div>
 
-          {/* Enterprise Plan */}
-          <div className="rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Premium
-              </span>
+          {/* Professional */}
+          <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
+            <div className="mb-6">
+              <h2 className="mb-2 text-2xl font-bold text-slate-900">
+                Professional
+              </h2>
+              <div className="mb-4 flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-slate-900">$699</span>
+                <span className="text-slate-600">/month</span>
+              </div>
+              <p className="text-xs text-slate-600">Billed monthly</p>
             </div>
 
+            <ul className="mb-8 space-y-3">
+              {[
+                "20 reviews per month",
+                "Unused reviews roll over",
+                "Everything in Essential",
+                "API access",
+              ].map((t) => (
+                <li
+                  key={t}
+                  className="flex items-start gap-2 text-sm text-slate-700"
+                >
+                  <Check />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => handleCheckout("professional")}
+              disabled={loading === "professional"}
+              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+            >
+              {loading === "professional"
+                ? "Loading..."
+                : "Start Professional Plan"}
+            </button>
+          </div>
+
+          {/* Enterprise */}
+          <div className="relative rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Enterprise Plan
-              </h2>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold text-white">$599</span>
+              <h2 className="mb-2 text-2xl font-bold text-white">Enterprise</h2>
+              <div className="mb-4 flex items-baseline gap-2">
+                <span className="text-5xl font-bold text-white">$1,499</span>
                 <span className="text-slate-300">/month</span>
               </div>
-              <p className="text-sm text-green-400 font-semibold mb-2">
-                ✓ Recovery Guarantee
-              </p>
-              <p className="text-xs text-slate-400">
-                Billed monthly
-              </p>
+              <p className="text-xs text-slate-400">Billed monthly</p>
             </div>
 
-            <ul className="space-y-3 mb-8">
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span><strong>Unlimited reviews</strong></span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Attorney-ready evidence reports</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Carrier behavior analytics</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Litigation exhibits</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Expert witness support</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Priority processing</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-200">
-                <svg className="h-5 w-5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Dedicated account manager</span>
-              </li>
+            <ul className="mb-8 space-y-3">
+              {[
+                "50 reviews per month",
+                "Unused reviews roll over",
+                "Everything in Professional",
+                "Litigation evidence package",
+              ].map((t) => (
+                <li
+                  key={t}
+                  className="flex items-start gap-2 text-sm text-slate-200"
+                >
+                  <CheckLight />
+                  <span>{t}</span>
+                </li>
+              ))}
             </ul>
 
             <button
-              onClick={() => handleCheckout('enterprise')}
-              disabled={loading === 'enterprise'}
-              className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-base font-semibold text-white hover:from-purple-700 hover:to-blue-700 transition disabled:opacity-50 shadow-lg"
+              type="button"
+              onClick={() => handleCheckout("enterprise")}
+              disabled={loading === "enterprise"}
+              className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
             >
-              {loading === 'enterprise' ? 'Loading...' : 'Start Enterprise Plan'}
+              {loading === "enterprise"
+                ? "Loading..."
+                : "Start Enterprise Plan"}
             </button>
-          </div>
-        </div>
-
-        {/* Value Proposition */}
-        <div className="mt-16 grid gap-8 md:grid-cols-2 max-w-2xl mx-auto">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-green-400 mb-2">$10K-$40K</div>
-            <p className="text-slate-300">Average recovery identified</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-blue-400 mb-2">12</div>
-            <p className="text-slate-300">Intelligence engines</p>
           </div>
         </div>
 
         <div className="mt-12 text-center">
           <p className="text-sm text-slate-400">
-            All plans include: Pricing validation • Labor rate analysis • Depreciation detection • Carrier tactic recognition • 
-            Code compliance checking • Trade dependency analysis • Scope reconstruction • Litigation evidence generation
+            All plans include: Pricing validation • Labor rate analysis •
+            Depreciation detection • Carrier tactic recognition • Code compliance
+            checking • Trade dependency analysis • Scope reconstruction •
+            Litigation evidence generation
           </p>
         </div>
       </main>
@@ -306,10 +290,10 @@ export default function PricingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} Estimate Review Pro. All rights reserved.</p>
           <div className="flex gap-6">
-            <Link href="/pricing" className="hover:text-slate-300 transition">
+            <Link href="/pricing" className="transition hover:text-slate-300">
               Pricing
             </Link>
-            <Link href="/" className="hover:text-slate-300 transition">
+            <Link href="/" className="transition hover:text-slate-300">
               Home
             </Link>
           </div>

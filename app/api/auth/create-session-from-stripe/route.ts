@@ -93,14 +93,18 @@ function planTypeForCheckoutUser(
     const m = subscription.metadata ?? {};
     const pt = (m.plan_type ?? "").toLowerCase();
     const pn = (m.plan_name ?? "").toLowerCase();
-    if (pt === "professional") return "professional";
-    if (pn.includes("premier")) return "premier";
+    if (pt === "essential" || pn.includes("essential")) return "essential";
+    if (pt === "professional" || pn.includes("professional")) {
+      return "professional";
+    }
+    if (pt === "premier" || pn.includes("premier")) return "premier";
     if (pt === "enterprise" || pn.includes("enterprise")) return "enterprise";
   }
   const sm = session.metadata ?? {};
-  if ((sm.plan_type ?? "").toLowerCase() === "professional") {
-    return "professional";
-  }
+  const spt = (sm.plan_type ?? "").toLowerCase();
+  if (spt === "essential") return "essential";
+  if (spt === "professional") return "professional";
+  if (spt === "enterprise") return "enterprise";
   return "enterprise";
 }
 
