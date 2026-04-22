@@ -25,7 +25,18 @@ import {
   letterPlaceholdersFromClaimMeta,
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
+import type { Json } from "@/types/database.types";
 import "./erp-wizard.css";
+
+/** Serialize wizard state to Supabase `Json` (strict `tsc` rejects raw analysis/comparison object types). */
+function toSupabaseJson(value: unknown): Json | null {
+  if (value === null || value === undefined) return null;
+  try {
+    return JSON.parse(JSON.stringify(value)) as Json;
+  } catch {
+    return null;
+  }
+}
 
 const US_STATES: { code: string; name: string }[] = [
   { code: "AL", name: "Alabama" },
@@ -1760,9 +1771,11 @@ export default function UploadPage() {
         if (session?.user?.id) {
           await supabase.from("reviews").insert({
             user_id: session.user.id,
-            ai_analysis_json: wizardStateRef.current.analysis ?? null,
-            ai_comparison_json: wizardStateRef.current.comparison ?? null,
-            ai_summary_json: wizardStateRef.current.summary ?? null,
+            ai_analysis_json: toSupabaseJson(wizardStateRef.current.analysis),
+            ai_comparison_json: toSupabaseJson(
+              wizardStateRef.current.comparison
+            ),
+            ai_summary_json: toSupabaseJson(wizardStateRef.current.summary),
             insured_name:
               wizardStateRef.current.claimMeta?.insuredName ?? null,
           });

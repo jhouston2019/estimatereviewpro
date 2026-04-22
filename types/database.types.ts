@@ -536,6 +536,7 @@ export type Database = {
           contractor_estimate_url: string | null
           created_at: string
           id: string
+          insured_name: string | null
           pdf_report_url: string | null
           user_id: string
         }
@@ -547,6 +548,7 @@ export type Database = {
           contractor_estimate_url?: string | null
           created_at?: string
           id?: string
+          insured_name?: string | null
           pdf_report_url?: string | null
           user_id: string
         }
@@ -558,6 +560,7 @@ export type Database = {
           contractor_estimate_url?: string | null
           created_at?: string
           id?: string
+          insured_name?: string | null
           pdf_report_url?: string | null
           user_id?: string
         }
