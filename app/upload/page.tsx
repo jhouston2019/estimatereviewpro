@@ -811,14 +811,21 @@ export default function UploadPage() {
       }
       const { data, error: userErr } = await supabase
         .from("users")
-        .select("plan_type")
+        .select("plan_type, is_admin")
         .eq("id", userId)
         .maybeSingle();
 
-      const userRow = data as { plan_type: string | null } | null;
+      const userRow = data as {
+        plan_type: string | null;
+        is_admin?: boolean;
+      } | null;
 
       if (cancelled) return;
       if (userErr || !userRow) {
+        setPremierUsageWall("ok");
+        return;
+      }
+      if (userRow.is_admin) {
         setPremierUsageWall("ok");
         return;
       }
