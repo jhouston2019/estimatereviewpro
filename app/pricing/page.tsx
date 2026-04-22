@@ -5,6 +5,23 @@ import { useState } from "react";
 
 type PlanKey = "single" | "essential" | "professional" | "enterprise";
 
+const CORE_FEATURES: readonly string[] = [
+  "Scope gap and omission detection",
+  "Pricing discrepancy flags",
+  "Carrier vs. contractor comparison",
+  "Strategy recommendations",
+  "AI-generated dispute letter",
+  "PDF and Word export",
+  "Review dashboard with full history",
+  "API access",
+  "Bulk upload",
+];
+
+const SINGLE_FEATURES: readonly string[] = [
+  "1 estimate review",
+  ...CORE_FEATURES.filter((f) => f !== "Bulk upload"),
+];
+
 function Check() {
   return (
     <svg
@@ -120,16 +137,7 @@ export default function PricingPage() {
             </div>
 
             <ul className="mb-8 space-y-3">
-              {[
-                "1 estimate review",
-                "Scope gap and omission detection",
-                "Pricing discrepancy flags",
-                "Carrier vs. contractor comparison",
-                "Strategy recommendations",
-                "AI-generated dispute letter",
-                "PDF and Word export",
-                "Indefinite report access",
-              ].map((t) => (
+              {SINGLE_FEATURES.map((t) => (
                 <li
                   key={t}
                   className="flex items-start gap-2 text-sm text-slate-700"
@@ -160,16 +168,12 @@ export default function PricingPage() {
                 <span className="text-5xl font-bold text-slate-900">$399</span>
                 <span className="text-slate-600">/month</span>
               </div>
-              <p className="text-xs text-slate-600">Billed monthly</p>
             </div>
 
             <ul className="mb-8 space-y-3">
               {[
-                "10 reviews per month",
-                "Unused reviews roll over",
-                "Everything in Single",
-                "Bulk upload",
-                "Review dashboard with full history",
+                "10 reviews per month, unused roll over",
+                ...CORE_FEATURES,
               ].map((t) => (
                 <li
                   key={t}
@@ -203,15 +207,12 @@ export default function PricingPage() {
                 <span className="text-5xl font-bold text-slate-900">$699</span>
                 <span className="text-slate-600">/month</span>
               </div>
-              <p className="text-xs text-slate-600">Billed monthly</p>
             </div>
 
             <ul className="mb-8 space-y-3">
               {[
-                "20 reviews per month",
-                "Unused reviews roll over",
-                "Everything in Essential",
-                "API access",
+                "20 reviews per month, unused roll over",
+                ...CORE_FEATURES,
               ].map((t) => (
                 <li
                   key={t}
@@ -243,15 +244,12 @@ export default function PricingPage() {
                 <span className="text-5xl font-bold text-white">$1,499</span>
                 <span className="text-slate-300">/month</span>
               </div>
-              <p className="text-xs text-slate-400">Billed monthly</p>
             </div>
 
             <ul className="mb-8 space-y-3">
               {[
-                "50 reviews per month",
-                "Unused reviews roll over",
-                "Everything in Professional",
-                "Litigation evidence package",
+                "50 reviews per month, unused roll over",
+                ...CORE_FEATURES,
               ].map((t) => (
                 <li
                   key={t}
@@ -274,15 +272,6 @@ export default function PricingPage() {
                 : "Start Enterprise Plan"}
             </button>
           </div>
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="text-sm text-slate-400">
-            All plans include: Pricing validation • Labor rate analysis •
-            Depreciation detection • Carrier tactic recognition • Code compliance
-            checking • Trade dependency analysis • Scope reconstruction •
-            Litigation evidence generation
-          </p>
         </div>
       </main>
 
