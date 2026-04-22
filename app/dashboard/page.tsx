@@ -221,7 +221,7 @@ export default async function DashboardPage({
                   >
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-slate-100">
-                        Estimate review
+                        {review.insured_name?.trim() || "Estimate Review"}
                       </p>
                       <p className="text-[11px] text-slate-400">
                         Created{" "}
