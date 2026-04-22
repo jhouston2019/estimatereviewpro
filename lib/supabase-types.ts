@@ -268,6 +268,7 @@ export interface Database {
           ai_analysis_json: Json | null;
           ai_comparison_json: Json | null;
           ai_summary_json: Json | null;
+          insured_name: string | null;
           pdf_report_url: string | null;
           created_at: string;
         };
@@ -279,6 +280,7 @@ export interface Database {
           ai_analysis_json?: Json | null;
           ai_comparison_json?: Json | null;
           ai_summary_json?: Json | null;
+          insured_name?: string | null;
           pdf_report_url?: string | null;
           created_at?: string;
         };
@@ -290,6 +292,7 @@ export interface Database {
           ai_analysis_json?: Json | null;
           ai_comparison_json?: Json | null;
           ai_summary_json?: Json | null;
+          insured_name?: string | null;
           pdf_report_url?: string | null;
           created_at?: string;
         };

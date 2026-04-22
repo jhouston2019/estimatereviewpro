@@ -329,6 +329,7 @@ type WizardState = {
   };
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
+  summary?: unknown;
   strategy: string | null;
   letterType: string | null;
   letterRaw: string | null;
@@ -1750,6 +1751,24 @@ export default function UploadPage() {
         announce(
           "Letter generated. Placeholders from claim metadata were applied where tokens appear."
         );
+      }
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          await supabase.from("reviews").insert({
+            user_id: session.user.id,
+            ai_analysis_json: wizardStateRef.current.analysis ?? null,
+            ai_comparison_json: wizardStateRef.current.comparison ?? null,
+            ai_summary_json: wizardStateRef.current.summary ?? null,
+            insured_name:
+              wizardStateRef.current.claimMeta?.insuredName ?? null,
+          });
+        }
+      } catch (saveErr) {
+        console.error("Failed to save review:", saveErr);
       }
     } catch (err) {
       const msg =
