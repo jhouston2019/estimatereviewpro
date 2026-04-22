@@ -13,6 +13,11 @@ function getServiceClient() {
 
 type UsageInfo = { isActive: boolean; reviewsUsed: number | null };
 
+type TeamRow = {
+  stripe_subscription_id: string | null;
+  stripe_subscription_status: string | null;
+};
+
 function bestUsageByUserId(
   rows: {
     user_id: string;
@@ -137,14 +142,15 @@ export async function loadAdminDashboardData(): Promise<AdminPageData> {
     .select("stripe_subscription_id, stripe_subscription_status");
   let activeSubscriptions = 0;
   if (!tErr && teamRows) {
-    const rows = teamRows;
-    activeSubscriptions = rows.filter((r) => {
-      if (r.stripe_subscription_id == null || r.stripe_subscription_id === "") {
+    const rows = teamRows as TeamRow[];
+    activeSubscriptions = rows.filter((r: TeamRow) => {
+      if (
+        r.stripe_subscription_id == null ||
+        r.stripe_subscription_status === 'canceled'
+      ) {
         return false;
       }
-      const st = r.stripe_subscription_status;
-      if (st == null) return true;
-      return st === "active" || st === "trialing" || st === "past_due";
+      return true;
     }).length;
   }
 
