@@ -540,7 +540,7 @@ export default function WizardPreview() {
 
         <div className="mt-8 flex justify-center px-2">
           <Link
-            href="/upload"
+            href="/pricing"
             className="inline-flex w-full max-w-md items-center justify-center rounded-lg bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-blue-700 sm:w-auto"
           >
             Run Your First Review →
