@@ -6,6 +6,14 @@ import {
   parseComparisonResult,
 } from "@/lib/estimate-json-parse";
 
+const strategyLabels: Record<string, string> = {
+  FULL_SUPPLEMENT_DEMAND: "Full Supplement Demand",
+  PARTIAL_DISPUTE: "Partial Dispute",
+  DEMAND_REINSPECTION: "Demand Reinspection",
+  INVOKE_APPRAISAL: "Invoke Appraisal",
+  OTHER_CUSTOM: "Custom Strategy",
+};
+
 function formatMoney(n: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -124,6 +132,12 @@ export default async function DashboardReviewDetailPage({
             >
               Account
             </Link>
+            <Link
+              href="/pricing"
+              className="rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF]"
+            >
+              Buy another review
+            </Link>
           </nav>
         </div>
       </header>
@@ -208,7 +222,10 @@ export default async function DashboardReviewDetailPage({
                     Recommended strategy
                   </p>
                   <p className="mt-1 text-slate-200">
-                    {analysis.recommendedStrategy || "—"}
+                    {analysis.recommendedStrategy
+                      ? strategyLabels[analysis.recommendedStrategy] ??
+                        analysis.recommendedStrategy
+                      : "—"}
                   </p>
                 </div>
               </div>

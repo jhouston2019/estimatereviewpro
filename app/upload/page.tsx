@@ -1785,6 +1785,18 @@ export default function UploadPage() {
               wizardStateRef.current.claimMeta?.insuredName ?? null,
           });
           console.log("REVIEW SAVE RESULT:", error);
+          if (!error) {
+            const { error: usageError } = await supabase.rpc(
+              "increment_review_usage",
+              { user_id_param: session.user.id }
+            );
+            if (usageError) {
+              console.error(
+                "[upload] increment_review_usage:",
+                usageError
+              );
+            }
+          }
         }
       } catch (saveErr) {
         console.error("Failed to save review:", saveErr);
