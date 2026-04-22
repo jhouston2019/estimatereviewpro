@@ -4,6 +4,14 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
+/**
+ * Supabase email link flows (magic link, password reset) must use this as
+ * `redirectTo` / `emailRedirectTo` — and add the URL in Supabase Dashboard →
+ * Authentication → URL configuration.
+ */
+export const ADMIN_AUTH_CALLBACK_URL =
+  "https://estimatereviewpro.com/auth/callback" as const;
+
 export function AdminLoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");

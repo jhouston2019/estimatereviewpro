@@ -1,32 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { assertAdminOrRedirectToLogin } from "@/lib/auth/assertAdminServer";
 import { loadAdminDashboardData } from "@/lib/admin/adminData";
 import { AccountSignOutButton } from "@/app/account/AccountSignOutButton";
 
 export default async function AdminPage() {
-  const supabase = await createSupabaseServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.id) {
-    redirect("/admin/login");
-  }
-
-  const { data: me } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
-  const isAdmin = Boolean(
-    me &&
-      typeof me === "object" &&
-      "is_admin" in me &&
-      (me as { is_admin?: boolean }).is_admin
-  );
-  if (!isAdmin) {
-    redirect("/admin/login");
-  }
+  await assertAdminOrRedirectToLogin();
 
   const data = await loadAdminDashboardData();
 
