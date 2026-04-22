@@ -78,6 +78,15 @@ export default async function CreateAccountPage({
             Your payment was successful. Set a password to access your reviews.
           </p>
           <CreateAccountForm sessionId={sessionId} email={email} />
+          <p className="mt-3 text-center text-sm text-slate-400">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-slate-200 transition hover:text-white"
+            >
+              Log in
+            </Link>
+          </p>
         </div>
       </main>
 

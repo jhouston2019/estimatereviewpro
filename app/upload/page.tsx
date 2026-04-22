@@ -1769,11 +1769,6 @@ export default function UploadPage() {
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user?.id) {
-          console.log("SAVING REVIEW:", {
-            user_id: session?.user?.id,
-            insured_name:
-              wizardStateRef.current.claimMeta?.insuredName ?? null,
-          });
           const { error } = await supabase.from("reviews").insert({
             user_id: session.user.id,
             ai_analysis_json: toSupabaseJson(wizardStateRef.current.analysis),
@@ -1784,7 +1779,6 @@ export default function UploadPage() {
             insured_name:
               wizardStateRef.current.claimMeta?.insuredName ?? null,
           });
-          console.log("REVIEW SAVE RESULT:", error);
           if (!error) {
             const { error: usageError } = await supabase.rpc(
               "increment_review_usage",

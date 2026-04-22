@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import {
   createAccountAfterCheckout,
@@ -93,15 +92,6 @@ export function CreateAccountForm({ sessionId, email }: Props) {
       >
         {isPending ? "Creating account…" : "Create Account"}
       </button>
-      <p className="mt-4 text-center text-xs text-slate-500">
-        Already have an account?{" "}
-        <Link
-          href="/login"
-          className="text-slate-400 underline-offset-2 transition hover:text-slate-300 hover:underline"
-        >
-          Log in
-        </Link>
-      </p>
     </form>
   );
 }
