@@ -17,9 +17,11 @@ const CORE_FEATURES: readonly string[] = [
   "Bulk upload",
 ];
 
+const OMIT_ON_SINGLE = new Set(["API access", "Bulk upload"]);
+
 const SINGLE_FEATURES: readonly string[] = [
   "1 estimate review",
-  ...CORE_FEATURES.filter((f) => f !== "Bulk upload"),
+  ...CORE_FEATURES.filter((f) => !OMIT_ON_SINGLE.has(f)),
 ];
 
 function Check() {
@@ -189,7 +191,7 @@ export default function PricingPage() {
               type="button"
               onClick={() => handleCheckout("essential")}
               disabled={loading === "essential"}
-              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-[#1E40AF] disabled:opacity-50"
             >
               {loading === "essential"
                 ? "Loading..."
@@ -228,7 +230,7 @@ export default function PricingPage() {
               type="button"
               onClick={() => handleCheckout("professional")}
               disabled={loading === "professional"}
-              className="w-full rounded-lg bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+              className="w-full rounded-lg bg-[#2563EB] px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-[#1E40AF] disabled:opacity-50"
             >
               {loading === "professional"
                 ? "Loading..."
