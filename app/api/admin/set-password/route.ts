@@ -15,14 +15,11 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabase = createClient(supabaseUrl!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-  const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-  if (listError) return NextResponse.json({ error: listError.message }, { status: 500 });
+  const { error } = await supabase.auth.admin.updateUserById(
+    "d5dbb9ac-b4c1-4212-ab3b-649f1f159cdb",
+    { password }
+  );
 
-  const user = users.find(u => u.email === "info@axis-strategic-media.com");
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  const { error } = await supabase.auth.admin.updateUserById(user.id, { password });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   return NextResponse.json({ success: true });
 }
