@@ -50,7 +50,8 @@ function bestUsageByUserId(
   return out;
 }
 
-function claimFromSummaryJson(json: Json | null): string | null {
+/** Extracts claim # from stored AI JSON (analysis or summary). */
+function claimNumberFromJson(json: Json | null): string | null {
   if (json === null || typeof json !== "object" || Array.isArray(json)) {
     return null;
   }
@@ -65,6 +66,12 @@ function claimFromSummaryJson(json: Json | null): string | null {
   if (o.property_details && typeof o.property_details === "object") {
     const c = (o.property_details as { claim_number?: string }).claim_number;
     if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  if (o.summary && typeof o.summary === "object" && o.summary) {
+    const s = o.summary as Record<string, unknown>;
+    if (typeof s.claimNumber === "string" && s.claimNumber.trim()) {
+      return s.claimNumber.trim();
+    }
   }
   return null;
 }
@@ -201,7 +208,7 @@ export async function loadAdminDashboardData(): Promise<AdminPageData> {
 
   const { data: allReviews, error: rErr } = await svc
     .from("reviews")
-    .select("id, insured_name, created_at, user_id, ai_summary_json")
+    .select("id, insured_name, created_at, user_id, ai_analysis_json, ai_summary_json")
     .order("created_at", { ascending: false });
   if (rErr || !allReviews) {
     return {
@@ -224,7 +231,9 @@ export async function loadAdminDashboardData(): Promise<AdminPageData> {
     insuredName: r.insured_name,
     userEmail: emailByUserId.get(r.user_id) ?? "—",
     createdAt: r.created_at,
-    claimNumber: claimFromSummaryJson(r.ai_summary_json),
+    claimNumber:
+      claimNumberFromJson(r.ai_analysis_json) ??
+      claimNumberFromJson(r.ai_summary_json),
   }));
 
   return {
