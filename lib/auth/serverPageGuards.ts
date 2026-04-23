@@ -12,9 +12,60 @@ function assertProductionPaymentBypassNotMisconfigured(): void {
   }
 }
 
+type UsersAccessRow = { is_admin: boolean; plan_type: string | null };
+
 /**
- * Auth + product paywall for dashboard, upload, account, etc.
- * (Not for /create-account, /login, /register.)
+ * Resolves a real `public.users` row: maybeSingle, then upsert + re-read if missing.
+ * No in-memory “fake” row — access is always based on DB state.
+ */
+async function getOrCreateUsersRow(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerComponentClient>>,
+  user: User,
+  onReadOrUpsertFailed: string
+): Promise<UsersAccessRow> {
+  let { data: row } = await supabase
+    .from("users")
+    .select("is_admin, plan_type")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!row) {
+    const { error: upErr } = await supabase
+      .from("users")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email ?? `${user.id}@placeholder.local`,
+        },
+        { onConflict: "id" }
+      );
+    if (upErr) {
+      console.error("[serverPageGuards] users upsert failed:", upErr.message);
+      redirect(onReadOrUpsertFailed);
+    }
+    const { data: freshRow, error: readErr } = await supabase
+      .from("users")
+      .select("is_admin, plan_type")
+      .eq("id", user.id)
+      .single();
+    if (readErr || !freshRow) {
+      console.error(
+        "[serverPageGuards] users re-read after upsert failed:",
+        readErr?.message
+      );
+      redirect(onReadOrUpsertFailed);
+    }
+    row = freshRow;
+  }
+
+  return {
+    is_admin: row.is_admin === true,
+    plan_type: row.plan_type,
+  };
+}
+
+/**
+ * Auth + product paywall. Entitlement is read only from a real `public.users` row.
  */
 export async function requireUserAndPaywall(): Promise<{
   supabase: Awaited<ReturnType<typeof createSupabaseServerComponentClient>>;
@@ -25,28 +76,28 @@ export async function requireUserAndPaywall(): Promise<{
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // TEMP: remove after debugging JWT app_metadata in Netlify / server logs
-  console.log(
-    "[pageGuard] user.app_metadata:",
-    user ? JSON.stringify(user.app_metadata) : "(no user)"
-  );
   if (!user) {
     redirect("/login");
   }
-  if (!isPaymentBypassActive()) {
-    const isAdmin = user.app_metadata?.is_admin === true;
-    const hasPlan =
-      user.app_metadata?.plan_type != null &&
-      user.app_metadata?.plan_type !== "";
-    if (!isAdmin && !hasPlan) {
-      redirect("/pricing?message=payment_required");
-    }
+
+  const row = await getOrCreateUsersRow(
+    supabase,
+    user,
+    "/pricing?message=payment_required"
+  );
+
+  const isAdmin = row.is_admin === true;
+  const hasPlan = row.plan_type != null && row.plan_type !== "";
+
+  if (!isPaymentBypassActive() && !isAdmin && !hasPlan) {
+    redirect("/pricing?message=payment_required");
   }
+
   return { supabase, user };
 }
 
 /**
- * Admin routes (excludes /admin/login — use only on other app/admin/* pages).
+ * Admin routes (not `/admin/login`). Uses `public.users.is_admin` from a real row.
  */
 export async function requireAdminUser(): Promise<{
   supabase: Awaited<ReturnType<typeof createSupabaseServerComponentClient>>;
@@ -57,16 +108,15 @@ export async function requireAdminUser(): Promise<{
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // TEMP: remove after debugging JWT app_metadata in Netlify / server logs
-  console.log(
-    "[pageGuard] user.app_metadata:",
-    user ? JSON.stringify(user.app_metadata) : "(no user)"
-  );
   if (!user) {
     redirect("/admin/login");
   }
-  if (!user.app_metadata?.is_admin) {
+
+  const row = await getOrCreateUsersRow(supabase, user, "/admin/login");
+
+  if (row.is_admin !== true) {
     redirect("/admin/login");
   }
+
   return { supabase, user };
 }
