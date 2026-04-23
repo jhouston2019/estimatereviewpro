@@ -119,7 +119,26 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/upload");
 
-  if (paywallPaths && session && !isPaymentBypassActive()) {
+  // Skip paywall for admins
+  if (paywallPaths && session) {
+    const { data: adminCheck } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    const isAdmin =
+      (adminCheck as { is_admin?: boolean } | null)?.is_admin === true;
+    if (isAdmin) return response;
+  }
+
+  // Skip paywall for admin users — already checked is_admin above
+  if (
+    paywallPaths &&
+    session &&
+    !isPaymentBypassActive() &&
+    !isAdminRoute
+  ) {
     const { data: paid, error: paidErr } = await supabase.rpc(
       "user_has_paid_access"
     );
