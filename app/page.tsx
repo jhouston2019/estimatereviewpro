@@ -592,7 +592,7 @@ export default function Home() {
             <Link href="/pricing" className="hover:text-slate-300 transition">
               Pricing
             </Link>
-            <Link href="/admin-login.html" className="opacity-50 hover:opacity-100 hover:text-slate-300 transition">
+            <Link href="/admin/login" className="opacity-50 hover:opacity-100 hover:text-slate-300 transition">
               Admin
             </Link>
           </div>

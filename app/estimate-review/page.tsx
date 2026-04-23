@@ -302,7 +302,7 @@ export default function EstimateReviewPage() {
               Pricing
             </Link>
             <Link
-              href="/admin-login.html"
+              href="/admin/login"
               className="text-xs opacity-50 hover:opacity-100 hover:text-slate-300"
             >
               Admin
