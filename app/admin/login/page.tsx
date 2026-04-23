@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdminLoginForm } from "@/components/auth/AdminLoginForm";
+import { redirectToAdminIfAlreadyAdmin } from "@/lib/auth/assertAdminServer";
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+  await redirectToAdminIfAlreadyAdmin();
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur">

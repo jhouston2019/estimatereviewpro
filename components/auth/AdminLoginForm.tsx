@@ -67,7 +67,7 @@ export function AdminLoginForm() {
         return;
       }
 
-      router.push("/admin");
+      router.replace("/admin");
       router.refresh();
     } catch (err) {
       console.error(err);

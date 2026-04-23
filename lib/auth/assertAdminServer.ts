@@ -37,3 +37,41 @@ export async function assertAdminOrRedirectToLogin(): Promise<void> {
     redirect("/admin/login");
   }
 }
+
+/**
+ * If the current session is an admin, skip the login form and go to the dashboard.
+ * Uses the same service-role `is_admin` read as the admin layout guard.
+ */
+export async function redirectToAdminIfAlreadyAdmin(): Promise<void> {
+  const supabase = await createSupabaseServerComponentClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    return;
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    return;
+  }
+
+  const service = createClient<Database>(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data, error } = await service
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const row = data as { is_admin?: boolean | null } | null;
+  if (error) {
+    return;
+  }
+  if (row?.is_admin === true) {
+    redirect("/admin");
+  }
+}
