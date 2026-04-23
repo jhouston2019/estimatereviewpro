@@ -31,12 +31,12 @@ async function getOrCreateUsersRow(
 
   if (!row) {
     const { error: upErr } = await supabase
-      .from("users")
+      .from("users" as any)
       .upsert(
         {
           id: user.id,
           email: user.email ?? `${user.id}@placeholder.local`,
-        },
+        } as any,
         { onConflict: "id" }
       );
     if (upErr) {
