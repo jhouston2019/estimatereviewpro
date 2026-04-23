@@ -58,6 +58,10 @@ async function getOrCreateUsersRow(
     row = freshRow;
   }
 
+  if (!row) {
+    redirect(onReadOrUpsertFailed);
+  }
+
   return {
     is_admin: row.is_admin === true,
     plan_type: row.plan_type,
