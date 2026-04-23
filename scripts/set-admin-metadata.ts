@@ -1,12 +1,14 @@
 /**
  * One-off: set `app_metadata.is_admin: true` for a user by email (merges with existing
- * `app_metadata` so e.g. plan_type is preserved).
+ * `app_metadata`). Optionally set `app_metadata.plan_type` from env when `PLAN_TYPE` is
+ * set; if omitted, `plan_type` is left unchanged and only `is_admin` is updated.
  *
  * Requires (same as other scripts):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *
  * Target email: env TARGET_EMAIL, or set HARDCODE_TARGET_EMAIL below temporarily.
+ * Optional: PLAN_TYPE (e.g. single, professional) — from process.env or .env.local
  *
  * Run from repo root: npx tsx scripts/set-admin-metadata.ts
  */
@@ -49,6 +51,12 @@ const target =
   (process.env.TARGET_EMAIL || "").trim() ||
   (HARDCODE_TARGET_EMAIL != null ? HARDCODE_TARGET_EMAIL.trim() : "");
 const targetLower = target.toLowerCase();
+
+/** If set (non-empty), written to `app_metadata.plan_type` alongside `is_admin`. */
+const planTypeFromEnv = (() => {
+  const raw = (process.env.PLAN_TYPE ?? envLocal.PLAN_TYPE ?? "").trim();
+  return raw.length > 0 ? raw : null;
+})();
 
 async function main(): Promise<void> {
   if (!url || !serviceKey) {
@@ -107,11 +115,25 @@ async function main(): Promise<void> {
     raw && typeof raw === "object" && !Array.isArray(raw)
       ? { ...(raw as Record<string, unknown>) }
       : {};
-  if (base.is_admin === true) {
-    console.log("is_admin is already true for", userId);
+
+  const needAdmin = base.is_admin !== true;
+  const needPlan =
+    planTypeFromEnv != null &&
+    base.plan_type !== planTypeFromEnv;
+  if (!needAdmin && !needPlan) {
+    console.log(
+      "No update needed: is_admin already true" +
+        (planTypeFromEnv == null
+          ? " (PLAN_TYPE not set, skipping plan_type)"
+          : " and plan_type already matches PLAN_TYPE")
+    );
     return;
   }
+
   base.is_admin = true;
+  if (planTypeFromEnv != null) {
+    base.plan_type = planTypeFromEnv;
+  }
 
   const { error: updErr } = await supabase.auth.admin.updateUserById(userId, {
     app_metadata: base,
@@ -120,7 +142,16 @@ async function main(): Promise<void> {
     console.error("updateUserById failed:", updErr);
     process.exit(1);
   }
-  console.log("Updated app_metadata.is_admin for user", userId, "email:", target);
+  const planMsg =
+    planTypeFromEnv != null
+      ? `, plan_type=${JSON.stringify(planTypeFromEnv)}`
+      : "";
+  console.log(
+    "Updated app_metadata (is_admin: true" + planMsg + ") for user",
+    userId,
+    "email:",
+    target
+  );
 }
 
 void main().catch((e) => {

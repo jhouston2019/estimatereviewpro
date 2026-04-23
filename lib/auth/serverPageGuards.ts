@@ -25,6 +25,11 @@ export async function requireUserAndPaywall(): Promise<{
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // TEMP: remove after debugging JWT app_metadata in Netlify / server logs
+  console.log(
+    "[pageGuard] user.app_metadata:",
+    user ? JSON.stringify(user.app_metadata) : "(no user)"
+  );
   if (!user) {
     redirect("/login");
   }
@@ -52,6 +57,11 @@ export async function requireAdminUser(): Promise<{
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // TEMP: remove after debugging JWT app_metadata in Netlify / server logs
+  console.log(
+    "[pageGuard] user.app_metadata:",
+    user ? JSON.stringify(user.app_metadata) : "(no user)"
+  );
   if (!user) {
     redirect("/admin/login");
   }
