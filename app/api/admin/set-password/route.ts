@@ -12,10 +12,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password required" }, { status: 400 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabase = createClient(supabaseUrl!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
   if (listError) return NextResponse.json({ error: listError.message }, { status: 500 });
