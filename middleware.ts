@@ -1,10 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import type { Database } from "./lib/supabase-types";
 import {
   isPaymentBypassActive,
   productionBypassPaymentMisconfigurationResponse,
 } from "./lib/billing/devBypass";
+
+/** JWT app_metadata (custom claims); no database calls. */
+function isAdminFromAppMetadata(user: User | undefined): boolean {
+  return user?.app_metadata?.is_admin === true;
+}
+
+/** Paid access: non-null, non-empty plan_type in app_metadata. */
+function hasPaidAccessFromAppMetadata(user: User | undefined): boolean {
+  const planType = user?.app_metadata?.plan_type;
+  if (planType == null) return false;
+  if (typeof planType === "string" && !planType.trim()) return false;
+  return true;
+}
 
 export async function middleware(request: NextRequest) {
   if (productionBypassPaymentMisconfigurationResponse()) {
@@ -101,14 +115,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAdminRoute && !isAdminLoginPage && session) {
-    const { data: adminRow } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("id", session.user.id)
-      .maybeSingle();
-
-    const row = adminRow as { is_admin?: boolean } | null;
-    if (!row?.is_admin) {
+    if (!isAdminFromAppMetadata(session.user)) {
       return redirectWithSessionCookies(
         new URL("/admin/login", request.nextUrl.origin)
       );
@@ -120,32 +127,17 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/upload");
 
   if (paywallPaths && session) {
-    const { data: adminCheck } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("id", session.user.id)
-      .maybeSingle();
-    const isAdmin = (adminCheck as { is_admin?: boolean } | null)?.is_admin === true;
-    if (isAdmin) return response;
+    if (isAdminFromAppMetadata(session.user)) return response;
   }
 
-  // Skip paywall for admin users — already checked is_admin above
+  // Skip paywall for admin users — is_admin comes from app_metadata above
   if (
     paywallPaths &&
     session &&
     !isPaymentBypassActive() &&
     !isAdminRoute
   ) {
-    const { data: paid, error: paidErr } = await supabase.rpc(
-      "user_has_paid_access"
-    );
-
-    if (paidErr) {
-      console.error("[middleware] user_has_paid_access error:", paidErr);
-      return response;
-    }
-
-    if (paid === false) {
+    if (!hasPaidAccessFromAppMetadata(session.user)) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/pricing";
       redirectUrl.searchParams.set("message", "payment_required");
