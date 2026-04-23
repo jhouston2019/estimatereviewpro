@@ -3,6 +3,7 @@
  */
 import type Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { syncUserPlanTypeToAuthMetadata } from "./stripeCheckoutSync";
 import { userHasPaidAccessForUserId } from "./paidAccess";
 
 const supabase = createClient(
@@ -57,6 +58,7 @@ export async function ensureEntitlementAfterStripeCheckout(
   if (planErr || !plan) {
     if (session.mode === "payment") {
       await supabase.from("users").update({ plan_type: "single" }).eq("id", userId);
+      await syncUserPlanTypeToAuthMetadata(userId, "single");
     }
     return;
   }

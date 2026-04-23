@@ -7,6 +7,7 @@ import {
   handleSubscriptionUpdate,
   resetUserReviewUsageOnSubscriptionRenewal,
   syncStripeCheckoutSession,
+  syncUserPlanTypeToAuthMetadata,
 } from '@/lib/billing/stripeCheckoutSync';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -130,6 +131,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .maybeSingle();
 
   if (team) {
+    const { data: teamMemberIds } = await supabase
+      .from('users')
+      .select('id')
+      .eq('team_id', team.id);
+
     await supabase
       .from('users')
       .update({
@@ -137,6 +143,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         team_id: null,
       })
       .eq('team_id', team.id);
+
+    for (const row of teamMemberIds ?? []) {
+      await syncUserPlanTypeToAuthMetadata(row.id, null);
+    }
 
     await supabase
       .from('teams')
@@ -154,6 +164,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       .from('users')
       .update({ plan_type: null, team_id: null })
       .eq('id', id);
+    await syncUserPlanTypeToAuthMetadata(id, null);
   }
   if (userIds.length > 0) {
     console.log(

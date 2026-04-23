@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
 import { CreateAccountForm } from "./CreateAccountForm";
 import { resolveCheckoutEmailForCreateAccount } from "./stripeSession";
 
@@ -42,6 +43,7 @@ export default async function CreateAccountPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0F172A]">
+      <PostPaymentSessionRefresh />
       <header className="border-b border-slate-800/50 bg-[#0F172A]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2">

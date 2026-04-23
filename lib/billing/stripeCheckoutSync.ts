@@ -22,6 +22,49 @@ const supabase = createClient(
 );
 
 /**
+ * Keep JWT `app_metadata.plan_type` in sync with `public.users` (edge middleware reads JWT only).
+ * Merges with existing `app_metadata` so other claims (e.g. `is_admin`) are preserved.
+ */
+export async function syncUserPlanTypeToAuthMetadata(
+  userId: string,
+  planType: string | null
+): Promise<void> {
+  const { data: existing, error: getErr } =
+    await supabase.auth.admin.getUserById(userId);
+  if (getErr) {
+    console.error(
+      "[syncUserPlanTypeToAuthMetadata] getUserById failed:",
+      userId,
+      getErr
+    );
+    return;
+  }
+  if (!existing.user) return;
+
+  const raw = existing.user.app_metadata;
+  const base: Record<string, unknown> =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? { ...(raw as Record<string, unknown>) }
+      : {};
+  if (planType == null) {
+    base.plan_type = null;
+  } else {
+    base.plan_type = planType;
+  }
+
+  const { error: updErr } = await supabase.auth.admin.updateUserById(userId, {
+    app_metadata: base,
+  });
+  if (updErr) {
+    console.error(
+      "[syncUserPlanTypeToAuthMetadata] updateUserById failed:",
+      userId,
+      updErr
+    );
+  }
+}
+
+/**
  * After checkout sets users.plan_type, create user_review_usage if none yet.
  */
 export async function ensureUserReviewUsageRow(
@@ -121,6 +164,11 @@ export async function handleSubscriptionUpdate(
     .maybeSingle();
 
   if (existingTeam) {
+    const { data: teamMembers } = await supabase
+      .from("users")
+      .select("id")
+      .eq("team_id", existingTeam.id);
+
     await supabase
       .from("teams")
       .update({
@@ -135,6 +183,10 @@ export async function handleSubscriptionUpdate(
       .from("users")
       .update({ plan_type: planType })
       .eq("team_id", existingTeam.id);
+
+    for (const m of teamMembers ?? []) {
+      await syncUserPlanTypeToAuthMetadata(m.id, planType);
+    }
   } else {
     const { data: team, error: teamError } = await supabase
       .from("teams")
@@ -163,6 +215,8 @@ export async function handleSubscriptionUpdate(
         role: "owner",
       })
       .eq("id", userId);
+
+    await syncUserPlanTypeToAuthMetadata(userId, planType);
   }
 
   console.log(`Subscription ${subscription.id} updated for user ${userId}`);
@@ -203,6 +257,8 @@ export async function syncStripeCheckoutSession(
       .update({ plan_type: "single" })
       .eq("id", userId);
 
+    await syncUserPlanTypeToAuthMetadata(userId, "single");
+
     // Create usage row if it doesn't exist
     await ensureUserReviewUsageRow(userId, "single");
 
@@ -221,6 +277,8 @@ export async function syncStripeCheckoutSession(
           .from("users")
           .update({ plan_type: "single" })
           .eq("id", legacyUserId);
+
+        await syncUserPlanTypeToAuthMetadata(legacyUserId, "single");
 
         // Create usage row if it doesn't exist
         await ensureUserReviewUsageRow(legacyUserId, "single");
@@ -284,6 +342,8 @@ export async function syncStripeCheckoutSession(
             | "premier",
         })
         .eq("id", userId);
+
+      await syncUserPlanTypeToAuthMetadata(userId, sessionPlanFromCheckout);
     }
 
     // Create usage row if it doesn't exist (use final plan_type on user after subscription + checkout updates)

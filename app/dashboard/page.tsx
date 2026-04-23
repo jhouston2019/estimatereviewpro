@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
+import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
 
 function formatDashboardPlanName(plan: string | null): string {
   if (!plan || plan === "none") return "";
@@ -75,6 +76,7 @@ export default async function DashboardPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
+      {paymentReturn ? <PostPaymentSessionRefresh /> : null}
       <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-4">
           <Link

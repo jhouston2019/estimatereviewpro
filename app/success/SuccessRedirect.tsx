@@ -21,7 +21,7 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
       credentials: "include",
       body: JSON.stringify({ session_id: sessionId }),
     }).finally(async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.refreshSession();
       if (data.session) {
         console.info(
           "[TODO] Post-purchase welcome email: not implemented. Supabase Auth has no built-in marketing/welcome email API — add Resend, SendGrid, or an Edge Function with your template (keep idempotent if also triggered from webhooks)."
