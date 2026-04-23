@@ -73,9 +73,11 @@ export async function middleware(request: NextRequest) {
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
   const isAdminRoute = pathname.startsWith("/admin");
-  const isAdminLoginPage = pathname === "/admin/login";
+  const isAdminLoginPage =
+    pathname === "/admin/login" || pathname === "/admin/login/";
 
-  if (isAdminRoute && !session) {
+  // Allow unauthenticated access to /admin/login only; other /admin/* require app login first.
+  if (isAdminRoute && !isAdminLoginPage && !session) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set(

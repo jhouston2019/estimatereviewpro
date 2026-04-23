@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { applyAdminAppMetadataForUserId } from "@/lib/auth/adminAppMetadata";
 import {
   ensureUserForPaidCheckout,
   ensureUserForStripeSubscription,
@@ -187,6 +188,13 @@ export async function handleSubscriptionUpdate(
     for (const m of teamMembers ?? []) {
       await syncUserPlanTypeToAuthMetadata(m.id, planType);
     }
+    const adminIds = new Set<string>([
+      userId,
+      ...(teamMembers ?? []).map((m) => m.id),
+    ]);
+    for (const id of adminIds) {
+      await applyAdminAppMetadataForUserId(supabase, id);
+    }
   } else {
     const { data: team, error: teamError } = await supabase
       .from("teams")
@@ -282,6 +290,8 @@ export async function syncStripeCheckoutSession(
 
         // Create usage row if it doesn't exist
         await ensureUserReviewUsageRow(legacyUserId, "single");
+
+        await applyAdminAppMetadataForUserId(supabase, legacyUserId);
 
         console.log(`Single plan payment completed for user ${legacyUserId}`);
       }

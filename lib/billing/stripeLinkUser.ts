@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { applyAdminAppMetadataForUserId } from "@/lib/auth/adminAppMetadata";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
@@ -113,6 +114,7 @@ export async function ensureUserForPaidCheckout(
         .eq("id", trustedUserId);
       await stripeMetadataHasUserId(cid, trustedUserId);
     }
+    await applyAdminAppMetadataForUserId(supabase, trustedUserId);
     return trustedUserId;
   }
 
@@ -124,6 +126,7 @@ export async function ensureUserForPaidCheckout(
       .maybeSingle();
     if (byCust?.id) {
       await stripeMetadataHasUserId(cid, byCust.id);
+      await applyAdminAppMetadataForUserId(supabase, byCust.id);
       return byCust.id;
     }
   }
@@ -156,6 +159,7 @@ export async function ensureUserForPaidCheckout(
       .update({ stripe_customer_id: cid })
       .eq("id", existingRow.id);
     await stripeMetadataHasUserId(cid, existingRow.id);
+    await applyAdminAppMetadataForUserId(supabase, existingRow.id);
     return existingRow.id;
   }
 
@@ -184,6 +188,7 @@ export async function ensureUserForPaidCheckout(
           .update({ stripe_customer_id: cid })
           .eq("id", row.id);
         await stripeMetadataHasUserId(cid, row.id);
+        await applyAdminAppMetadataForUserId(supabase, row.id);
         return row.id;
       }
       const { data: listData, error: listErr } =
@@ -199,6 +204,7 @@ export async function ensureUserForPaidCheckout(
             .update({ stripe_customer_id: cid })
             .eq("id", found.id);
           await stripeMetadataHasUserId(cid, found.id);
+          await applyAdminAppMetadataForUserId(supabase, found.id);
           return found.id;
         }
       }
@@ -214,6 +220,7 @@ export async function ensureUserForPaidCheckout(
     .update({ stripe_customer_id: cid })
     .eq("id", created.user.id);
   await stripeMetadataHasUserId(cid, created.user.id);
+  await applyAdminAppMetadataForUserId(supabase, created.user.id);
   return created.user.id;
 }
 
@@ -279,6 +286,7 @@ export async function ensureUserForStripeSubscription(
       .maybeSingle();
     if (byCust?.id) {
       await stripeMetadataHasUserId(cid, byCust.id);
+      await applyAdminAppMetadataForUserId(supabase, byCust.id);
       return byCust.id;
     }
   }
@@ -297,6 +305,7 @@ export async function ensureUserForStripeSubscription(
           .eq("id", byMeta.id);
         await stripeMetadataHasUserId(cid, byMeta.id);
       }
+      await applyAdminAppMetadataForUserId(supabase, byMeta.id);
       return byMeta.id;
     }
     const { data: authByMeta } = await supabase.auth.admin.getUserById(metaUid);
@@ -309,6 +318,7 @@ export async function ensureUserForStripeSubscription(
           .eq("id", metaUid);
         await stripeMetadataHasUserId(cid, metaUid);
       }
+      await applyAdminAppMetadataForUserId(supabase, metaUid);
       return metaUid;
     }
   }
@@ -342,6 +352,7 @@ export async function ensureUserForStripeSubscription(
           .update({ stripe_customer_id: cid })
           .eq("id", row.id);
         await stripeMetadataHasUserId(cid, row.id);
+        await applyAdminAppMetadataForUserId(supabase, row.id);
         return row.id;
       }
     }
@@ -356,5 +367,6 @@ export async function ensureUserForStripeSubscription(
     .update({ stripe_customer_id: cid })
     .eq("id", created.user.id);
   await stripeMetadataHasUserId(cid, created.user.id);
+  await applyAdminAppMetadataForUserId(supabase, created.user.id);
   return created.user.id;
 }
