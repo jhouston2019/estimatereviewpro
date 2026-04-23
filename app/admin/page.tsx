@@ -11,9 +11,9 @@ export default async function AdminPage() {
   const quickAccess: { name: string; href: string }[] = [
     { name: "Landing page", href: "/" },
     { name: "Pricing", href: "/pricing" },
-    { name: "Login", href: "/login" },
-    { name: "Register", href: "/register" },
-    { name: "Create Account", href: "/create-account" },
+    { name: "Login", href: "/login?admin=1" },
+    { name: "Register", href: "/register?admin=1" },
+    { name: "Create Account", href: "/create-account?admin=1" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Upload / Wizard", href: "/upload" },
     { name: "Account", href: "/account" },

@@ -81,7 +81,21 @@ export async function middleware(request: NextRequest) {
     return redirectWithSessionCookies(redirectUrl);
   }
 
-  if (isAuthPage && session) {
+  const referer = request.headers.get("referer");
+  let refererFromAdmin = false;
+  if (referer) {
+    try {
+      refererFromAdmin = new URL(referer).pathname.startsWith("/admin");
+    } catch {
+      refererFromAdmin = false;
+    }
+  }
+  if (
+    isAuthPage &&
+    session &&
+    !request.nextUrl.searchParams.has("admin") &&
+    !refererFromAdmin
+  ) {
     const from = request.nextUrl.searchParams.get("redirectedFrom");
     const safeFrom =
       from &&
