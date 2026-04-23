@@ -81,21 +81,7 @@ export async function middleware(request: NextRequest) {
     return redirectWithSessionCookies(redirectUrl);
   }
 
-  const referer = request.headers.get("referer");
-  let refererFromAdmin = false;
-  if (referer) {
-    try {
-      refererFromAdmin = new URL(referer).pathname.startsWith("/admin");
-    } catch {
-      refererFromAdmin = false;
-    }
-  }
-  if (
-    isAuthPage &&
-    session &&
-    !request.nextUrl.searchParams.has("admin") &&
-    !refererFromAdmin
-  ) {
+  if (isAuthPage && session && !request.nextUrl.searchParams.has("admin")) {
     const from = request.nextUrl.searchParams.get("redirectedFrom");
     const safeFrom =
       from &&
@@ -133,16 +119,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/upload");
 
-  // Skip paywall for admins
   if (paywallPaths && session) {
     const { data: adminCheck } = await supabase
       .from("users")
       .select("is_admin")
       .eq("id", session.user.id)
       .maybeSingle();
-
-    const isAdmin =
-      (adminCheck as { is_admin?: boolean } | null)?.is_admin === true;
+    const isAdmin = (adminCheck as { is_admin?: boolean } | null)?.is_admin === true;
     if (isAdmin) return response;
   }
 
