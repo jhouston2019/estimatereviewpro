@@ -84,7 +84,8 @@ export default async function DashboardReviewDetailPage({
   };
 
   if (error || !review) {
-    redirect("/dashboard");
+    /* Not found, RLS, or entitlement: send to pricing, not a silent dashboard hop */
+    redirect("/pricing?message=payment_required");
   }
 
   const title =

@@ -49,8 +49,8 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   /** Preserve refreshed auth cookies on redirects. */
   const redirectWithSessionCookies = (url: URL | string) => {
@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/admin/login" || pathname === "/admin/login/";
 
   // Allow unauthenticated access to /admin/login only; other /admin/* require app login first.
-  if (isAdminRoute && !isAdminLoginPage && !session) {
+  if (isAdminRoute && !isAdminLoginPage && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set(
@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
     return redirectWithSessionCookies(redirectUrl);
   }
 
-  if (isProtected && !session) {
+  if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set(
@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
     return redirectWithSessionCookies(redirectUrl);
   }
 
-  if (isAuthPage && session && !request.nextUrl.searchParams.has("admin")) {
+  if (isAuthPage && user && !request.nextUrl.searchParams.has("admin")) {
     const from = request.nextUrl.searchParams.get("redirectedFrom");
     const safeFrom =
       from &&
@@ -116,8 +116,8 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  if (isAdminRoute && !isAdminLoginPage && session) {
-    if (!isAdminFromAppMetadata(session.user)) {
+  if (isAdminRoute && !isAdminLoginPage && user) {
+    if (!isAdminFromAppMetadata(user)) {
       return redirectWithSessionCookies(
         new URL("/admin/login", request.nextUrl.origin)
       );
@@ -125,21 +125,15 @@ export async function middleware(request: NextRequest) {
   }
 
   const paywallPaths =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/upload");
+    pathname.startsWith("/dashboard") || pathname.startsWith("/upload");
 
-  if (paywallPaths && session) {
-    if (isAdminFromAppMetadata(session.user)) return response;
-  }
-
-  // Skip paywall for admin users — is_admin comes from app_metadata above
-  if (
-    paywallPaths &&
-    session &&
-    !isPaymentBypassActive() &&
-    !isAdminRoute
-  ) {
-    if (!hasPaidAccessFromAppMetadata(session.user)) {
+  if (paywallPaths && user) {
+    // 1) Admins bypass the product paywall (must run before paid-access check; uses JWT
+    //    app_metadata from getUser, not stale session)
+    if (isAdminFromAppMetadata(user)) {
+      return response;
+    }
+    if (!isPaymentBypassActive() && !hasPaidAccessFromAppMetadata(user)) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/pricing";
       redirectUrl.searchParams.set("message", "payment_required");
