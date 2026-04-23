@@ -28,12 +28,14 @@ export async function requireUserAndPaywall(): Promise<{
   if (!user) {
     redirect("/login");
   }
-  if (
-    !isPaymentBypassActive() &&
-    !user.app_metadata?.is_admin &&
-    !user.app_metadata?.plan_type
-  ) {
-    redirect("/pricing?message=payment_required");
+  if (!isPaymentBypassActive()) {
+    const isAdmin = user.app_metadata?.is_admin === true;
+    const hasPlan =
+      user.app_metadata?.plan_type != null &&
+      user.app_metadata?.plan_type !== "";
+    if (!isAdmin && !hasPlan) {
+      redirect("/pricing?message=payment_required");
+    }
   }
   return { supabase, user };
 }
