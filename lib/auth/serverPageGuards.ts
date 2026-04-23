@@ -12,7 +12,10 @@ function assertProductionPaymentBypassNotMisconfigured(): void {
   }
 }
 
-type UsersAccessRow = { is_admin: boolean; plan_type: string | null };
+type UsersRow = {
+  is_admin: boolean | null;
+  plan_type: string | null;
+};
 
 /**
  * Resolves a real `public.users` row: maybeSingle, then upsert + re-read if missing.
@@ -22,12 +25,14 @@ async function getOrCreateUsersRow(
   supabase: Awaited<ReturnType<typeof createSupabaseServerComponentClient>>,
   user: User,
   onReadOrUpsertFailed: string
-): Promise<UsersAccessRow> {
-  let { data: row } = await supabase
-    .from("users")
+): Promise<{ is_admin: boolean; plan_type: string | null }> {
+  const { data } = await supabase
+    .from("users" as any)
     .select("is_admin, plan_type")
     .eq("id", user.id)
     .maybeSingle();
+
+  let row = data as UsersRow | null;
 
   if (!row) {
     const { error: upErr } = await supabase
@@ -43,19 +48,19 @@ async function getOrCreateUsersRow(
       console.error("[serverPageGuards] users upsert failed:", upErr.message);
       redirect(onReadOrUpsertFailed);
     }
-    const { data: freshRow, error: readErr } = await supabase
-      .from("users")
+    const { data: freshData, error: readErr } = await supabase
+      .from("users" as any)
       .select("is_admin, plan_type")
       .eq("id", user.id)
       .single();
-    if (readErr || !freshRow) {
+    if (readErr || !freshData) {
       console.error(
         "[serverPageGuards] users re-read after upsert failed:",
         readErr?.message
       );
       redirect(onReadOrUpsertFailed);
     }
-    row = freshRow;
+    row = freshData as UsersRow;
   }
 
   if (!row) {
