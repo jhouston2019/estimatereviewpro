@@ -59,6 +59,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
   const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminLoginPage = pathname === "/admin/login";
 
   if (isAdminRoute && !session) {
     const redirectUrl = request.nextUrl.clone();
@@ -99,7 +100,7 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  if (isAdminRoute && session) {
+  if (isAdminRoute && !isAdminLoginPage && session) {
     const { data: adminRow } = await supabase
       .from("users")
       .select("is_admin")
@@ -109,7 +110,7 @@ export async function middleware(request: NextRequest) {
     const row = adminRow as { is_admin?: boolean } | null;
     if (!row?.is_admin) {
       return redirectWithSessionCookies(
-        new URL("/dashboard", request.nextUrl.origin)
+        new URL("/admin/login", request.nextUrl.origin)
       );
     }
   }
