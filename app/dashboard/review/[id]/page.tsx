@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import {
   parseAnalysisResult,
   parseComparisonResult,
@@ -55,14 +55,7 @@ export default async function DashboardReviewDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createSupabaseServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    redirect("/login");
-  }
+  const { supabase, user } = await requireUserAndPaywall();
 
   const { data: review, error } = (await supabase
     .from("reviews")

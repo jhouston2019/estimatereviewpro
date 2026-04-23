@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { assertAdminOrRedirectToLogin } from "@/lib/auth/assertAdminServer";
+import { requireAdminUser } from "@/lib/auth/serverPageGuards";
 import { loadAdminDashboardData } from "@/lib/admin/adminData";
 import { AccountSignOutButton } from "@/app/account/AccountSignOutButton";
 
 export default async function AdminPage() {
-  await assertAdminOrRedirectToLogin();
+  await requireAdminUser();
 
   const data = await loadAdminDashboardData();
 

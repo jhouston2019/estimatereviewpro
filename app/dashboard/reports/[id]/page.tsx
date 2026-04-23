@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { notFound } from "next/navigation";
 import type { Report } from "@/lib/report-types";
 import ExportControls from "./ExportControls";
@@ -13,7 +13,7 @@ export default async function ReportDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createSupabaseServerComponentClient();
+  const { supabase } = await requireUserAndPaywall();
 
   const { data } = await supabase
     .from("reports")

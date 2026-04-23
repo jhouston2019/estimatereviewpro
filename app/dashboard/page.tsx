@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
@@ -25,15 +25,12 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const paymentReturn =
     sp.payment === "success" || sp.subscription === "success";
-  const supabase = await createSupabaseServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await requireUserAndPaywall();
 
   const { data: reviews } = await supabase
     .from("reviews")
     .select("*")
-    .eq("user_id", user?.id ?? "")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   let billingPlan = "—";
@@ -44,22 +41,20 @@ export default async function DashboardPage({
   let planType: string | null = null;
   let hasTeam = false;
 
-  if (user?.id) {
-    const snap = await getBillingSnapshot(supabase, user.id);
-    billingPlan = snap.plan === "none" ? "—" : snap.plan;
-    billingStatusLabel = snap.status === "active" ? "Active" : "Inactive";
-    renewalLabel = snap.renewal_date
-      ? new Date(snap.renewal_date).toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-      : null;
-    usedReviews = snap.usage;
-    limitReviews = snap.reviews_limit;
-    planType = snap.plan === "none" ? null : snap.plan;
-    hasTeam = snap.has_team;
-  }
+  const snap = await getBillingSnapshot(supabase, user.id);
+  billingPlan = snap.plan === "none" ? "—" : snap.plan;
+  billingStatusLabel = snap.status === "active" ? "Active" : "Inactive";
+  renewalLabel = snap.renewal_date
+    ? new Date(snap.renewal_date).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+  usedReviews = snap.usage;
+  limitReviews = snap.reviews_limit;
+  planType = snap.plan === "none" ? null : snap.plan;
+  hasTeam = snap.has_team;
 
   const tier =
     planType === "single"

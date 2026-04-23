@@ -23,7 +23,7 @@ async function createSupabaseServerClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // e.g. Server Components — session refresh often happens in middleware
+            // e.g. Server Components — session refresh can occur in Route Handlers
           }
         },
       },

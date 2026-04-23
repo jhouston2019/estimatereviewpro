@@ -1,18 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServerComponentClient } from "@/lib/supabaseServer";
+import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { AccountSignOutButton } from "./AccountSignOutButton";
 
 export default async function AccountPage() {
-  const supabase = await createSupabaseServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.id) {
-    redirect("/login?redirectedFrom=/account");
-  }
+  const { supabase, user } = await requireUserAndPaywall();
 
   const snap = await getBillingSnapshot(supabase, user.id);
   const billingPlan = snap.plan === "none" ? "—" : snap.plan;
