@@ -27,34 +27,40 @@ export function AdminLoginForm() {
     const supabase = createSupabaseBrowserClient();
 
     try {
-      const { data: signInData, error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      console.log("ADMIN LOGIN ATTEMPT:", { email });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      console.log("SIGN IN RESULT:", {
+        user: data?.user?.id,
+        error: error?.message,
+      });
 
-      if (signInError) {
-        setError(signInError.message);
+      if (error) {
+        setError(error.message);
         setIsLoading(false);
         return;
       }
 
-      const userId = signInData.user?.id;
+      const userId = data.user?.id;
       if (!userId) {
         setError("Unable to sign in. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      const { data: row, error: userErr } = await supabase
+      const { data: userRow, error: isAdminError } = await supabase
         .from("users")
         .select("is_admin")
         .eq("id", userId)
         .maybeSingle();
 
-      const isAdmin = (row as { is_admin?: boolean } | null)?.is_admin === true;
+      const isAdmin =
+        (userRow as { is_admin?: boolean } | null)?.is_admin === true;
+      console.log("IS_ADMIN CHECK:", { userRow, isAdminError });
 
-      if (userErr || !isAdmin) {
+      if (isAdminError || !isAdmin) {
         await supabase.auth.signOut();
         setError("Not authorized");
         setIsLoading(false);
