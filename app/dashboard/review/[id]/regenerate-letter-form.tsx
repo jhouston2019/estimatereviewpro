@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
@@ -35,6 +35,7 @@ type Props = {
   strategy: string;
   claimType: string;
   initialLetterType: string | null;
+  onLetterUpdated?: (newText: string, newType: string) => void;
 };
 
 function parseJsonIfString(raw: unknown): unknown {
@@ -71,6 +72,7 @@ export function RegenerateLetterForm({
   strategy,
   claimType,
   initialLetterType,
+  onLetterUpdated,
 }: Props) {
   const validInitial = useMemo(() => {
     if (initialLetterType && OPTION_VALUES.has(initialLetterType)) {
@@ -85,6 +87,12 @@ export function RegenerateLetterForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (initialLetterType && OPTION_VALUES.has(initialLetterType)) {
+      setLetterType(initialLetterType);
+    }
+  }, [initialLetterType]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -155,6 +163,7 @@ export function RegenerateLetterForm({
         setError(upErr.message);
         return;
       }
+      onLetterUpdated?.(text, letterType);
       router.refresh();
     } catch (err) {
       setError(
