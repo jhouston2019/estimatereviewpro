@@ -6,6 +6,7 @@ import {
   parseComparisonResult,
 } from "@/lib/estimate-json-parse";
 import { RegenerateLetterForm } from "./regenerate-letter-form";
+import { ReviewDownloadActions } from "./review-download-actions";
 
 const strategyLabels: Record<string, string> = {
   FULL_SUPPLEMENT_DEMAND: "Full Supplement Demand",
@@ -164,6 +165,11 @@ export default async function DashboardReviewDetailPage({
 
   const title =
     review.insured_name?.trim() || "Estimate Review";
+  const safeBaseFileName =
+    title
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 64) || "estimate-review";
   const created = review.created_at
     ? new Date(review.created_at).toLocaleString(undefined, {
         month: "short",
@@ -476,6 +482,19 @@ export default async function DashboardReviewDetailPage({
             initialLetterType={review.letter_type}
           />
         </section>
+
+        <ReviewDownloadActions
+          reportTitle={title}
+          createdLabel={created}
+          analysis={analysis}
+          analysisRaw={review.ai_analysis_json}
+          comparison={comparison}
+          comparisonRaw={review.ai_comparison_json}
+          summaryJson={summaryJson}
+          hasSummary={review.ai_summary_json != null}
+          letterText={review.letter_text}
+          safeBaseFileName={safeBaseFileName}
+        />
       </main>
     </div>
   );

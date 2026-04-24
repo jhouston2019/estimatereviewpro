@@ -24,6 +24,7 @@ const LETTER_TYPES = [
   "REINSPECTION_REQUEST",
   "APPRAISAL_INVOCATION",
   "CUSTOM_NARRATIVE",
+  "CUSTOM",
 ];
 
 const REQUIRED_TONE = "FORMAL_PROFESSIONAL";
@@ -60,6 +61,8 @@ function letterTypeInstructions(letterType) {
       return `Letter type APPRAISAL_INVOCATION: formally invoke the appraisal process in a neutral, procedural way, tied only to valuation disagreement context found in the analysis. Do not cite specific policy appraisal clauses unless they are plainly supplied in the analysis text (they usually are not — keep language general).`;
     case "CUSTOM_NARRATIVE":
       return `Letter type CUSTOM_NARRATIVE: use a structured but flexible narrative that follows the same six sections, reflecting the user’s situation only as described by the analysis JSON (no invented facts).`;
+    case "CUSTOM":
+      return `Letter type CUSTOM: follow the user’s "CUSTOM LETTER INSTRUCTIONS" in the user message as the main thematic and substantive direction. You must still use the same six-section letter structure, all placeholders, and ground facts only in the analysis JSON. If custom instructions conflict with a structural rule, follow structure and placeholders first. Do not invent facts not supported by the analysis.`;
     default:
       return `Letter type: ${letterType}.`;
   }
@@ -137,6 +140,8 @@ function basisBodyForLetterType(letterType, strategy) {
       return `This section frames valuation disagreement in a procedural way appropriate to appraisal invocation, using only the analysis context. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
     case "CUSTOM_NARRATIVE":
       return `This section presents a structured narrative of the situation using only the analysis JSON as the fact base. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
+    case "CUSTOM":
+      return `This section implements the custom letter direction supplied by the user, while staying within facts supported by the analysis JSON. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
     default:
       return `The estimate review identifies items for correction. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
   }
@@ -248,7 +253,7 @@ exports.handler = async (event) => {
       headers: corsHeaders,
       body: JSON.stringify({
         error:
-          "letterType must be one of SUPPLEMENT_DEMAND, DISPUTE, REINSPECTION_REQUEST, APPRAISAL_INVOCATION, CUSTOM_NARRATIVE",
+          "letterType must be one of SUPPLEMENT_DEMAND, DISPUTE, REINSPECTION_REQUEST, APPRAISAL_INVOCATION, CUSTOM_NARRATIVE, CUSTOM",
         code: "INVALID_LETTER_TYPE",
       }),
     };
@@ -267,6 +272,8 @@ exports.handler = async (event) => {
   }
 
   const claimType = String(body.claimType ?? "");
+  const customInstructions = String(body.customInstructions ?? "").trim();
+  const additionalNotes = String(body.additionalNotes ?? "").trim();
   const analysis =
     body.analysis !== undefined && body.analysis !== null && typeof body.analysis === "object"
       ? body.analysis
@@ -285,13 +292,33 @@ exports.handler = async (event) => {
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const userPayload = JSON.stringify(
-    { analysis, strategy, claimType, letterType, tone },
+    {
+      analysis,
+      strategy,
+      claimType,
+      letterType,
+      tone,
+      ...(customInstructions ? { customInstructions } : {}),
+      ...(additionalNotes ? { additionalNotes } : {}),
+    },
     null,
     2
   );
 
   const typeBlock = letterTypeInstructions(letterType);
   const systemContent = `${LETTER_SYSTEM_PROMPT}\n\nLETTER_TYPE_RULES:\n${typeBlock}`;
+
+  let contextBlocks = "";
+  if (additionalNotes) {
+    contextBlocks += `\n\n---\nADDITIONAL NOTES OR CONTEXT (user-provided; incorporate where appropriate without inventing facts beyond the analysis and comparison in the JSON):\n${additionalNotes}\n---`;
+  }
+  if (letterType === "CUSTOM" && customInstructions) {
+    contextBlocks += `\n\n---\nCUSTOM LETTER INSTRUCTIONS (primary direction for this letter; follow while preserving the required structure and all placeholders):\n${customInstructions}\n---`;
+  } else if (letterType === "CUSTOM" && !customInstructions) {
+    contextBlocks += `\n\n---\nCUSTOM LETTER: No custom instructions were provided; produce the letter from the analysis JSON only, still following the CUSTOM letter type rules and structure.\n---`;
+  }
+
+  const userMessage = `Produce the letter now.\n\n${userPayload}${contextBlocks}`;
 
   let letterText = "";
   try {
@@ -303,7 +330,7 @@ exports.handler = async (event) => {
         { role: "system", content: systemContent },
         {
           role: "user",
-          content: `Produce the letter now.\n\n${userPayload}`,
+          content: userMessage,
         },
       ],
     });
