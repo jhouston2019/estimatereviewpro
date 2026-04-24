@@ -56,15 +56,20 @@ export function ReviewLetterSection({
   const [letterText, setLetterText] = useState<string | null>(initialLetterText);
   const [letterType, setLetterType] = useState<string | null>(initialLetterType);
 
+  // Reset from server only when opening a different review. Syncing on every
+  // `initialLetterText` / `initialLetterType` change would overwrite optimistic
+  // updates after `onLetterUpdated` (e.g. if router.refresh() revalidated with
+  // a stale payload in the same navigation).
   useEffect(() => {
     setLetterText(initialLetterText);
-  }, [initialLetterText]);
-
-  useEffect(() => {
     setLetterType(initialLetterType);
-  }, [initialLetterType]);
+  }, [reviewId]);
 
   const onLetterUpdated = useCallback((newText: string, newType: string) => {
+    console.log(
+      "[review-letter-section] onLetterUpdated: applying setLetterText / setLetterType",
+      { newTextLength: newText.length, newTextPreview: newText.slice(0, 200), newType }
+    );
     setLetterText(newText);
     setLetterType(newType);
   }, []);

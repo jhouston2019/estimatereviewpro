@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
   createSupabaseBrowserClient,
@@ -86,7 +85,6 @@ export function RegenerateLetterForm({
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     if (initialLetterType && OPTION_VALUES.has(initialLetterType)) {
@@ -204,8 +202,27 @@ export function RegenerateLetterForm({
         return;
       }
 
-      onLetterUpdated?.(text, letterType);
-      router.refresh();
+      const g = text.trim();
+      const m = letterType.trim();
+      if (!g) {
+        setError(
+          "After save, letter text was empty in memory. Check console logs."
+        );
+        return;
+      }
+      if (!m) {
+        setError("After save, letter type was empty. Check console logs.");
+        return;
+      }
+      console.log(
+        "[regenerate-letter] calling onLetterUpdated with g (length, preview), m:",
+        g.length,
+        g.slice(0, 200),
+        m
+      );
+      onLetterUpdated?.(g, m);
+      // Intentionally no router.refresh() here — a refresh can re-render the page
+      // with stale RSC props and useEffects that reset letter state from the server.
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Something went wrong. Try again."
