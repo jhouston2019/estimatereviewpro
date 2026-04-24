@@ -135,34 +135,75 @@ export function RegenerateLetterForm({
           body: JSON.stringify(body),
         }
       );
+
+      const contentType = res.headers.get("content-type") ?? "";
+      const rawBody = await res.text().catch((e) => `[read error: ${e}]`);
+
+      console.log("[generate-estimate-letter] full response (before app logic):", {
+        url: res.url,
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        contentType,
+        bodyLength: rawBody.length,
+        body: rawBody,
+      });
+
       if (!res.ok) {
-        const t = await res.text().catch(() => "");
         setError(
-          `Could not generate letter (HTTP ${res.status}). ${
-            t ? t.slice(0, 200) : ""
-          }`
+          `Netlify / letter service failed (HTTP ${res.status} ${res.statusText}).\n\n${rawBody || "(empty body)"}`
         );
         return;
       }
-      const ct = (res.headers.get("content-type") || "").toLowerCase();
+
+      const ct = contentType.toLowerCase();
       if (ct.includes("application/json")) {
-        setError("Letter service returned an unexpected response.");
+        setError(
+          `Letter service returned JSON instead of plain text (usually an error payload).\n\n${rawBody}`
+        );
         return;
       }
-      const text = await res.text();
+
+      const text = rawBody;
       if (!text.trim()) {
-        setError("The letter response was empty.");
+        setError(
+          "The letter response was empty. Check the console for the logged response body."
+        );
         return;
       }
+
       const supabase = createSupabaseBrowserClient();
-      const { error: upErr } = await supabase
+      const { data: updateRows, error: upErr } = await supabase
         .from("reviews")
         .update({ letter_text: text, letter_type: letterType })
-        .eq("id", reviewId);
+        .eq("id", reviewId)
+        .select("id");
+
+      console.log("[regenerate-letter] Supabase update result:", {
+        updateRows,
+        error: upErr,
+      });
+
       if (upErr) {
-        setError(upErr.message);
+        const errInfo = {
+          message: upErr.message,
+          code: (upErr as { code?: string }).code,
+          details: (upErr as { details?: string }).details,
+          hint: (upErr as { hint?: string }).hint,
+        };
+        setError(
+          `Saving the letter to the database failed.\n\n${upErr.message}${errInfo.code ? `\nCode: ${errInfo.code}` : ""}${errInfo.details ? `\nDetails: ${errInfo.details}` : ""}${errInfo.hint ? `\nHint: ${errInfo.hint}` : ""}\n\nRaw: ${JSON.stringify(errInfo)}`
+        );
         return;
       }
+
+      if (!updateRows?.length) {
+        setError(
+          "The letter was generated but the database update did not change any row (0 rows). Check Row Level Security, that this review id exists, and that you are allowed to update it."
+        );
+        return;
+      }
+
       onLetterUpdated?.(text, letterType);
       router.refresh();
     } catch (err) {
@@ -201,13 +242,27 @@ export function RegenerateLetterForm({
             ))}
           </select>
         </div>
-        <button
-          type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:opacity-50 sm:self-end"
-          disabled={loading}
-        >
-          {loading ? "Generating…" : "Generate New Letter"}
-        </button>
+        <div className="flex flex-col gap-2 sm:self-end">
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:opacity-50"
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? "Generating..." : "Generate New Letter"}
+          </button>
+          {error ? (
+            <div
+              className="max-h-48 w-full min-w-[min(100%,20rem)] overflow-y-auto rounded-lg border border-red-500/50 bg-red-950/50 px-3 py-2 text-left text-xs leading-snug text-red-100"
+              role="alert"
+            >
+              <p className="font-semibold text-red-200">Error</p>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-red-100/95">
+                {error}
+              </pre>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {letterType === "CUSTOM" ? (
@@ -247,12 +302,6 @@ export function RegenerateLetterForm({
           disabled={loading}
         />
       </div>
-
-      {error ? (
-        <p className="text-sm text-red-300" role="alert">
-          {error}
-        </p>
-      ) : null}
     </form>
   );
 }
