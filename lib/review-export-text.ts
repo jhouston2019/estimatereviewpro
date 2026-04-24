@@ -197,10 +197,21 @@ export function buildFullReportPlainText(parts: {
   analysisText: string;
   comparisonText: string | null;
   summaryText: string | null;
-  letterText: string | null;
+  /** Single letter block (e.g. legacy export) when on-file / new are not set */
+  letterText?: string | null;
+  letterOnFileText?: string | null;
+  newLetterText?: string | null;
 }): string {
-  const { reportTitle, createdLabel, analysisText, comparisonText, summaryText, letterText } =
-    parts;
+  const {
+    reportTitle,
+    createdLabel,
+    analysisText,
+    comparisonText,
+    summaryText,
+    letterText,
+    letterOnFileText,
+    newLetterText,
+  } = parts;
   const out: string[] = [
     "Estimate Review Pro — Full Report",
     "",
@@ -217,7 +228,28 @@ export function buildFullReportPlainText(parts: {
   if (summaryText) {
     out.push("SUMMARY", "—".repeat(40), "", summaryText.trim(), "", "");
   }
-  if (letterText?.trim()) {
+  const onFile = letterOnFileText?.trim() ?? null;
+  const newL = newLetterText?.trim() ?? null;
+  if (onFile || newL) {
+    if (onFile) {
+      out.push(
+        "LETTER ON FILE",
+        "—".repeat(40),
+        "",
+        onFile,
+        ""
+      );
+    }
+    if (newL) {
+      out.push(
+        "NEW LETTER (REGENERATED)",
+        "—".repeat(40),
+        "",
+        newL,
+        ""
+      );
+    }
+  } else if (letterText?.trim()) {
     out.push("LETTER", "—".repeat(40), "", letterText.trim(), "", "");
   }
   return out.join("\n").trim() + "\n";

@@ -21,7 +21,8 @@ type Props = {
   comparisonRaw: unknown;
   summaryJson: unknown;
   hasSummary: boolean;
-  letterText: string | null;
+  letterOnFileText: string | null;
+  newLetterText: string | null;
   safeBaseFileName: string;
 };
 
@@ -43,7 +44,8 @@ export function ReviewDownloadActions({
   comparisonRaw,
   summaryJson,
   hasSummary,
-  letterText,
+  letterOnFileText,
+  newLetterText,
   safeBaseFileName,
 }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -136,7 +138,8 @@ export function ReviewDownloadActions({
       analysisText,
       comparisonText: comparisonText?.trim() ? comparisonText : null,
       summaryText: summaryText?.trim() && hasSummary ? summaryText : null,
-      letterText: letterText?.trim() ? letterText : null,
+      letterOnFileText: letterOnFileText?.trim() ? letterOnFileText : null,
+      newLetterText: newLetterText?.trim() ? newLetterText : null,
     });
     setBusy("full-pdf");
     try {
@@ -158,26 +161,30 @@ export function ReviewDownloadActions({
     doPdf,
     getComparisonText,
     hasSummary,
-    letterText,
+    letterOnFileText,
+    newLetterText,
     reportTitle,
     safeBaseFileName,
     summaryJson,
   ]);
 
-  const onLetterDocx = useCallback(async () => {
+  const onLetterOnFileDocx = useCallback(async () => {
     setErr(null);
-    const t = letterText?.trim();
+    const t = letterOnFileText?.trim();
     if (!t) {
-      setErr("No letter text to export. Generate a letter first.");
+      setErr("No letter on file to export.");
       return;
     }
-    setBusy("letter-docx");
+    setBusy("letter-on-file-docx");
     try {
       const blob = await doDocx(
         t,
-        `${safeBaseFileName}-letter.docx`
+        `${safeBaseFileName}-letter-on-file.docx`
       );
-      triggerBlobDownload(blob, `${safeBaseFileName}-letter.docx`);
+      triggerBlobDownload(
+        blob,
+        `${safeBaseFileName}-letter-on-file.docx`
+      );
     } catch (e) {
       setErr(
         e instanceof Error ? e.message : "Download failed. Try again."
@@ -185,7 +192,30 @@ export function ReviewDownloadActions({
     } finally {
       setBusy(null);
     }
-  }, [doDocx, letterText, safeBaseFileName]);
+  }, [doDocx, letterOnFileText, safeBaseFileName]);
+
+  const onNewLetterDocx = useCallback(async () => {
+    setErr(null);
+    const t = newLetterText?.trim();
+    if (!t) {
+      setErr("No new letter to export. Generate a letter below first.");
+      return;
+    }
+    setBusy("new-letter-docx");
+    try {
+      const blob = await doDocx(
+        t,
+        `${safeBaseFileName}-new-letter.docx`
+      );
+      triggerBlobDownload(blob, `${safeBaseFileName}-new-letter.docx`);
+    } catch (e) {
+      setErr(
+        e instanceof Error ? e.message : "Download failed. Try again."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }, [doDocx, newLetterText, safeBaseFileName]);
 
   return (
     <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
@@ -214,11 +244,21 @@ export function ReviewDownloadActions({
         </button>
         <button
           type="button"
-          onClick={onLetterDocx}
-          disabled={busy !== null || !letterText?.trim()}
+          onClick={onLetterOnFileDocx}
+          disabled={busy !== null || !letterOnFileText?.trim()}
           className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {busy === "letter-docx" ? "Working…" : "Download Letter (Word)"}
+          {busy === "letter-on-file-docx"
+            ? "Working…"
+            : "Download letter on file (Word)"}
+        </button>
+        <button
+          type="button"
+          onClick={onNewLetterDocx}
+          disabled={busy !== null || !newLetterText?.trim()}
+          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy === "new-letter-docx" ? "Working…" : "Download new letter (Word)"}
         </button>
       </div>
       {err ? (

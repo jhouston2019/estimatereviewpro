@@ -102,11 +102,6 @@ export function ReviewLetterSection({
 
   const valueMap = buildLetterPlaceholderValueMap(insuredName, aiAnalysisJson);
 
-  /** Exports and “full” letter: prefer a fresh regen, else the on-file copy. */
-  const letterTextForDownload = newLetterText?.trim()
-    ? newLetterText
-    : letterOnFileText;
-
   const regenFormLetterTypeKey =
     newLetterType ?? letterOnFileType ?? initialLetterType;
 
@@ -192,7 +187,8 @@ export function ReviewLetterSection({
         comparisonRaw={comparisonRaw}
         summaryJson={summaryJson}
         hasSummary={hasSummary}
-        letterText={letterTextForDownload}
+        letterOnFileText={letterOnFileText}
+        newLetterText={newLetterText}
         safeBaseFileName={safeBaseFileName}
       />
     </>
