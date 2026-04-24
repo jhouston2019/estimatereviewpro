@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import {
   parseAnalysisResult,
@@ -57,12 +56,18 @@ export default async function DashboardReviewDetailPage({
   const { id } = await params;
   const { supabase, user } = await requireUserAndPaywall();
 
-  const { data: review, error } = (await supabase
-    .from("reviews")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .maybeSingle()) as {
+  const { data: userData } = await supabase
+    .from("users" as any)
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+  const isAdmin = (userData as { is_admin?: boolean | null } | null)?.is_admin === true;
+
+  let reviewQuery = supabase.from("reviews").select("*").eq("id", id);
+  if (!isAdmin) {
+    reviewQuery = reviewQuery.eq("user_id", user.id);
+  }
+  const { data: review, error } = (await reviewQuery.maybeSingle()) as {
     data: {
       id: string;
       user_id: string;
@@ -73,12 +78,15 @@ export default async function DashboardReviewDetailPage({
       ai_summary_json: unknown;
       pdf_report_url: string | null;
     } | null;
-    error: unknown;
+    error: { message?: string } | null;
   };
 
-  if (error || !review) {
-    /* Not found, RLS, or entitlement: send to pricing, not a silent dashboard hop */
-    redirect("/pricing?message=payment_required");
+  if (!review) {
+    return (
+      <div className="p-6 text-slate-200">
+        Review not found. ID: {id} | Error: {error?.message ?? "none"}
+      </div>
+    );
   }
 
   const title =
