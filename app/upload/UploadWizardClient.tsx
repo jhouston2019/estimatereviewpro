@@ -1776,11 +1776,13 @@ export default function UploadPage() {
         return;
       }
       const text = await res.text();
+      let letterTextForStore = text;
       setState((prev) => {
         const shouldPrefill = !prev.prefillApplied;
         if (shouldPrefill) {
           const fields = letterPlaceholdersFromClaimMeta(prev.claimMeta);
           const merged = applyPlaceholdersToLetter(text, fields);
+          letterTextForStore = merged;
           return {
             ...prev,
             letterRaw: merged,
@@ -1788,6 +1790,7 @@ export default function UploadPage() {
             prefillApplied: true,
           };
         }
+        letterTextForStore = text;
         return {
           ...prev,
           letterRaw: text,
@@ -1815,6 +1818,8 @@ export default function UploadPage() {
             ai_summary_json: toSupabaseJson(wizardStateRef.current.summary),
             insured_name:
               wizardStateRef.current.claimMeta?.insuredName ?? null,
+            letter_text: letterTextForStore,
+            letter_type: s.letterType,
           });
           if (!error) {
             const { error: usageError } = await supabase.rpc(

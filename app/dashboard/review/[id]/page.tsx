@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import {
   parseAnalysisResult,
   parseComparisonResult,
 } from "@/lib/estimate-json-parse";
+import { RegenerateLetterForm } from "./regenerate-letter-form";
 
 const strategyLabels: Record<string, string> = {
   FULL_SUPPLEMENT_DEMAND: "Full Supplement Demand",
@@ -12,6 +14,75 @@ const strategyLabels: Record<string, string> = {
   INVOKE_APPRAISAL: "Invoke Appraisal",
   OTHER_CUSTOM: "Custom Strategy",
 };
+
+const strategyCodesForLetter = new Set<string>([
+  "FULL_SUPPLEMENT_DEMAND",
+  "PARTIAL_DISPUTE",
+  "DEMAND_REINSPECTION",
+  "INVOKE_APPRAISAL",
+  "OTHER_CUSTOM",
+]);
+
+const letterTypeStoredLabel: Record<string, string> = {
+  SUPPLEMENT_DEMAND: "Supplement demand letter",
+  DISPUTE: "Dispute letter",
+  REINSPECTION_REQUEST: "Re-inspection request",
+  APPRAISAL_INVOCATION: "Appraisal invocation",
+  CUSTOM_NARRATIVE: "Custom / narrative",
+};
+
+function labelForStoredLetterType(code: string | null): string {
+  if (!code?.trim()) return "—";
+  return letterTypeStoredLabel[code] ?? code;
+}
+
+/** Renders `ai_summary_json` as readable prose or structured text, not only raw JSON. */
+function SummaryReadable({ data }: { data: unknown }): ReactNode {
+  if (data === null || data === undefined) {
+    return <p className="text-[11px] text-slate-500">—</p>;
+  }
+  if (typeof data === "string") {
+    return (
+      <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
+        {data}
+      </div>
+    );
+  }
+  if (typeof data === "number" || typeof data === "boolean") {
+    return <p className="text-slate-200">{String(data)}</p>;
+  }
+  if (Array.isArray(data)) {
+    return (
+      <ul className="list-inside list-disc space-y-1.5 text-sm text-slate-200">
+        {data.map((item, i) => (
+          <li key={i} className="pl-0.5">
+            <SummaryReadable data={item} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (typeof data === "object") {
+    const o = data as Record<string, unknown>;
+    return (
+      <div className="space-y-4 text-sm text-slate-200">
+        {Object.entries(o).map(([k, v]) => (
+          <div key={k}>
+            <p className="text-[11px] font-medium text-slate-500">
+              {k
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (c) => c.toUpperCase())}
+            </p>
+            <div className="mt-1.5 pl-0">
+              <SummaryReadable data={v} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return <p className="text-slate-200">{String(data)}</p>;
+}
 
 function formatMoney(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -76,6 +147,8 @@ export default async function DashboardReviewDetailPage({
       ai_analysis_json: unknown;
       ai_comparison_json: unknown;
       ai_summary_json: unknown;
+      letter_text: string | null;
+      letter_type: string | null;
       pdf_report_url: string | null;
     } | null;
     error: { message?: string } | null;
@@ -108,6 +181,11 @@ export default async function DashboardReviewDetailPage({
     ? parseComparisonResult(review.ai_comparison_json)
     : null;
   const summaryJson = review.ai_summary_json;
+  const strategyForLetter =
+    analysis?.recommendedStrategy &&
+    strategyCodesForLetter.has(analysis.recommendedStrategy)
+      ? analysis.recommendedStrategy
+      : "FULL_SUPPLEMENT_DEMAND";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -353,10 +431,51 @@ export default async function DashboardReviewDetailPage({
               Summary
             </h2>
             <div className="mt-4">
-              <JsonBlock data={summaryJson} />
+              <SummaryReadable data={summaryJson} />
             </div>
           </section>
         )}
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
+            Letter
+          </h2>
+          <p className="mt-3 text-[11px] font-medium text-slate-500">
+            Type:{" "}
+            <span className="text-slate-200">
+              {labelForStoredLetterType(review.letter_type)}
+            </span>
+          </p>
+          {review.letter_text?.trim() ? (
+            <pre className="mt-3 max-h-[min(28rem,70vh)] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-left text-sm leading-relaxed text-slate-200">
+              {review.letter_text}
+            </pre>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">
+              No letter has been saved for this review yet. You can generate one
+              below.
+            </p>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
+            Regenerate letter
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Uses the same letter service as the upload wizard, with the saved
+            analysis and comparison. The new letter overwrites the stored
+            letter for this review.
+          </p>
+          <RegenerateLetterForm
+            reviewId={review.id}
+            analysisJson={review.ai_analysis_json}
+            comparisonJson={review.ai_comparison_json}
+            strategy={strategyForLetter}
+            claimType=""
+            initialLetterType={review.letter_type}
+          />
+        </section>
       </main>
     </div>
   );

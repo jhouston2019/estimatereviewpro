@@ -537,6 +537,8 @@ export type Database = {
           created_at: string
           id: string
           insured_name: string | null
+          letter_text: string | null
+          letter_type: string | null
           pdf_report_url: string | null
           user_id: string
         }
@@ -549,6 +551,8 @@ export type Database = {
           created_at?: string
           id?: string
           insured_name?: string | null
+          letter_text?: string | null
+          letter_type?: string | null
           pdf_report_url?: string | null
           user_id: string
         }
@@ -561,6 +565,8 @@ export type Database = {
           created_at?: string
           id?: string
           insured_name?: string | null
+          letter_text?: string | null
+          letter_type?: string | null
           pdf_report_url?: string | null
           user_id?: string
         }
