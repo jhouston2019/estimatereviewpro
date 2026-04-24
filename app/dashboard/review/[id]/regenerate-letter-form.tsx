@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  applyPlaceholdersToLetter,
+  letterPlaceholdersFromClaimMeta,
+  type ClaimMetaSlice,
+  type LetterPlaceholderFields,
+} from "@/app/upload/step6-letter-panel";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
   createSupabaseBrowserClient,
@@ -29,11 +35,16 @@ const CUSTOM_PLACEHOLDER =
 
 type Props = {
   reviewId: string;
+  /** Review `ai_analysis_json` (Netlify request body + optional claim-like keys for placeholders). */
   analysisJson: unknown;
+  /** Optional extra / normalized keys for `applyPlaceholdersToLetter` (merged with `analysisJson` for placeholders). */
+  analysisJsonForPlaceholders?: Record<string, unknown> | null;
   comparisonJson: unknown;
   strategy: string;
   claimType: string;
   initialLetterType: string | null;
+  /** Review `insured_name` — used with analysis for token merge before save. */
+  insuredName?: string | null;
   onLetterUpdated?: (newText: string, newType: string) => void;
 };
 
@@ -44,6 +55,39 @@ function parseJsonIfString(raw: unknown): unknown {
   } catch {
     return null;
   }
+}
+
+function pickStr(
+  r: Record<string, unknown> | undefined,
+  ...keys: string[]
+): string {
+  if (!r) return "";
+  for (const k of keys) {
+    const v = r[k];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return "";
+}
+
+/** Map review row + analysis JSON to the same [BRACKET] fields the wizard uses. */
+function buildPlaceholderFieldsForRegen(
+  insuredName: string | null | undefined,
+  analysis: Record<string, unknown> | undefined
+): LetterPlaceholderFields {
+  const p = (k: string) => pickStr(analysis, k);
+  const meta: ClaimMetaSlice = {
+    insuredName: insuredName?.trim() || p("insuredName") || p("insured_name") || "",
+    carrierName: p("carrierName") || p("carrier_name") || undefined,
+    policyNumber: p("policyNumber") || p("policy_number") || "",
+    claimNumber: p("claimNumber") || p("claim_number") || "",
+    dateOfLoss: p("dateOfLoss") || p("date_of_loss") || "",
+    adjusterName: p("adjusterName") || p("adjuster_name") || "",
+    responseDeadline: p("responseDeadline") || p("response_deadline") || "",
+  };
+  const base = letterPlaceholdersFromClaimMeta(meta);
+  const amount =
+    p("disputedAmount") || p("disputed_amount") || p("amount") || base.amount;
+  return { ...base, amount };
 }
 
 function mergeAnalysisForLetter(
@@ -67,10 +111,12 @@ function mergeAnalysisForLetter(
 export function RegenerateLetterForm({
   reviewId,
   analysisJson,
+  analysisJsonForPlaceholders,
   comparisonJson,
   strategy,
   claimType,
   initialLetterType,
+  insuredName,
   onLetterUpdated,
 }: Props) {
   const validInitial = useMemo(() => {
@@ -170,10 +216,34 @@ export function RegenerateLetterForm({
         return;
       }
 
+      const g = text.trim();
+      const analysisForPlaceholders =
+        typeof parsedAnalysis === "object" &&
+        parsedAnalysis !== null &&
+        !Array.isArray(parsedAnalysis)
+          ? ({
+              ...(parsedAnalysis as Record<string, unknown>),
+              ...(analysisJsonForPlaceholders ?? {}),
+            } as Record<string, unknown>)
+          : analysisJsonForPlaceholders ?? undefined;
+      const fields = buildPlaceholderFieldsForRegen(
+        insuredName,
+        analysisForPlaceholders
+      );
+      const mergedText = applyPlaceholdersToLetter(g, fields);
+      console.log("[regenerate-letter] placeholder merge", {
+        rawLength: g.length,
+        mergedLength: mergedText.length,
+        fieldsPreview: {
+          insured: fields.insured ? `${fields.insured.slice(0, 20)}…` : "(empty)",
+          policy: fields.policy ? "set" : "(empty)",
+        },
+      });
+
       const supabase = createSupabaseBrowserClient();
       const { data: updateRows, error: upErr } = await supabase
         .from("reviews")
-        .update({ letter_text: text, letter_type: letterType })
+        .update({ letter_text: mergedText, letter_type: letterType })
         .eq("id", reviewId)
         .select("id");
 
@@ -202,11 +272,10 @@ export function RegenerateLetterForm({
         return;
       }
 
-      const g = text.trim();
       const m = letterType.trim();
-      if (!g) {
+      if (!mergedText.trim()) {
         setError(
-          "After save, letter text was empty in memory. Check console logs."
+          "After placeholder merge, letter text was empty. Check console logs."
         );
         return;
       }
@@ -215,12 +284,12 @@ export function RegenerateLetterForm({
         return;
       }
       console.log(
-        "[regenerate-letter] calling onLetterUpdated with g (length, preview), m:",
-        g.length,
-        g.slice(0, 200),
+        "[regenerate-letter] calling onLetterUpdated with mergedText (length, preview), m:",
+        mergedText.length,
+        mergedText.slice(0, 200),
         m
       );
-      onLetterUpdated?.(g, m);
+      onLetterUpdated?.(mergedText, m);
       // Intentionally no router.refresh() here — a refresh can re-render the page
       // with stale RSC props and useEffects that reset letter state from the server.
     } catch (err) {

@@ -25,7 +25,6 @@ type Props = {
   reportTitle: string;
   createdLabel: string;
   safeBaseFileName: string;
-  /** Saved ClaimType from wizard is not on `reviews` today; pass "" until persisted. */
   claimType: string;
   aiAnalysisJson: unknown;
   aiComparisonJson: unknown;
@@ -33,6 +32,21 @@ type Props = {
 
 const PLACEHOLDER_HIGHLIGHT =
   "rounded border border-amber-600/50 bg-amber-400/25 px-0.5 font-mono text-[0.9em] text-amber-100";
+
+function letterBlock(
+  text: string | null,
+  valueMap: Map<string, string>,
+  emptyMessage: string
+) {
+  if (text?.trim()) {
+    return (
+      <div className="mt-3 max-h-[min(28rem,70vh)] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-left text-sm leading-relaxed text-slate-200">
+        {letterTextToReactNodes(text, valueMap, PLACEHOLDER_HIGHLIGHT)}
+      </div>
+    );
+  }
+  return <p className="mt-3 text-sm text-slate-500">{emptyMessage}</p>;
+}
 
 export function ReviewLetterSection({
   reviewId,
@@ -53,51 +67,98 @@ export function ReviewLetterSection({
   aiAnalysisJson,
   aiComparisonJson,
 }: Props) {
-  const [letterText, setLetterText] = useState<string | null>(initialLetterText);
-  const [letterType, setLetterType] = useState<string | null>(initialLetterType);
+  /** Letter that was on the review when you opened or switched to this page (from the server). */
+  const [letterOnFileText, setLetterOnFileText] = useState<string | null>(
+    initialLetterText
+  );
+  const [letterOnFileType, setLetterOnFileType] = useState<string | null>(
+    initialLetterType
+  );
 
-  // Reset from server only when opening a different review. Syncing on every
-  // `initialLetterText` / `initialLetterType` change would overwrite optimistic
-  // updates after `onLetterUpdated` (e.g. if router.refresh() revalidated with
-  // a stale payload in the same navigation).
+  /** Result of the last “Generate new letter” in *this* session; separate from the on-file copy. */
+  const [newLetterText, setNewLetterText] = useState<string | null>(null);
+  const [newLetterType, setNewLetterType] = useState<string | null>(null);
+
+  // Reset only when navigating to a different review — not when server props
+  // refresh with a newly saved letter, so "Letter on file" stays a snapshot
+  // for the current page visit.
   useEffect(() => {
-    setLetterText(initialLetterText);
-    setLetterType(initialLetterType);
+    setLetterOnFileText(initialLetterText);
+    setLetterOnFileType(initialLetterType);
+    setNewLetterText(null);
+    setNewLetterType(null);
+    // Intentionally omit initialLetter* from deps (see above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviewId]);
 
-  const onLetterUpdated = useCallback((newText: string, newType: string) => {
+  const onLetterUpdated = useCallback((g: string, m: string) => {
     console.log(
-      "[review-letter-section] onLetterUpdated: applying setLetterText / setLetterType",
-      { newTextLength: newText.length, newTextPreview: newText.slice(0, 200), newType }
+      "[review-letter-section] onLetterUpdated: new letter field only",
+      { gLength: g.length, gPreview: g.slice(0, 200), m }
     );
-    setLetterText(newText);
-    setLetterType(newType);
+    setNewLetterText(g);
+    setNewLetterType(m);
   }, []);
 
   const valueMap = buildLetterPlaceholderValueMap(insuredName, aiAnalysisJson);
-  const letterBody = letterText?.trim() ? (
-    <div className="mt-3 max-h-[min(28rem,70vh)] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950/80 p-4 text-left text-sm leading-relaxed text-slate-200">
-      {letterTextToReactNodes(letterText, valueMap, PLACEHOLDER_HIGHLIGHT)}
-    </div>
-  ) : (
-    <p className="mt-3 text-sm text-slate-500">
-      No letter has been saved for this review yet. You can generate one below.
-    </p>
-  );
+
+  /** Exports and “full” letter: prefer a fresh regen, else the on-file copy. */
+  const letterTextForDownload = newLetterText?.trim()
+    ? newLetterText
+    : letterOnFileText;
+
+  const regenFormLetterTypeKey =
+    newLetterType ?? letterOnFileType ?? initialLetterType;
 
   return (
     <>
       <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
         <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
-          Letter
+          Letter on file
         </h2>
+        <p className="mt-2 text-sm text-slate-400">
+          The letter last saved to this review when the page was loaded. It does
+          not change when you generate a new letter below.
+        </p>
         <p className="mt-3 text-[11px] font-medium text-slate-500">
           Type:{" "}
           <span className="text-slate-200">
-            {labelForStoredLetterType(letterType)}
+            {labelForStoredLetterType(letterOnFileType)}
           </span>
         </p>
-        {letterBody}
+        {letterBlock(
+          letterOnFileText,
+          valueMap,
+          "No letter is saved to this review yet. Generate a new letter below; it will appear under “New letter”."
+        )}
+      </section>
+
+      <section
+        className="rounded-3xl border border-emerald-900/50 bg-slate-900/60 p-6 shadow-lg shadow-emerald-950/20"
+        aria-label="New letter from regeneration"
+      >
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-300">
+          New letter
+        </h2>
+        <p className="mt-2 text-sm text-slate-400">
+          A separate result from <strong>Generate new letter</strong> after the
+          page was opened. It is also saved to the review (replacing the server
+          copy) but is shown here in its own field so the previous text stays
+          visible.
+        </p>
+        <p className="mt-3 text-[11px] font-medium text-slate-500">
+          Type:{" "}
+          <span className="text-slate-200">
+            {newLetterType
+              ? labelForStoredLetterType(newLetterType)
+              : "— (generate below)"}
+          </span>
+        </p>
+        {letterBlock(
+          newLetterText,
+          valueMap,
+          "No new letter yet. Submit the form below—your new letter will appear here, without replacing “Letter on file” above."
+        )}
       </section>
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
@@ -106,8 +167,9 @@ export function ReviewLetterSection({
         </h2>
         <p className="mt-2 text-sm text-slate-400">
           Uses the same letter service as the upload wizard, with the saved
-          analysis and comparison. The new letter overwrites the stored letter
-          for this review.
+          analysis and comparison. The result appears under{" "}
+          <span className="text-slate-200">New letter</span> and is saved to
+          this review.
         </p>
         <RegenerateLetterForm
           reviewId={reviewId}
@@ -115,7 +177,8 @@ export function ReviewLetterSection({
           comparisonJson={aiComparisonJson}
           strategy={strategyForLetter}
           claimType={claimType}
-          initialLetterType={letterType ?? initialLetterType}
+          initialLetterType={regenFormLetterTypeKey}
+          insuredName={insuredName}
           onLetterUpdated={onLetterUpdated}
         />
       </section>
@@ -129,7 +192,7 @@ export function ReviewLetterSection({
         comparisonRaw={comparisonRaw}
         summaryJson={summaryJson}
         hasSummary={hasSummary}
-        letterText={letterText}
+        letterText={letterTextForDownload}
         safeBaseFileName={safeBaseFileName}
       />
     </>
