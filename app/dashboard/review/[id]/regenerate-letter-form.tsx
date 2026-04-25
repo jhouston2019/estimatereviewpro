@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  applyPlaceholdersToLetter,
-  letterPlaceholdersFromClaimMeta,
-  type ClaimMetaSlice,
-  type LetterPlaceholderFields,
-} from "@/app/upload/step6-letter-panel";
+import { applyPlaceholdersToLetter } from "@/app/upload/step6-letter-panel";
+import { buildPlaceholderFieldsFromStoredJson } from "@/lib/letter-placeholder-extract";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
   createSupabaseBrowserClient,
@@ -40,6 +36,8 @@ type Props = {
   analysisJson: unknown;
   /** Optional extra / normalized keys for `applyPlaceholdersToLetter` (merged with `analysisJson` for placeholders). */
   analysisJsonForPlaceholders?: Record<string, unknown> | null;
+  /** Optional `ai_summary_json` for claim fields nested under `property_details` or `claimMeta`. */
+  summaryJsonForPlaceholders?: unknown;
   comparisonJson: unknown;
   strategy: string;
   claimType: string;
@@ -56,39 +54,6 @@ function parseJsonIfString(raw: unknown): unknown {
   } catch {
     return null;
   }
-}
-
-function pickStr(
-  r: Record<string, unknown> | undefined,
-  ...keys: string[]
-): string {
-  if (!r) return "";
-  for (const k of keys) {
-    const v = r[k];
-    if (v != null && String(v).trim()) return String(v).trim();
-  }
-  return "";
-}
-
-/** Map review row + analysis JSON to the same [BRACKET] fields the wizard uses. */
-function buildPlaceholderFieldsForRegen(
-  insuredName: string | null | undefined,
-  analysis: Record<string, unknown> | undefined
-): LetterPlaceholderFields {
-  const p = (k: string) => pickStr(analysis, k);
-  const meta: ClaimMetaSlice = {
-    insuredName: insuredName?.trim() || p("insuredName") || p("insured_name") || "",
-    carrierName: p("carrierName") || p("carrier_name") || undefined,
-    policyNumber: p("policyNumber") || p("policy_number") || "",
-    claimNumber: p("claimNumber") || p("claim_number") || "",
-    dateOfLoss: p("dateOfLoss") || p("date_of_loss") || "",
-    adjusterName: p("adjusterName") || p("adjuster_name") || "",
-    responseDeadline: p("responseDeadline") || p("response_deadline") || "",
-  };
-  const base = letterPlaceholdersFromClaimMeta(meta);
-  const amount =
-    p("disputedAmount") || p("disputed_amount") || p("amount") || base.amount;
-  return { ...base, amount };
 }
 
 function mergeAnalysisForLetter(
@@ -113,6 +78,7 @@ export function RegenerateLetterForm({
   reviewId,
   analysisJson,
   analysisJsonForPlaceholders,
+  summaryJsonForPlaceholders,
   comparisonJson,
   strategy,
   claimType,
@@ -227,9 +193,10 @@ export function RegenerateLetterForm({
               ...(analysisJsonForPlaceholders ?? {}),
             } as Record<string, unknown>)
           : analysisJsonForPlaceholders ?? undefined;
-      const fields = buildPlaceholderFieldsForRegen(
+      const fields = buildPlaceholderFieldsFromStoredJson(
         insuredName,
-        analysisForPlaceholders
+        analysisForPlaceholders,
+        summaryJsonForPlaceholders
       );
       const mergedText = applyPlaceholdersToLetter(g, fields);
       console.log("[regenerate-letter] placeholder merge", {

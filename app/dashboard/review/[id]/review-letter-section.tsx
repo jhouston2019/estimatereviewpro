@@ -100,7 +100,11 @@ export function ReviewLetterSection({
     setNewLetterType(m);
   }, []);
 
-  const valueMap = buildLetterPlaceholderValueMap(insuredName, aiAnalysisJson);
+  const valueMap = buildLetterPlaceholderValueMap(
+    insuredName,
+    aiAnalysisJson,
+    summaryJson
+  );
 
   const regenFormLetterTypeKey =
     newLetterType ?? letterOnFileType ?? initialLetterType;
@@ -169,6 +173,7 @@ export function ReviewLetterSection({
         <RegenerateLetterForm
           reviewId={reviewId}
           analysisJson={aiAnalysisJson}
+          summaryJsonForPlaceholders={summaryJson}
           comparisonJson={aiComparisonJson}
           strategy={strategyForLetter}
           claimType={claimType}

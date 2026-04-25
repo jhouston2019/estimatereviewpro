@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { buildPlaceholderFieldsFromStoredJson } from "@/lib/letter-placeholder-extract";
 
 const PLACEHOLDER_TOKEN_ORDER = [
   "[RESPONSE DEADLINE]",
@@ -65,20 +66,40 @@ const ANALYSIS_KEYS: [string, string][] = [
 ];
 
 /**
- * Map token → replacement. Fills from `review` insured name, then from optional
- * `ai_analysis_json` when those keys exist. [TODAY'S DATE] is always the current date in the UI.
- * Remaining bracket tokens are highlighted in the display.
+ * Map token → replacement. Fills from `claimMeta` / `property_details` / top-level
+ * keys on `ai_analysis_json` and optional `ai_summary_json`, plus the review insured
+ * name. [TODAY'S DATE] is the current date in the UI. Remaining bracket tokens are
+ * highlighted in the display.
  */
 export function buildLetterPlaceholderValueMap(
   insuredName: string | null | undefined,
-  analysisRaw?: unknown
+  analysisRaw?: unknown,
+  summaryRaw?: unknown
 ): Map<string, string> {
   const m = new Map<string, string>();
   m.set("[TODAY'S DATE]", todaysDateDisplay());
 
+  const fields = buildPlaceholderFieldsFromStoredJson(
+    insuredName,
+    analysisRaw,
+    summaryRaw
+  );
+  const setIf = (token: string, val: string) => {
+    const t = val?.trim();
+    if (t) m.set(token, t);
+  };
+  setIf("[INSURED NAME]", fields.insured);
+  setIf("[POLICY NUMBER]", fields.policy);
+  setIf("[CLAIM NUMBER]", fields.claim);
+  setIf("[DATE OF LOSS]", fields.dol);
+  setIf("[ADJUSTER NAME]", fields.adjuster);
+  setIf("[CARRIER NAME]", fields.carrier);
+  setIf("[DISPUTED AMOUNT]", fields.amount);
+  setIf("[RESPONSE DEADLINE]", fields.deadline);
+
   if (isRecord(analysisRaw)) {
     for (const [k, token] of ANALYSIS_KEYS) {
-      if (m.has(token)) continue;
+      if (m.get(token)?.trim()) continue;
       const v = pickString(analysisRaw[k]);
       if (v) m.set(token, v);
     }

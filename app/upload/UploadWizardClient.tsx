@@ -1809,9 +1809,26 @@ export default function UploadPage() {
           data: { session },
         } = await supabase.auth.getSession();
         if (session?.user?.id) {
+          const a = wizardStateRef.current.analysis;
+          const m = wizardStateRef.current.claimMeta;
+          const analysisWithClaimMeta =
+            a && typeof a === "object" && a !== null
+              ? {
+                  ...(a as Record<string, unknown>),
+                  claimMeta: {
+                    insuredName: m.insuredName,
+                    carrierName: m.carrierName,
+                    policyNumber: m.policyNumber,
+                    claimNumber: m.claimNumber,
+                    dateOfLoss: m.dateOfLoss,
+                    adjusterName: m.adjusterName,
+                    responseDeadline: m.responseDeadline,
+                  },
+                }
+              : a;
           const { error } = await supabase.from("reviews").insert({
             user_id: session.user.id,
-            ai_analysis_json: toSupabaseJson(wizardStateRef.current.analysis),
+            ai_analysis_json: toSupabaseJson(analysisWithClaimMeta),
             ai_comparison_json: toSupabaseJson(
               wizardStateRef.current.comparison
             ),
