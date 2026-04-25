@@ -23,7 +23,8 @@ const STRATEGY_CODES = new Set<string>([
 
 const LETTER_TYPE_OPTIONS: { label: string; value: string }[] = [
   { label: "Demand Letter", value: "SUPPLEMENT_DEMAND" },
-  { label: "Appeal Letter", value: "DISPUTE" },
+  { label: "Appeal Letter", value: "APPEAL" },
+  { label: "Dispute letter", value: "DISPUTE" },
   { label: "Supplemental Request", value: "REINSPECTION_REQUEST" },
   { label: "Custom Letter", value: "CUSTOM" },
 ];

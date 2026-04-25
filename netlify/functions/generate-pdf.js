@@ -5,13 +5,55 @@ const {
   verifyWizardAuth,
 } = require("./_wizardAuth.js");
 
+/**
+ * Standard PDF 14 fonts use WinAnsi; pdf-lib throws if a code point is not encodable.
+ * Replace common UTF-8 punctuation and symbols with ASCII so exports never 500.
+ */
+function sanitizeTextForWinAnsi(input) {
+  if (input == null) return "";
+  return String(input)
+    .replace(/[\u2500-\u257F\u2550-\u256C]/g, (ch) => (ch === "\u2550" ? "=" : "-"))
+    .replace(/[\u2010-\u2015\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D]/g, "-")
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u2033]/g, '"')
+    .replace(/[\u2022\u2023\u25E6\u2043\u25AA]/g, "*")
+    .replace(/\u00A0/g, " ");
+}
+
+function splitInlineLetterHeadingLine(line) {
+  const m = /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)(\. {1,2})/.exec(
+    line
+  );
+  if (m) {
+    return { heading: m[0], rest: line.slice(m[0].length) };
+  }
+  return null;
+}
+
+function wordWrapToLines(raw, widthFont, fontSize, maxWidth) {
+  const out = [];
+  const words = String(raw).split(" ");
+  let current = "";
+  for (const word of words) {
+    const test = current ? current + " " + word : word;
+    if (widthFont.widthOfTextAtSize(test, fontSize) <= maxWidth) {
+      current = test;
+    } else {
+      if (current) out.push(current);
+      current = word;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
 function sanitizeFileName(name) {
-  if (typeof name !== "string" || !name.trim()) return "dispute-letter.pdf";
+  if (typeof name !== "string" || !name.trim()) return "export.pdf";
   const safe = name.replace(/[^a-zA-Z0-9._-]+/g, "_").trim();
   if (!safe.toLowerCase().endsWith(".pdf")) {
     return `${(safe || "export").slice(0, 180)}.pdf`;
   }
-  return safe.slice(0, 200) || "dispute-letter.pdf";
+  return safe.slice(0, 200) || "export.pdf";
 }
 
 function jsonError(statusCode, error, details, code) {
@@ -85,12 +127,13 @@ exports.handler = async (event) => {
   );
 
   const headerBlock = certifiedMailHeader
-    ? "SENT VIA CERTIFIED MAIL — RETURN RECEIPT REQUESTED\n\n"
+    ? "SENT VIA CERTIFIED MAIL - RETURN RECEIPT REQUESTED\n\n"
     : "";
   const text = rawText == null ? "" : rawText;
   const fullText = headerBlock + text;
 
-  if (!String(fullText).trim()) {
+  const fullTextSafe = sanitizeTextForWinAnsi(String(fullText));
+  if (!String(fullTextSafe).trim()) {
     return jsonError(
       400,
       "No text provided for PDF export (empty or missing after parsing)",
@@ -106,8 +149,6 @@ exports.handler = async (event) => {
     const fontSize = 12;
     const lineHeight = fontSize * 1.6;
     const margin = 72;
-    const headingLineRe =
-      /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)\./;
 
     const addPage = () => {
       const p = pdfDoc.addPage([612, 792]);
@@ -117,43 +158,63 @@ exports.handler = async (event) => {
     let { page, y } = addPage();
     const maxWidth = 612 - margin * 2;
 
-    const rawLines = String(fullText).split("\n");
-    const wrappedLines = [];
+    const rawLines = String(fullTextSafe).split("\n");
+    const wrappedLineRuns = [];
 
     for (const raw of rawLines) {
       if (raw.trim() === "") {
-        wrappedLines.push("");
+        wrappedLineRuns.push([{ t: "", f: font }]);
         continue;
       }
-      const words = raw.split(" ");
-      let current = "";
-      for (const word of words) {
-        const test = current ? current + " " + word : word;
-        if (font.widthOfTextAtSize(test, fontSize) <= maxWidth) {
-          current = test;
-        } else {
-          if (current) wrappedLines.push(current);
-          current = word;
+      const splitH = splitInlineLetterHeadingLine(raw);
+      if (splitH) {
+        for (const line of wordWrapToLines(
+          splitH.heading,
+          font,
+          fontSize,
+          maxWidth
+        )) {
+          wrappedLineRuns.push([{ t: line, f: boldFont }]);
         }
+        if ((splitH.rest || "").trim().length > 0) {
+          for (const seg of wordWrapToLines(
+            splitH.rest,
+            font,
+            fontSize,
+            maxWidth
+          )) {
+            wrappedLineRuns.push([{ t: seg, f: font }]);
+          }
+        }
+        continue;
       }
-      if (current) wrappedLines.push(current);
+      for (const seg of wordWrapToLines(raw, font, fontSize, maxWidth)) {
+        const lineFont = splitInlineLetterHeadingLine(seg) ? boldFont : font;
+        wrappedLineRuns.push([{ t: seg, f: lineFont }]);
+      }
     }
 
-    for (const line of wrappedLines) {
+    for (const runs of wrappedLineRuns) {
       if (y < margin + lineHeight) {
         const next = addPage();
         page = next.page;
         y = next.y;
       }
-      if (line.trim()) {
-        const lineFont = headingLineRe.test(line) ? boldFont : font;
-        page.drawText(line, {
-          x: margin,
+      if (!runs[0] || !String(runs[0].t).trim()) {
+        y -= lineHeight;
+        continue;
+      }
+      let x = margin;
+      for (const run of runs) {
+        if (!run.t) continue;
+        page.drawText(run.t, {
+          x,
           y,
           size: fontSize,
-          font: lineFont,
+          font: run.f,
           color: rgb(0, 0, 0),
         });
+        x += run.f.widthOfTextAtSize(run.t, fontSize);
       }
       y -= lineHeight;
     }

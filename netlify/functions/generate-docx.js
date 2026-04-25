@@ -1,4 +1,4 @@
-const { Document, Packer, Paragraph, TextRun, AlignmentType } = require("docx");
+const { Document, Packer, Paragraph, TextRun } = require("docx");
 const {
   corsHeaders,
   optionsResponse,
@@ -47,18 +47,56 @@ exports.handler = async (event) => {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      const isSectionHeader = /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)\./.test(trimmed);
       const isEmpty = trimmed === '';
-
-      children.push(new Paragraph({
-        children: [new TextRun({
-          text: trimmed,
-          bold: isSectionHeader,
-          size: isSectionHeader ? 22 : 20,
-          font: 'Times New Roman'
-        })],
-        spacing: { after: isEmpty ? 0 : isSectionHeader ? 160 : 120, before: isSectionHeader ? 200 : 0 }
-      }));
+      if (isEmpty) {
+        children.push(new Paragraph({ text: '', spacing: { after: 0 } }));
+        continue;
+      }
+      const inlineHeading = /^(Basis for Supplement|Policy Obligations|Regulatory Duties|Demand|Reservation of Rights)(\. {1,2})/.exec(
+        trimmed
+      );
+      if (inlineHeading) {
+        const head = inlineHeading[0];
+        const rest = trimmed.slice(head.length);
+        const childRuns = [
+          new TextRun({
+            text: head,
+            bold: true,
+            size: 22,
+            font: "Times New Roman",
+          }),
+        ];
+        if (rest) {
+          childRuns.push(
+            new TextRun({
+              text: rest,
+              bold: false,
+              size: 20,
+              font: "Times New Roman",
+            })
+          );
+        }
+        children.push(
+          new Paragraph({
+            children: childRuns,
+            spacing: { after: 160, before: 200 },
+          })
+        );
+        continue;
+      }
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed,
+              bold: false,
+              size: 20,
+              font: "Times New Roman",
+            }),
+          ],
+          spacing: { after: 120, before: 0 },
+        })
+      );
     }
 
     const doc = new Document({

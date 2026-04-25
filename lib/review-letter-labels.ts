@@ -1,5 +1,6 @@
 const letterTypeStoredLabel: Record<string, string> = {
   SUPPLEMENT_DEMAND: "Supplement demand letter",
+  APPEAL: "Appeal letter",
   DISPUTE: "Dispute letter",
   REINSPECTION_REQUEST: "Re-inspection request",
   APPRAISAL_INVOCATION: "Appraisal invocation",

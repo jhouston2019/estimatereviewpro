@@ -21,6 +21,7 @@ const STRATEGIES = [
 const LETTER_TYPES = [
   "SUPPLEMENT_DEMAND",
   "DISPUTE",
+  "APPEAL",
   "REINSPECTION_REQUEST",
   "APPRAISAL_INVOCATION",
   "CUSTOM_NARRATIVE",
@@ -55,6 +56,8 @@ function letterTypeInstructions(letterType) {
       return `Letter type SUPPLEMENT_DEMAND: write a formal demand for additional payment. Ground the request in the analysis JSON (scope omissions, pricing flags, code gaps, O&P, procedural notes) without inventing line items not implied by the analysis.`;
     case "DISPUTE":
       return `Letter type DISPUTE: contest specific line items and findings reflected in the analysis only. Do not invent additional disputed items beyond what the analysis supports.`;
+    case "APPEAL":
+      return `Letter type APPEAL: write a formal appeal of the carrier's position, using only facts and themes present in the analysis. Use appeal-appropriate framing (administrative appeal, request for reconsideration of the position). Do not label the letter "Dispute Letter" and do not use the word "DISPUTE" as a standalone title or section label.`;
     case "REINSPECTION_REQUEST":
       return `Letter type REINSPECTION_REQUEST: request a new inspection and document the factual basis using only themes present in the analysis (e.g. scope verification needs).`;
     case "APPRAISAL_INVOCATION":
@@ -134,6 +137,8 @@ function basisBodyForLetterType(letterType, strategy) {
       return `This section supports a formal demand for additional payment. The estimate review identifies scope and valuation items that require correction. ${voice} The referenced findings are summarized from the structured analysis supplied and are presented for documentation and adjustment purposes. Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
     case "DISPUTE":
       return `This section contests specific line items and findings reflected in the structured analysis only. ${voice} The items in controversy are documented from that analysis output (not legal advice). Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
+    case "APPEAL":
+      return `This section sets out the basis for a formal appeal of the carrier's position, documented from the structured analysis only. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
     case "REINSPECTION_REQUEST":
       return `This section documents the basis for requesting a new inspection, drawn only from the analysis themes (for example, scope verification needs). ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
     case "APPRAISAL_INVOCATION":
@@ -145,6 +150,16 @@ function basisBodyForLetterType(letterType, strategy) {
     default:
       return `The estimate review identifies items for correction. ${voice} Policy reference: [POLICY NUMBER]. Claim reference: [CLAIM NUMBER].`;
   }
+}
+
+function demandLineForLetterType(letterType) {
+  const rd = "[RESPONSE DEADLINE]";
+  const amt = "[DISPUTED AMOUNT]";
+  const base = `Within the 10-day deadline referenced here, please provide a written response addressing the items noted above, and confirm the schedule for resolution. This 10-day deadline is offered as a reasonable response window; calendar date ${rd} remains relevant for scheduling.`;
+  if (letterType === "APPEAL") {
+    return `Demand.  ${base} Amount in controversy (appeal context): ${amt}.`;
+  }
+  return `Demand.  ${base} Disputed amount context: ${amt}.`;
 }
 
 function buildFallbackLetter(strategy, letterType) {
@@ -177,9 +192,9 @@ function buildFallbackLetter(strategy, letterType) {
     "",
     "Regulatory Duties.  The carrier should document its position and complete a reasonable review of the materials submitted, consistent with generally applicable unfair-claims-practice principles (no specific statute numbers stated here). Adjuster of record: [ADJUSTER NAME]. Response calendar: [RESPONSE DEADLINE].",
     "",
-    "Demand.  Within the 10-day deadline referenced here, please provide a written response addressing the items noted above, and confirm the schedule for resolution. This 10-day deadline is offered as a reasonable response window; calendar date [RESPONSE DEADLINE] remains relevant for scheduling. Disputed amount context: [DISPUTED AMOUNT].",
+    demandLineForLetterType(lt),
     "",
-    "Reservation of Rights.  Nothing herein waives any rights or remedies available to [INSURED NAME]. All rights are expressly reserved. [CARRIER NAME] — claim [CLAIM NUMBER], policy [POLICY NUMBER], DOL [DATE OF LOSS].",
+    "Reservation of Rights.  Nothing herein waives any rights or remedies available to [INSURED NAME]. All rights are expressly reserved. [CARRIER NAME] - claim [CLAIM NUMBER], policy [POLICY NUMBER], DOL [DATE OF LOSS].",
     "",
     "Very truly yours,",
     "",
@@ -253,7 +268,7 @@ exports.handler = async (event) => {
       headers: corsHeaders,
       body: JSON.stringify({
         error:
-          "letterType must be one of SUPPLEMENT_DEMAND, DISPUTE, REINSPECTION_REQUEST, APPRAISAL_INVOCATION, CUSTOM_NARRATIVE, CUSTOM",
+          "letterType must be one of SUPPLEMENT_DEMAND, DISPUTE, APPEAL, REINSPECTION_REQUEST, APPRAISAL_INVOCATION, CUSTOM_NARRATIVE, CUSTOM",
         code: "INVALID_LETTER_TYPE",
       }),
     };

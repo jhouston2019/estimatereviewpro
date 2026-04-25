@@ -216,20 +216,20 @@ export function buildFullReportPlainText(parts: {
     newLetterText,
   } = parts;
   const out: string[] = [
-    "Estimate Review Pro — Full Report",
+    "Estimate Review Pro - Full Report",
     "",
     `Title: ${reportTitle}`,
     `Created: ${createdLabel}`,
     "",
-    "═".repeat(60),
+    "=".repeat(60),
     "",
   ];
-  out.push("ANALYSIS", "—".repeat(40), "", analysisText.trim(), "", "");
+  out.push("ANALYSIS", "-".repeat(40), "", analysisText.trim(), "", "");
   if (comparisonText) {
-    out.push("COMPARISON", "—".repeat(40), "", comparisonText.trim(), "", "");
+    out.push("COMPARISON", "-".repeat(40), "", comparisonText.trim(), "", "");
   }
   if (summaryText) {
-    out.push("SUMMARY", "—".repeat(40), "", summaryText.trim(), "", "");
+    out.push("SUMMARY", "-".repeat(40), "", summaryText.trim(), "", "");
   }
   const onFile = letterOnFileText?.trim() ?? null;
   const newL = newLetterText?.trim() ?? null;
@@ -237,7 +237,7 @@ export function buildFullReportPlainText(parts: {
     if (onFile) {
       out.push(
         "LETTER ON FILE",
-        "—".repeat(40),
+        "-".repeat(40),
         "",
         onFile,
         ""
@@ -246,14 +246,14 @@ export function buildFullReportPlainText(parts: {
     if (newL) {
       out.push(
         "NEW LETTER (REGENERATED)",
-        "—".repeat(40),
+        "-".repeat(40),
         "",
         newL,
         ""
       );
     }
   } else if (letterText?.trim()) {
-    out.push("LETTER", "—".repeat(40), "", letterText.trim(), "", "");
+    out.push("LETTER", "-".repeat(40), "", letterText.trim(), "", "");
   }
   return out.join("\n").trim() + "\n";
 }
