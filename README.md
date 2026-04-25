@@ -534,7 +534,6 @@ npm run netlify:deploy
 - [ ] Interactive report navigation
 - [ ] Customizable report templates
 - [ ] White-label options for PA firms
-- [ ] API access for enterprise clients
 
 ---
 

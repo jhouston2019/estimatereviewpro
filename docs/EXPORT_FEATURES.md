@@ -37,7 +37,7 @@ Estimate Review Pro provides **4 ways** to export and share your analysis report
 4. Use browser's "Print to PDF" or "Save as PDF" function
 ```
 
-**Direct API access:**
+**Export endpoint (HTTP):**
 ```
 GET /api/reports/{report-id}/export?format=pdf
 ```
@@ -63,7 +63,7 @@ GET /api/reports/{report-id}/export?format=pdf
 4. Open in Excel, Google Sheets, or LibreOffice Calc
 ```
 
-**Direct API access:**
+**Export endpoint (HTTP):**
 ```
 GET /api/reports/{report-id}/export?format=excel
 ```
@@ -89,7 +89,7 @@ GET /api/reports/{report-id}/export?format=excel
 4. Open in Excel, import into database, or process with scripts
 ```
 
-**Direct API access:**
+**Export endpoint (HTTP):**
 ```
 GET /api/reports/{report-id}/export?format=csv
 ```

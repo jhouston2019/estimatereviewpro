@@ -670,8 +670,6 @@ Every analyzed estimate contributes structured data to 7 intelligence tables:
 - Carrier intelligence reports
 - Recovery analytics dashboard
 - Priority support
-- API access
-- Bulk upload
 
 **Litigation Plan**: $499/month
 - Unlimited estimate reviews

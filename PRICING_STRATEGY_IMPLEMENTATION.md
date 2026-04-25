@@ -47,8 +47,6 @@ Successfully implemented the new pricing strategy for Estimate Review Pro with:
 - Carrier intelligence reports
 - Recovery analytics dashboard
 - Priority support
-- API access
-- Bulk upload
 
 **Target**: Restoration contractors, public adjusters, law firms
 

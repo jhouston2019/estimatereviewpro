@@ -42,7 +42,7 @@
 - **Name**: Enterprise Plan
 - **Type**: Recurring subscription
 - **Price**: $599.00 USD/month
-- **Description**: 150 reviews per month, unlimited users, API access
+- **Description**: 150 reviews per month, unlimited users
 
 **Steps:**
 1. Go to Stripe Dashboard → Products

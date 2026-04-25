@@ -163,7 +163,7 @@ INSERT INTO subscription_plans (plan_name, price, reviews_per_month, plan_type, 
     299.00,
     20,
     'monthly',
-    '["20 estimate reviews per month", "Carrier intelligence reports", "Recovery analytics dashboard", "Priority support", "API access", "Bulk upload"]'::jsonb
+    '["20 estimate reviews per month", "Carrier intelligence reports", "Recovery analytics dashboard", "Priority support"]'::jsonb
   ),
   (
     'Litigation',

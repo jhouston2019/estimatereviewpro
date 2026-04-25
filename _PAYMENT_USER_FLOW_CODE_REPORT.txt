@@ -189,18 +189,6 @@ export default function PricingPage() {
                 </svg>
                 <span>Priority support</span>
               </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>API access</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-slate-700">
-                <svg className="h-5 w-5 text-[#2563EB] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Bulk upload</span>
-              </li>
             </ul>
 
             <button

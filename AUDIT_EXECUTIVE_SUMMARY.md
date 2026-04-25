@@ -281,7 +281,6 @@ ChatGPT: [Generic analysis, non-deterministic, bypassable safety]
 11. ✅ Multi-format support (Symbility, generic PDFs)
 12. ✅ Comparison feature (contractor vs. carrier)
 13. ✅ Team features
-14. ✅ API access
 
 ---
 

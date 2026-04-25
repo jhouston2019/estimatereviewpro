@@ -30,7 +30,6 @@ Successfully implemented complete pricing, billing, usage enforcement, and payme
 - **Includes**:
   - 150 reviews per month
   - Unlimited users
-  - API access
   - White-label export
   - Analytics dashboard
 - **Overage**: $19 per additional review

@@ -176,7 +176,7 @@ ORDER BY (result_json->'total_missing_value_estimate'->>'high')::numeric DESC;
 
 ---
 
-## 4️⃣ API ACCESS (Programmatic)
+## 4️⃣ Programmatic access (Supabase)
 
 ### Using Supabase Client
 
