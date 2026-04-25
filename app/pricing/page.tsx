@@ -13,15 +13,11 @@ const CORE_FEATURES: readonly string[] = [
   "AI-generated dispute letter",
   "PDF and Word export",
   "Review dashboard with full history",
-  "API access",
-  "Bulk upload",
 ];
-
-const OMIT_ON_SINGLE = new Set(["API access", "Bulk upload"]);
 
 const SINGLE_FEATURES: readonly string[] = [
   "1 estimate review",
-  ...CORE_FEATURES.filter((f) => !OMIT_ON_SINGLE.has(f)),
+  ...CORE_FEATURES,
 ];
 
 function Check() {
