@@ -5,7 +5,7 @@ import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import type { AnalysisResult, ComparisonResult } from "@/lib/estimate-json-parse";
 import {
   buildAnalysisExportPlainText,
-  buildComparisonExportPlainText,
+  buildComparisonPlainText,
   buildFullReportPlainText,
   buildSummaryExportPlainText,
   rawJsonExportPlainText,
@@ -59,12 +59,14 @@ export function ReviewDownloadActions({
   }, [analysis, analysisRaw]);
   const canExportAnalysis = Boolean(analysisTextResolved?.trim());
 
-  const getComparisonText = useCallback((): string | null => {
-    if (comparison) return buildComparisonExportPlainText(comparison);
+  const comparisonTextResolved = useMemo((): string | null => {
+    if (comparison) return buildComparisonPlainText(comparison);
     if (comparisonRaw != null)
       return rawJsonExportPlainText("Comparison (raw)", comparisonRaw);
     return null;
   }, [comparison, comparisonRaw]);
+
+  const canExportComparison = Boolean(comparisonTextResolved?.trim());
 
   const doPdf = useCallback(
     async (text: string, fileName: string) => {
@@ -73,9 +75,26 @@ export function ReviewDownloadActions({
         body: JSON.stringify({ text, fileName }),
       });
       const ct = res.headers.get("content-type") || "";
-      if (!res.ok || ct.includes("application/json")) {
-        await res.text().catch(() => "");
+      if (!res.ok) {
+        const raw = await res.text().catch(() => "");
+        if (ct.includes("application/json") && raw) {
+          try {
+            const j = JSON.parse(raw) as { error?: string; details?: string; message?: string };
+            const fromFields = [j.error, j.details].filter(Boolean).join(": ");
+            const msg = fromFields || j.message || raw;
+            throw new Error(msg);
+          } catch (e) {
+            if (e instanceof SyntaxError) {
+              // body was not JSON; fall through to generic
+            } else {
+              throw e;
+            }
+          }
+        }
         throw new Error("PDF request failed.");
+      }
+      if (ct.includes("application/json")) {
+        throw new Error("PDF request returned JSON instead of a PDF.");
       }
       return res.blob();
     },
@@ -121,6 +140,29 @@ export function ReviewDownloadActions({
     }
   }, [analysisTextResolved, doPdf, safeBaseFileName]);
 
+  const onComparisonPdf = useCallback(async () => {
+    setErr(null);
+    const text = comparisonTextResolved;
+    if (!text?.trim()) {
+      setErr("No comparison data to export.");
+      return;
+    }
+    setBusy("comparison-pdf");
+    try {
+      const blob = await doPdf(
+        text,
+        `${safeBaseFileName}-comparison.pdf`
+      );
+      triggerBlobDownload(blob, `${safeBaseFileName}-comparison.pdf`);
+    } catch (e) {
+      setErr(
+        e instanceof Error ? e.message : "Download failed. Try again."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }, [comparisonTextResolved, doPdf, safeBaseFileName]);
+
   const onFullReportPdf = useCallback(async () => {
     setErr(null);
     const analysisText = analysisTextResolved;
@@ -128,7 +170,7 @@ export function ReviewDownloadActions({
       setErr("No analysis data; full report is not available.");
       return;
     }
-    const comparisonText = getComparisonText();
+    const comparisonText = comparisonTextResolved;
     const summaryText = hasSummary
       ? buildSummaryExportPlainText(summaryJson)
       : null;
@@ -157,9 +199,9 @@ export function ReviewDownloadActions({
     }
   }, [
     analysisTextResolved,
+    comparisonTextResolved,
     createdLabel,
     doPdf,
-    getComparisonText,
     hasSummary,
     letterOnFileText,
     newLetterText,
@@ -233,6 +275,14 @@ export function ReviewDownloadActions({
           className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy === "analysis-pdf" ? "Working…" : "Download Analysis (PDF)"}
+        </button>
+        <button
+          type="button"
+          onClick={onComparisonPdf}
+          disabled={busy !== null || !canExportComparison}
+          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy === "comparison-pdf" ? "Working…" : "Download Comparison (PDF)"}
         </button>
         <button
           type="button"

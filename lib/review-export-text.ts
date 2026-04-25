@@ -144,6 +144,9 @@ export function buildComparisonExportPlainText(
   return parts.join("\n").trim() + "\n";
 }
 
+/** Alias for review exports; same as `buildComparisonExportPlainText`. */
+export { buildComparisonExportPlainText as buildComparisonPlainText };
+
 function summaryDataToPlainText(data: unknown, indent: string): string {
   if (data === null || data === undefined) return `${indent}—\n`;
   if (typeof data === "string")
