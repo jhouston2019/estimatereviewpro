@@ -64,4 +64,6 @@ public/samples/
 
 landing-wizard-preview*.png
 
+# Supabase CLI local state
+supabase/.temp/
 

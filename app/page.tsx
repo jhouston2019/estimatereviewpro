@@ -34,10 +34,10 @@ export default function Home() {
               Log in
             </Link>
             <Link
-              href="/pricing"
+              href="/analysis-preview"
               className="rounded-full bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1E40AF] transition"
             >
-              Start Review
+              Free Preview
             </Link>
           </nav>
         </div>
@@ -48,15 +48,16 @@ export default function Home() {
         <section className="mb-20">
           {/* Main Headline */}
           <div className="mb-12 text-center">
+            <p className="mb-4 inline-block rounded-full border border-slate-600 bg-slate-800/50 px-4 py-1.5 text-xs font-semibold tracking-wide text-slate-300 md:text-sm">
+              For Public Adjusters · Contractors · Attorneys
+            </p>
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-[52px] leading-tight">
-              Why Professionals Use<br />Estimate Review Pro
+              Your carrier&apos;s estimate is probably short. Here&apos;s the gap.
             </h1>
             <p className="mx-auto max-w-3xl text-xl leading-relaxed text-slate-300 md:text-2xl font-medium">
-              Because it's the industry-standard estimate intelligence engine —<br />
-              <span className="text-[#60A5FA]">built to expose hidden claim value.</span>
-            </p>
-            <p className="mx-auto mt-6 max-w-3xl text-base text-slate-400">
-              Most estimates are reviewed — but not systematically analyzed for scope omissions, pricing suppression, and coverage gaps.
+              Upload your carrier estimate. In under 2 minutes, see every
+              missing line item, suppressed price, and coverage gap — with a
+              demand letter ready to send.
             </p>
           </div>
 
@@ -163,24 +164,16 @@ export default function Home() {
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
-                href="/pricing"
+                href="/analysis-preview"
                 className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-8 py-4 text-base font-semibold text-white hover:bg-[#1E40AF] transition"
               >
-                Run Professional Estimate Analysis →
-              </Link>
-              <Link
-                href="/examples"
-                className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-8 py-4 text-base font-semibold text-slate-200 hover:border-slate-500 hover:text-white transition"
-              >
-                See Example Report
+                Upload Your Estimate — Free Preview
               </Link>
             </div>
 
             <p className="mt-6 text-sm text-slate-400">
-              This is a full line-by-line analysis — not a surface-level review.
-            </p>
-            <p className="mt-4 text-sm text-slate-400">
-              Xactimate-aware. Deterministic output. Structured findings only.
+              No account required to see your preview · Paywall after analysis,
+              not before
             </p>
           </div>
         </section>
@@ -214,6 +207,17 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody className="text-sm">
+                  <tr className="border-b border-slate-800">
+                    <td className="px-6 py-4 font-semibold text-white">
+                      Time to first insight
+                    </td>
+                    <td className="px-6 py-4 text-center text-slate-400">
+                      Hours
+                    </td>
+                    <td className="bg-slate-800/30 px-6 py-4 text-center text-slate-200">
+                      Under 2 minutes
+                    </td>
+                  </tr>
                   <tr className="border-b border-slate-800">
                     <td className="px-6 py-4 font-semibold text-white">
                       Scope Completeness
@@ -422,65 +426,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How It Works */}
-        <section className="mb-20">
-          <h2 className="mb-10 text-center text-3xl font-bold text-white">
-            How It Works
-          </h2>
-          <p className="mb-8 text-center text-base text-slate-400">
-            Used to support contractors, adjusters, and policyholders in documenting and defending claim value.
-          </p>
-          <div className="grid gap-6 md:grid-cols-4">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#2563EB] text-xl font-bold text-white">
-                1
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-white">
-                Upload Estimate
-              </h3>
-              <p className="text-sm text-slate-400">
-                Drag & drop or paste text
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#2563EB] text-xl font-bold text-white">
-                2
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-white">
-                AI Analyzes Scope and Pricing
-              </h3>
-              <p className="text-sm text-slate-400">
-                Parses structure and scope
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#2563EB] text-xl font-bold text-white">
-                3
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-white">
-                Review Structured Findings
-              </h3>
-              <p className="text-sm text-slate-400">
-                Preview results instantly
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-[#2563EB] text-xl font-bold text-white">
-                4
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-white">
-                Export or Save to Dashboard
-              </h3>
-              <p className="text-sm text-slate-400">
-                Download PDF or save
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* Positioning Block */}
         <section className="mb-20 rounded-lg border border-slate-800 bg-slate-900/50 p-10 text-center">
           <p className="text-lg leading-relaxed text-slate-300">
@@ -570,17 +515,22 @@ export default function Home() {
 
         {/* Final CTA */}
         <section className="text-center">
-          <p className="mb-6 text-lg text-slate-300">
-            The goal is simple: identify, quantify, and document underpayment — so it can be properly pursued.
+          <h2 className="mb-3 text-2xl font-bold text-white md:text-3xl">
+            Upload your estimate. See what the carrier missed.
+          </h2>
+          <p className="mx-auto mb-6 max-w-2xl text-lg text-slate-300">
+            No account required to see your preview. Your letter is ready
+            before you pay.
           </p>
           <Link
-            href="/pricing"
+            href="/analysis-preview"
             className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-10 py-4 text-lg font-semibold text-white hover:bg-[#1E40AF] transition"
           >
-            Run Your First Review
+            Upload Your Estimate — Free Preview
           </Link>
           <p className="mt-6 text-sm text-slate-400">
-            Even a single missed line item can exceed the cost of analysis — the value is in identifying what was overlooked.
+            A single identified line item typically recovers the cost of the
+            review many times over.
           </p>
         </section>
       </main>

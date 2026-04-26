@@ -26,7 +26,13 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
         console.info(
           "[TODO] Post-purchase welcome email: not implemented. Supabase Auth has no built-in marketing/welcome email API — add Resend, SendGrid, or an Edge Function with your template (keep idempotent if also triggered from webhooks)."
         );
-        router.replace("/dashboard");
+        const resume =
+          typeof window !== "undefined" &&
+          window.sessionStorage.getItem("erp_resume") === "true" &&
+          Boolean(
+            (window.sessionStorage.getItem("erp_extracted_text") || "").trim()
+          );
+        router.replace(resume ? "/upload" : "/dashboard");
       } else {
         router.replace("/create-account?session_id=" + encodeURIComponent(sessionId));
       }

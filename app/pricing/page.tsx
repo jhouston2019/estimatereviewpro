@@ -118,8 +118,7 @@ export default function PricingPage() {
             Find What the Carrier Missed — In Minutes
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-slate-300 sm:text-xl">
-            AI-powered estimate review that catches scope gaps, pricing errors,
-            and omissions — then builds your case automatically.
+            Start with a single review or subscribe
           </p>
         </div>
 

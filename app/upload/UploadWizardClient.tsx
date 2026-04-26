@@ -27,6 +27,7 @@ import {
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
 import type { Json } from "@/types/database.types";
+import { extractImagesFromPDF, extractTextFromPDF } from "@/lib/estimate-pdf-extract";
 import "./erp-wizard.css";
 
 /** Serialize wizard state to Supabase `Json` (strict `tsc` rejects raw analysis/comparison object types). */
@@ -436,52 +437,6 @@ function extractStatusClassName(doc: ClaimDocument): string {
   return "text-sm text-[#4a5a6a]";
 }
 
-const PDFJS_CDN_VERSION = "4.4.168";
-
-async function extractTextFromPDF(file: File): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist");
-  if (typeof window !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
-  }
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const textPages: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const pageText = textContent.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ");
-    textPages.push(pageText);
-  }
-  return textPages.join("\n\n");
-}
-
-async function extractImagesFromPDF(file: File): Promise<string[]> {
-  const pdfjsLib = await import("pdfjs-dist");
-  if (typeof window !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
-  }
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const images: string[] = [];
-  const maxPages = Math.min(pdf.numPages, 3);
-  for (let i = 1; i <= maxPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) continue;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    const base64 = dataUrl.split(",")[1];
-    if (base64) images.push(base64);
-  }
-  return images;
-}
-
 const initialWizardState = (): WizardState => {
   const base: WizardState = {
     accessToken: "bypass",
@@ -644,6 +599,20 @@ function mergeExtractedClaimMeta(
     extractedKeys.push(key);
   }
   return { claimMeta: next, extractedKeys };
+}
+
+/** Fills required Step 1 metadata when resuming from /analysis-preview after payment. */
+function fillPreviewResumeClaimMeta(m: ClaimMetaFields): ClaimMetaFields {
+  const today = new Date().toISOString().split("T")[0] ?? "";
+  return {
+    ...m,
+    insuredName: m.insuredName?.trim() || "Unknown insured",
+    claimType: m.claimType?.trim() || "property",
+    state: m.state?.trim() || "TX",
+    policyNumber: m.policyNumber?.trim() || "—",
+    claimNumber: m.claimNumber?.trim() || "—",
+    dateOfLoss: m.dateOfLoss?.trim() || today,
+  };
 }
 
 function getDocumentText(carrierText: string | null): string {
@@ -1417,6 +1386,219 @@ export default function UploadPage() {
     announce("Step 1 cleared.");
   }, [announce]);
 
+  const executeStep1Pipeline = useCallback(
+    async (workState: WizardState): Promise<boolean> => {
+      const m = workState.claimMeta;
+      const baseAnalyzeFields = {
+        insuredName: m.insuredName.trim(),
+        claimType: m.claimType,
+        state: m.state,
+        policyNumber: m.policyNumber,
+        claimNumber: m.claimNumber,
+        dateOfLoss: m.dateOfLoss,
+        adjusterName: m.adjusterName,
+        responseDeadline: m.responseDeadline || "",
+      };
+
+      const docCats = categoriesWithNonemptyDocs(workState.documents);
+      const analyzeCategories = docCats.filter((category) =>
+        workState.documents.some(
+          (d) =>
+            d.category === category &&
+            d.side === "CARRIER" &&
+            d.extractedText.trim()
+        )
+      );
+
+      try {
+        const analyzeResults = await Promise.all(
+          analyzeCategories.map(async (category) => {
+            const carrierDocs = workState.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side === "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const otherDocs = workState.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side !== "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const docText = carrierDocs
+              .map((d) => d.extractedText.trim())
+              .join("\n\n---\n\n");
+            const contractorJoined =
+              otherDocs.length > 0
+                ? otherDocs
+                    .map((d) => d.extractedText.trim())
+                    .join("\n\n---\n\n")
+                : null;
+            const analyzePayload: Record<string, unknown> = {
+              ...baseAnalyzeFields,
+              documentText: docText,
+              contractorText: contractorJoined,
+            };
+            if (docCats.length > 1) analyzePayload.category = category;
+            const res = await wizardFetch(
+              netlifyFunctionUrl("analyze-estimate"),
+              {
+                method: "POST",
+                body: JSON.stringify(analyzePayload),
+              }
+            );
+            return { category, res };
+          })
+        );
+
+        const nextAnalyses: Record<string, AnalysisResult> = {};
+        for (const { category, res } of analyzeResults) {
+          if (!res.ok) {
+            await res.text().catch(() => "");
+            setSubmitError("Analysis failed. Please try again.");
+            announce("Analysis request failed.");
+            setSubmitLoading(false);
+            return false;
+          }
+          const analysisJson: unknown = await res.json();
+          const parsedAnalysis = parseAnalysisResult(analysisJson);
+          if (!parsedAnalysis) {
+            setSubmitError("Analysis failed. Please try again.");
+            announce("Analysis parse failed.");
+            setSubmitLoading(false);
+            return false;
+          }
+          nextAnalyses[category] = parsedAnalysis;
+        }
+
+        const compareTargets = new Set<ClaimDocumentCategory>();
+        for (const category of docCats) {
+          const hasCarrier = workState.documents.some(
+            (d) =>
+              d.category === category &&
+              d.side === "CARRIER" &&
+              d.extractedText.trim()
+          );
+          const hasOther = workState.documents.some(
+            (d) =>
+              d.category === category &&
+              d.side !== "CARRIER" &&
+              d.extractedText.trim()
+          );
+          const segs = carrierVersionSegmentsForCategory(
+            workState.documents,
+            category
+          );
+          if ((hasCarrier && hasOther) || segs.length >= 2) {
+            compareTargets.add(category);
+          }
+        }
+
+        const compareResults = await Promise.all(
+          [...compareTargets].map(async (category) => {
+            const segs = carrierVersionSegmentsForCategory(
+              workState.documents,
+              category
+            );
+            const latestText = segs[segs.length - 1]?.text ?? "";
+            const otherDocs = workState.documents.filter(
+              (d) =>
+                d.category === category &&
+                d.side !== "CARRIER" &&
+                d.extractedText.trim()
+            );
+            const contractorJoined =
+              otherDocs.length > 0
+                ? otherDocs
+                    .map((d) => d.extractedText.trim())
+                    .join("\n\n---\n\n")
+                : null;
+
+            let versionDiff:
+              | {
+                  previousText: string;
+                  currentText: string;
+                  previousVersion: string;
+                  currentVersion: string;
+                }
+              | undefined;
+            if (segs.length >= 2) {
+              const prev = segs[segs.length - 2]!;
+              const curr = segs[segs.length - 1]!;
+              versionDiff = {
+                previousText: prev.text,
+                currentText: curr.text,
+                previousVersion: prev.version,
+                currentVersion: curr.version,
+              };
+            }
+
+            const compareBody: Record<string, unknown> = {
+              carrierText: latestText,
+              contractorText: contractorJoined,
+              claimType: m.claimType,
+            };
+            if (docCats.length > 1) compareBody.category = category;
+            if (versionDiff) compareBody.versionDiff = versionDiff;
+
+            const res = await wizardFetch(
+              netlifyFunctionUrl("compare-estimates"),
+              {
+                method: "POST",
+                body: JSON.stringify(compareBody),
+              }
+            );
+            return { category, res };
+          })
+        );
+
+        const nextComparisons: Record<string, ComparisonResult> = {};
+        for (const { category, res } of compareResults) {
+          if (!res.ok) {
+            await res.text().catch(() => "");
+            setSubmitError("Comparison failed. Please try again.");
+            announce("Compare request failed.");
+            setSubmitLoading(false);
+            return false;
+          }
+          const compareJson: unknown = await res.json();
+          const parsedComparison = parseComparisonResult(compareJson);
+          if (!parsedComparison) {
+            setSubmitError("Comparison failed. Please try again.");
+            announce("Comparison parse failed.");
+            setSubmitLoading(false);
+            return false;
+          }
+          nextComparisons[category] = parsedComparison;
+        }
+
+        setState((s) =>
+          withDerived(
+            {
+              ...s,
+              claimMeta: workState.claimMeta,
+              documents: workState.documents,
+            },
+            {
+              analyses: nextAnalyses,
+              comparisons: nextComparisons,
+            }
+          )
+        );
+        setSubmitLoading(false);
+        setCurrentStep(2);
+        announce("Step 2 — Analysis.");
+        return true;
+      } catch {
+        setSubmitError("Analysis failed. Please try again.");
+        announce("Analysis request error.");
+        setSubmitLoading(false);
+        return false;
+      }
+    },
+    [announce]
+  );
+
   const onSubmitStep1 = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1477,213 +1659,75 @@ export default function UploadPage() {
       }
       setSubmitLoading(true);
       announce("Calling analysis services…");
+      await executeStep1Pipeline(state);
+    },
+    [state, announce, executeStep1Pipeline]
+  );
 
-      const baseAnalyzeFields = {
-        insuredName: m.insuredName.trim(),
-        claimType: m.claimType,
-        state: m.state,
-        policyNumber: m.policyNumber,
-        claimNumber: m.claimNumber,
-        dateOfLoss: m.dateOfLoss,
-        adjusterName: m.adjusterName,
-        responseDeadline: m.responseDeadline || "",
-      };
+  const previewResumeStartedRef = useRef(false);
 
-      const docCats = categoriesWithNonemptyDocs(state.documents);
-      const analyzeCategories = docCats.filter((category) =>
-        state.documents.some(
-          (d) =>
-            d.category === category &&
-            d.side === "CARRIER" &&
-            d.extractedText.trim()
-        )
-      );
+  useEffect(() => {
+    if (!state.sessionReady) return;
+    if (previewResumeStartedRef.current) return;
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem("erp_resume") !== "true") return;
+    const raw = window.sessionStorage.getItem("erp_extracted_text");
+    if (!raw?.trim()) return;
 
-      try {
-        const analyzeResults = await Promise.all(
-          analyzeCategories.map(async (category) => {
-            const carrierDocs = state.documents.filter(
-              (d) =>
-                d.category === category &&
-                d.side === "CARRIER" &&
-                d.extractedText.trim()
-            );
-            const otherDocs = state.documents.filter(
-              (d) =>
-                d.category === category &&
-                d.side !== "CARRIER" &&
-                d.extractedText.trim()
-            );
-            const docText = carrierDocs
-              .map((d) => d.extractedText.trim())
-              .join("\n\n---\n\n");
-            const contractorJoined =
-              otherDocs.length > 0
-                ? otherDocs
-                    .map((d) => d.extractedText.trim())
-                    .join("\n\n---\n\n")
-                : null;
-            const analyzePayload: Record<string, unknown> = {
-              ...baseAnalyzeFields,
-              documentText: docText,
-              contractorText: contractorJoined,
-            };
-            if (docCats.length > 1) analyzePayload.category = category;
-            const res = await wizardFetch(
-              netlifyFunctionUrl("analyze-estimate"),
-              {
-                method: "POST",
-                body: JSON.stringify(analyzePayload),
-              }
-            );
-            return { category, res };
-          })
-        );
-
-        const nextAnalyses: Record<string, AnalysisResult> = {};
-        for (const { category, res } of analyzeResults) {
-          if (!res.ok) {
-            await res.text().catch(() => "");
-            setSubmitError("Analysis failed. Please try again.");
-            announce("Analysis request failed.");
-            setSubmitLoading(false);
-            return;
+    previewResumeStartedRef.current = true;
+    const text = raw.trim();
+    const base = initialWizardState();
+    const merged = mergeExtractedClaimMeta(
+      base.claimMeta,
+      extractClaimMetaFromText(text)
+    );
+    const claimMeta = fillPreviewResumeClaimMeta(merged.claimMeta);
+    const documents = base.documents.map((d) =>
+      d.id === INITIAL_CARRIER_DOCUMENT_ID
+        ? {
+            ...d,
+            extractedText: text,
+            extractStatus: "done" as const,
+            statusMessage: "Restored from your free preview.",
+            autoDetected: true,
+            category: autoDetectCategory(text),
+            label: d.labelLocked
+              ? d.label
+              : buildDefaultLabel(
+                  d.side,
+                  autoDetectCategory(text),
+                  d.version
+                ),
           }
-          const analysisJson: unknown = await res.json();
-          const parsedAnalysis = parseAnalysisResult(analysisJson);
-          if (!parsedAnalysis) {
-            setSubmitError("Analysis failed. Please try again.");
-            announce("Analysis parse failed.");
-            setSubmitLoading(false);
-            return;
-          }
-          nextAnalyses[category] = parsedAnalysis;
-        }
+        : d
+    );
+    const workState = withDerived(
+      {
+        ...base,
+        accessToken: state.accessToken,
+        sessionReady: true,
+        claimMeta,
+        documents,
+      },
+      {}
+    );
 
-        const compareTargets = new Set<ClaimDocumentCategory>();
-        for (const category of docCats) {
-          const hasCarrier = state.documents.some(
-            (d) =>
-              d.category === category &&
-              d.side === "CARRIER" &&
-              d.extractedText.trim()
-          );
-          const hasOther = state.documents.some(
-            (d) =>
-              d.category === category &&
-              d.side !== "CARRIER" &&
-              d.extractedText.trim()
-          );
-          const segs = carrierVersionSegmentsForCategory(
-            state.documents,
-            category
-          );
-          if ((hasCarrier && hasOther) || segs.length >= 2) {
-            compareTargets.add(category);
-          }
-        }
+    setSubmitLoading(true);
+    setSubmitError(null);
+    announce("Resuming your estimate from preview — running full analysis…");
 
-        const compareResults = await Promise.all(
-          [...compareTargets].map(async (category) => {
-            const segs = carrierVersionSegmentsForCategory(
-              state.documents,
-              category
-            );
-            const latestText = segs[segs.length - 1]?.text ?? "";
-            const otherDocs = state.documents.filter(
-              (d) =>
-                d.category === category &&
-                d.side !== "CARRIER" &&
-                d.extractedText.trim()
-            );
-            const contractorJoined =
-              otherDocs.length > 0
-                ? otherDocs
-                    .map((d) => d.extractedText.trim())
-                    .join("\n\n---\n\n")
-                : null;
-
-            let versionDiff:
-              | {
-                  previousText: string;
-                  currentText: string;
-                  previousVersion: string;
-                  currentVersion: string;
-                }
-              | undefined;
-            if (segs.length >= 2) {
-              const prev = segs[segs.length - 2]!;
-              const curr = segs[segs.length - 1]!;
-              versionDiff = {
-                previousText: prev.text,
-                currentText: curr.text,
-                previousVersion: prev.version,
-                currentVersion: curr.version,
-              };
-            }
-
-            const compareBody: Record<string, unknown> = {
-              carrierText: latestText,
-              contractorText: contractorJoined,
-              claimType: m.claimType,
-            };
-            if (docCats.length > 1) compareBody.category = category;
-            if (versionDiff) compareBody.versionDiff = versionDiff;
-
-            const res = await wizardFetch(
-              netlifyFunctionUrl("compare-estimates"),
-              {
-                method: "POST",
-                body: JSON.stringify(compareBody),
-              }
-            );
-            return { category, res };
-          })
-        );
-
-        const nextComparisons: Record<string, ComparisonResult> = {};
-        for (const { category, res } of compareResults) {
-          if (!res.ok) {
-            await res.text().catch(() => "");
-            setSubmitError("Comparison failed. Please try again.");
-            announce("Compare request failed.");
-            setSubmitLoading(false);
-            return;
-          }
-          const compareJson: unknown = await res.json();
-          const parsedComparison = parseComparisonResult(compareJson);
-          if (!parsedComparison) {
-            setSubmitError("Comparison failed. Please try again.");
-            announce("Comparison parse failed.");
-            setSubmitLoading(false);
-            return;
-          }
-          nextComparisons[category] = parsedComparison;
-        }
-
-        setState((s) =>
-          withDerived(s, {
-            analyses: nextAnalyses,
-            comparisons: nextComparisons,
-          })
-        );
-        setSubmitLoading(false);
-        setCurrentStep(2);
-        announce("Step 2 — Analysis.");
-      } catch {
-        setSubmitError("Analysis failed. Please try again.");
-        announce("Analysis request error.");
+    void (async () => {
+      const ok = await executeStep1Pipeline(workState);
+      if (ok) {
+        window.sessionStorage.removeItem("erp_resume");
+        window.sessionStorage.removeItem("erp_extracted_text");
+      } else {
+        previewResumeStartedRef.current = false;
+        setState(workState);
         setSubmitLoading(false);
       }
-    },
-    [
-      state.carrierText,
-      state.contractorText,
-      state.documents,
-      state.claimMeta,
-      announce,
-    ]
-  );
+    })();
+  }, [state.sessionReady, state.accessToken, executeStep1Pipeline]);
 
   const onStep2Back = useCallback(() => {
     setCurrentStep(1);
