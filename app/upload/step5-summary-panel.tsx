@@ -35,6 +35,8 @@ type Props = {
   announce: (message: string) => void;
   isPreviewMode?: boolean;
   wizardApiFetch?: WizardApiFetch;
+  onPreviewUnlock?: () => void | Promise<void>;
+  previewUnlockBusy?: boolean;
 };
 
 function formatMoney(n: number): string {
@@ -272,6 +274,8 @@ export function Step5SummaryPanel({
   announce,
   isPreviewMode = false,
   wizardApiFetch,
+  onPreviewUnlock,
+  previewUnlockBusy = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
@@ -396,6 +400,14 @@ export function Step5SummaryPanel({
         ? "text-[22px] font-medium text-[#b83030]"
         : "text-[22px] font-medium text-[#7a8a9a]";
 
+  const scopeSource = a?.scopeOmissions;
+  const hasRealScopeOmissions = Boolean(scopeSource?.length);
+  const restScopeOmissions: string[] =
+    hasRealScopeOmissions && scopeSource!.length > 1
+      ? scopeSource!.slice(1)
+      : [];
+  const previewBlurClass = "select-none [filter:blur(5px)] pointer-events-none";
+
   return (
     <div className="text-[#2a3a4a]">
       <h2
@@ -482,6 +494,8 @@ export function Step5SummaryPanel({
           </div>
         </section>
 
+        {!isPreviewMode ? (
+          <>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-0">
             <div className="border-b border-[#ebebea] pb-3">
@@ -758,6 +772,370 @@ export function Step5SummaryPanel({
             )}
           </div>
         </section>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div className="flex flex-col gap-0">
+                <div className="border-b border-[#ebebea] pb-3">
+                  <h3 className={sectionHeading}>Scope omissions</h3>
+                  <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                    {!a?.scopeOmissions?.length ? (
+                      <p className="text-sm italic text-[#7a8a9a]">
+                        None identified.
+                      </p>
+                    ) : (
+                      <ul
+                        id="erp-step5-scope-list"
+                        className="flex flex-col gap-1.5 text-sm"
+                      >
+                        <li
+                          id="erp-step5-scope-1"
+                          className="flex gap-2 text-[#2a3a4a]"
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-amber"
+                            aria-hidden
+                          />
+                          <span>{scopeSource![0]}</span>
+                        </li>
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="hidden min-h-0 lg:block" aria-hidden />
+            </div>
+
+            <div className="relative">
+              <div className={previewBlurClass}>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="flex flex-col gap-0">
+                    {restScopeOmissions.length > 0 && (
+                      <div className="border-b border-[#ebebea] pb-3">
+                        <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                          <ul
+                            id="erp-step5-scope-list-rest"
+                            className="flex flex-col gap-1.5 text-sm"
+                          >
+                            {restScopeOmissions.map((t, i) => (
+                              <li
+                                key={`rest-scope-${i}`}
+                                className="flex gap-2 text-[#2a3a4a]"
+                              >
+                                <span
+                                  className="erp-find-dot erp-find-dot-amber"
+                                  aria-hidden
+                                />
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border-b border-[#ebebea] pb-3">
+                      <h3 className={sectionHeading}>
+                        Pricing suppression flags
+                      </h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        {!a?.pricingFlags?.length ? (
+                          <p className="text-sm italic text-[#7a8a9a]">
+                            None identified.
+                          </p>
+                        ) : (
+                          <ul
+                            id="erp-step5-pricing-list"
+                            className="flex flex-col gap-1.5 text-sm"
+                          >
+                            {pricing.map((t, i) => (
+                              <li
+                                key={i}
+                                id={`erp-step5-pricing-${i + 1}`}
+                                className="flex gap-2 text-[#2a3a4a]"
+                              >
+                                <span
+                                  className="erp-find-dot erp-find-dot-amber"
+                                  aria-hidden
+                                />
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-b border-[#ebebea] pb-3">
+                      <h3 className={sectionHeading}>Code upgrade gaps</h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        {!a?.codeUpgradeGaps?.length ? (
+                          <p className="text-sm italic text-[#7a8a9a]">
+                            None identified.
+                          </p>
+                        ) : (
+                          <ul
+                            id="erp-step5-code-list"
+                            className="flex flex-col gap-1.5 text-sm"
+                          >
+                            {codes.map((t, i) => (
+                              <li
+                                key={i}
+                                id={`erp-step5-code-${i + 1}`}
+                                className="flex gap-2 text-[#2a3a4a]"
+                              >
+                                <span
+                                  className="erp-find-dot erp-find-dot-navy"
+                                  aria-hidden
+                                />
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-b border-[#ebebea] pb-3">
+                      <h3 className={sectionHeading}>O&amp;P findings</h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        {!a?.opFindings?.length ? (
+                          <p className="text-sm italic text-[#7a8a9a]">
+                            None identified.
+                          </p>
+                        ) : (
+                          <ul
+                            id="erp-step5-op-list"
+                            className="flex flex-col gap-1.5 text-sm"
+                          >
+                            {ops.map((t, i) => (
+                              <li
+                                key={i}
+                                id={`erp-step5-op-${i + 1}`}
+                                className="flex gap-2 text-[#2a3a4a]"
+                              >
+                                <span
+                                  className="erp-find-dot erp-find-dot-navy"
+                                  aria-hidden
+                                />
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-b border-[#ebebea] pb-3 last:border-0 last:pb-0">
+                      <h3 className={sectionHeading}>Procedural defects</h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        {!a?.proceduralDefects?.length ? (
+                          <p className="text-sm italic text-[#7a8a9a]">
+                            None identified.
+                          </p>
+                        ) : (
+                          <ul
+                            id="erp-step5-procedural-list"
+                            className="flex flex-col gap-1.5 text-sm"
+                          >
+                            {procs.map((t, i) => (
+                              <li
+                                key={i}
+                                id={`erp-step5-proc-${i + 1}`}
+                                className="flex gap-2 text-[#2a3a4a]"
+                              >
+                                <span
+                                  className="erp-find-dot erp-find-dot-red"
+                                  aria-hidden
+                                />
+                                <span>{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-0">
+                    {comparison && (
+                      <section
+                        id="erp-step5-comparison-block"
+                        className="mb-4 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4"
+                      >
+                        <h3 className={sectionHeading}>
+                          Comparison totals
+                        </h3>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white py-2 pl-3 pr-2">
+                            <p className="text-xl font-medium text-[#1a2a3a]">
+                              {formatMoney(comparison.totalCarrier)}
+                            </p>
+                            <p className="mt-1 text-xs text-[#7a8a9a]">
+                              Total carrier
+                            </p>
+                          </div>
+                          <div className={STEP5_METRIC_AMBER}>
+                            <p className="text-xl font-medium text-[#1a2a3a]">
+                              {formatMoney(comparison.totalContractor)}
+                            </p>
+                            <p className="mt-1 text-xs text-[#7a8a9a]">
+                              Total contractor / recon
+                            </p>
+                          </div>
+                          <div className={STEP5_METRIC_RED}>
+                            <p className="text-xl font-medium text-[#b83030]">
+                              {formatMoney(comparison.totalDelta)}
+                            </p>
+                            <p className="mt-1 text-xs text-[#9a9a94]">
+                              Total delta
+                            </p>
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    <section
+                      id="erp-step5-strategy-block"
+                      className="border-b border-[#ebebea] pb-3"
+                    >
+                      <h3 className={sectionHeading}>Selected strategy</h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        <p className="py-2 text-sm font-medium text-[#1a2a3a]">
+                          {strategy ? formatStrategyLabel(strategy) : "—"}
+                        </p>
+                        <p className="text-sm text-[#7a8a9a]">
+                          {strategyRationaleFromAnalysis(analysis, strategy)}
+                        </p>
+                      </div>
+                    </section>
+
+                    <section className="pb-2 pt-2">
+                      <h3 className={sectionHeading}>Action items</h3>
+                      <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                        {!a?.actionItems?.length ? (
+                          <p className="text-sm italic text-[#7a8a9a]">
+                            None listed.
+                          </p>
+                        ) : (
+                          <ul
+                            id="erp-step5-action-list"
+                            className="flex flex-col gap-1.5 text-[#2a3a4a]"
+                          >
+                            {actions.map((t, i) => (
+                              <li
+                                key={i}
+                                id={`erp-step5-action-${i + 1}`}
+                                className="flex gap-2"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="erp-action-check"
+                                  checked={checkedActions.has(i)}
+                                  onChange={() => toggleActionItem(i)}
+                                  tabIndex={-1}
+                                  aria-hidden
+                                />
+                                <span
+                                  id={`erp-step5-action-label-${i + 1}`}
+                                  className="text-sm"
+                                >
+                                  {t}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+
+                <section className="border-b border-[#ebebea] pb-3">
+                  <h3 className={sectionHeading}>Required documents</h3>
+                  <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                    {!a?.requiredDocuments?.length ? (
+                      <p className="text-sm italic text-[#7a8a9a]">
+                        None listed.
+                      </p>
+                    ) : (
+                      <ul
+                        id="erp-step5-docs-list"
+                        className="flex flex-col gap-1.5 text-sm"
+                      >
+                        {docs.map((t, i) => (
+                          <li
+                            key={i}
+                            id={`erp-step5-doc-${i + 1}`}
+                            className="flex gap-2 text-[#2a3a4a]"
+                          >
+                            <span
+                              className="erp-find-dot erp-find-dot-navy"
+                              aria-hidden
+                            />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </section>
+
+                <section className="pb-2">
+                  <h3 className={sectionHeading}>Escalation options</h3>
+                  <div className={`${STEP5_WHITE_PANEL} mt-1`}>
+                    {!a?.escalationOptions?.length ? (
+                      <p className="text-sm italic text-[#7a8a9a]">
+                        None listed.
+                      </p>
+                    ) : (
+                      <ul
+                        id="erp-step5-escalation-list"
+                        className="flex flex-col gap-1.5 text-sm"
+                      >
+                        {esc.map((t, i) => (
+                          <li
+                            key={i}
+                            id={`erp-step5-escalation-${i + 1}`}
+                            className="flex gap-2 text-[#2a3a4a]"
+                          >
+                            <span
+                              className="erp-find-dot erp-find-dot-navy"
+                              aria-hidden
+                            />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </section>
+              </div>
+              <div
+                className="pointer-events-none absolute inset-0 z-20 flex min-h-[14rem] items-center justify-center px-4 py-6 sm:min-h-[18rem]"
+                role="region"
+                aria-label="Preview gate"
+              >
+                <div className="pointer-events-auto max-w-md rounded-xl border border-[#e0e0dc] bg-white px-6 py-5 text-center shadow-md">
+                  <p className="text-sm font-medium text-[#1a2a3a]">
+                    Unlock to see your full findings
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onPreviewUnlock?.()}
+                    disabled={!onPreviewUnlock || previewUnlockBusy}
+                    className="erp-btn-cta mt-4 w-full max-w-sm disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {previewUnlockBusy
+                      ? "Preparing…"
+                      : "Unlock My Analysis — $49"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3 border-t-[0.5px] border-[#1e3f6e] pt-6">

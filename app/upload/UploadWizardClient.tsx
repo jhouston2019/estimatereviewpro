@@ -3082,6 +3082,8 @@ export default function UploadWizardClient({
               announce={announce}
               isPreviewMode={isPreviewMode}
               wizardApiFetch={wizardApiFetch}
+              onPreviewUnlock={handlePreviewUnlock}
+              previewUnlockBusy={previewUnlockBusy}
             />
           </section>
           <section
