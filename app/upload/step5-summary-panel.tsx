@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { LockIcon } from "@/components/LockIcon";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 import {
@@ -21,6 +22,8 @@ type ClaimMeta = {
   responseDeadline: string;
 };
 
+type WizardApiFetch = typeof wizardFetch;
+
 type Props = {
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
@@ -30,6 +33,8 @@ type Props = {
   onGoToLetter: () => void;
   onStartOver: () => void;
   announce: (message: string) => void;
+  isPreviewMode?: boolean;
+  wizardApiFetch?: WizardApiFetch;
 };
 
 function formatMoney(n: number): string {
@@ -265,7 +270,10 @@ export function Step5SummaryPanel({
   onGoToLetter,
   onStartOver,
   announce,
+  isPreviewMode = false,
+  wizardApiFetch,
 }: Props) {
+  const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -308,7 +316,7 @@ export function Step5SummaryPanel({
 
   const downloadPdf = useCallback(async () => {
     const text = buildSummaryText(analysis, comparison, claimMeta, strategy);
-    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
       body: JSON.stringify({ text, fileName: "wizard-summary.pdf" }),
     });
@@ -326,7 +334,7 @@ export function Step5SummaryPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary PDF downloaded.");
-  }, [analysis, comparison, claimMeta, strategy, announce]);
+  }, [analysis, comparison, claimMeta, strategy, announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step5-print-root");
@@ -335,7 +343,7 @@ export function Step5SummaryPanel({
       return;
     }
     const text = root.innerText;
-    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify({ text, fileName: "wizard-summary.docx" }),
     });
@@ -353,7 +361,7 @@ export function Step5SummaryPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary Word document downloaded.");
-  }, [analysis, announce, claimMeta, comparison, strategy]);
+  }, [analysis, announce, claimMeta, comparison, strategy, fetcher]);
 
   const carrierNameDisplay = claimMeta.carrierName?.trim() || "—";
 
@@ -753,22 +761,51 @@ export function Step5SummaryPanel({
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3 border-t-[0.5px] border-[#1e3f6e] pt-6">
-        <button
-          id="erp-step5-download-pdf"
-          type="button"
-          className="erp-btn-ghost-panel"
-          onClick={() => void downloadPdf()}
-        >
-          Download PDF
-        </button>
-        <button
-          id="erp-step5-download-word"
-          type="button"
-          className="erp-btn-ghost-panel"
-          onClick={() => void downloadWord()}
-        >
-          Download Word
-        </button>
+        {isPreviewMode ? (
+          <>
+            <button
+              type="button"
+              disabled
+              title="Unlock your analysis to export"
+              className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="h-4 w-4" />
+                Unlock to Download PDF
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Unlock your analysis to export"
+              className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="h-4 w-4" />
+                Unlock to Download Word
+              </span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              id="erp-step5-download-pdf"
+              type="button"
+              className="erp-btn-ghost-panel"
+              onClick={() => void downloadPdf()}
+            >
+              Download PDF
+            </button>
+            <button
+              id="erp-step5-download-word"
+              type="button"
+              className="erp-btn-ghost-panel"
+              onClick={() => void downloadWord()}
+            >
+              Download Word
+            </button>
+          </>
+        )}
       </div>
 
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">

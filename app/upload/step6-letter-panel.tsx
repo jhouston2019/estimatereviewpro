@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { LockIcon } from "@/components/LockIcon";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 
@@ -105,6 +106,8 @@ function syncExportSource(text: string) {
   if (el) el.textContent = text;
 }
 
+type WizardApiFetch = typeof wizardFetch;
+
 type Props = {
   active: boolean;
   letterType: string | null;
@@ -119,6 +122,10 @@ type Props = {
   onBack: () => void;
   onStartOver: () => void;
   announce: (message: string) => void;
+  isPreviewMode?: boolean;
+  wizardApiFetch?: WizardApiFetch;
+  onPreviewUnlock?: () => void;
+  previewUnlockBusy?: boolean;
 };
 
 export function Step6LetterPanel({
@@ -135,7 +142,12 @@ export function Step6LetterPanel({
   onBack,
   onStartOver,
   announce,
+  isPreviewMode = false,
+  wizardApiFetch,
+  onPreviewUnlock,
+  previewUnlockBusy = false,
 }: Props) {
+  const fetcher = wizardApiFetch ?? wizardFetch;
   useEffect(() => {
     if (!active || !showLetterEditor) return;
     syncExportSource(letterRaw ?? "");
@@ -177,7 +189,7 @@ export function Step6LetterPanel({
       return;
     }
     const text = root.innerText;
-    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
       body: JSON.stringify({ text, fileName: "estimate-letter.pdf" }),
     });
@@ -195,7 +207,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [announce]);
+  }, [announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step6-letter-export-source");
@@ -204,7 +216,7 @@ export function Step6LetterPanel({
       return;
     }
     const text = root.innerText;
-    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify({ text, fileName: "estimate-letter.docx" }),
     });
@@ -222,7 +234,7 @@ export function Step6LetterPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce]);
+  }, [announce, fetcher]);
 
   const patchField = (key: keyof LetterPlaceholderFields, value: string) => {
     onLetterPlaceholdersChange({ [key]: value });
@@ -425,6 +437,7 @@ export function Step6LetterPanel({
             type="button"
             className="erp-btn-ghost-panel"
             onClick={applyPlaceholders}
+            disabled={isPreviewMode}
           >
             Apply placeholders to letter
           </button>
@@ -435,14 +448,41 @@ export function Step6LetterPanel({
           >
             Letter
           </label>
-          <textarea
-            id="erp-step6-letter-editor"
-            rows={18}
-            spellCheck={false}
-            className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
-            value={letterRaw ?? ""}
-            onChange={onEditorChange}
-          />
+          {isPreviewMode && letterRaw ? (
+            <div className="relative min-h-[280px] rounded-md border border-[#e0e0dc] bg-white">
+              <div
+                className="max-h-[min(480px,70vh)] min-h-[240px] overflow-y-auto whitespace-pre-wrap border-0 p-4 font-mono text-sm leading-relaxed text-[#2a3a4a] [filter:blur(6px)] [user-select:none] [pointer-events:none]"
+                aria-hidden
+              >
+                {letterRaw}
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a1e38]/75 px-4 text-center">
+                <LockIcon className="mb-2 h-10 w-10 text-white" />
+                <p className="text-sm font-medium text-white">
+                  Your demand letter is ready. Unlock to read.
+                </p>
+                {onPreviewUnlock ? (
+                  <button
+                    type="button"
+                    disabled={previewUnlockBusy}
+                    onClick={onPreviewUnlock}
+                    className="mt-4 inline-flex min-w-[200px] items-center justify-center rounded-lg bg-[#f0a050] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {previewUnlockBusy ? "Redirecting…" : "Unlock My Analysis — $49"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <textarea
+              id="erp-step6-letter-editor"
+              rows={18}
+              spellCheck={false}
+              className="w-full rounded-md border-[0.5px] border-[#e0e0dc] bg-white px-3 py-2 font-mono text-sm leading-relaxed text-[#2a3a4a] focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+              value={letterRaw ?? ""}
+              onChange={onEditorChange}
+            />
+          )}
 
           </div>
 
@@ -458,25 +498,55 @@ export function Step6LetterPanel({
               type="button"
               className="erp-btn-ghost-panel"
               onClick={() => void copyLetter()}
+              disabled={isPreviewMode}
             >
               Copy letter
             </button>
-            <button
-              id="erp-step6-download-pdf"
-              type="button"
-              className="erp-btn-ghost-panel"
-              onClick={() => void downloadPdf()}
-            >
-              Download PDF
-            </button>
-            <button
-              id="erp-step6-download-word"
-              type="button"
-              className="erp-btn-ghost-panel"
-              onClick={() => void downloadWord()}
-            >
-              Download Word
-            </button>
+            {isPreviewMode ? (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  title="Unlock your analysis to export"
+                  className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <LockIcon className="h-4 w-4" />
+                    Unlock to Download PDF
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  title="Unlock your analysis to export"
+                  className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <LockIcon className="h-4 w-4" />
+                    Unlock to Download Word
+                  </span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  id="erp-step6-download-pdf"
+                  type="button"
+                  className="erp-btn-ghost-panel"
+                  onClick={() => void downloadPdf()}
+                >
+                  Download PDF
+                </button>
+                <button
+                  id="erp-step6-download-word"
+                  type="button"
+                  className="erp-btn-ghost-panel"
+                  onClick={() => void downloadWord()}
+                >
+                  Download Word
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

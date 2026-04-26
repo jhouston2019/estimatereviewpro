@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { LockIcon } from "@/components/LockIcon";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 import type {
@@ -55,12 +56,18 @@ function riskBadgeClass(_risk: AnalysisResult["riskLevel"]): string {
   return "border-transparent bg-[#f0a050] text-white";
 }
 
+type WizardApiFetch = typeof wizardFetch;
+
 type Props = {
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
   onBack: () => void;
   onNext: () => void;
   announce: (message: string) => void;
+  /** Unauthenticated /analysis-preview: locked exports, partial narrative blur. */
+  isPreviewMode?: boolean;
+  /** Defaults to `wizardFetch` for authenticated /upload. */
+  wizardApiFetch?: WizardApiFetch;
 };
 
 const STEP2_ACTIONS_KEY = "erp_actions_step2";
@@ -76,7 +83,10 @@ export function Step2AnalysisPanel({
   onBack,
   onNext,
   announce,
+  isPreviewMode = false,
+  wizardApiFetch,
 }: Props) {
+  const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -124,7 +134,7 @@ export function Step2AnalysisPanel({
       return;
     }
     const text = root.innerText;
-    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
       body: JSON.stringify({
         text,
@@ -145,7 +155,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [announce]);
+  }, [announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
     const root = document.getElementById("erp-step2-print-root");
@@ -154,7 +164,7 @@ export function Step2AnalysisPanel({
       return;
     }
     const text = root.innerText;
-    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify({
         text,
@@ -175,7 +185,37 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce]);
+  }, [announce, fetcher]);
+
+  const previewFindingMap = useMemo(() => {
+    const m = new Map<string, number>();
+    if (!analysis) return m;
+    let g = 0;
+    const add = (arr: string[] | undefined, p: string) => {
+      if (!arr) return;
+      for (let i = 0; i < arr.length; i += 1) m.set(`${p}:${i}`, g++);
+    };
+    add(analysis.proceduralDefects, "pc");
+    add(analysis.scopeOmissions, "om");
+    add(analysis.pricingFlags, "pr");
+    add(analysis.codeUpgradeGaps, "cd");
+    add(analysis.opFindings, "op");
+    add(analysis.disputeAngles, "an");
+    add(analysis.actionItems, "ac");
+    add(analysis.requiredDocuments, "rq");
+    add(analysis.escalationOptions, "es");
+    return m;
+  }, [analysis]);
+
+  const previewMoreFindings = useMemo(() => {
+    if (!isPreviewMode) return 0;
+    return Math.max(0, previewFindingMap.size - 3);
+  }, [isPreviewMode, previewFindingMap.size]);
+
+  const blurFinding = (key: string) =>
+    isPreviewMode && (previewFindingMap.get(key) ?? 0) >= 3
+      ? "filter blur-[4px] select-none [pointer-events:none]"
+      : "";
 
   const omissionItems = useMemo(() => {
     if (!analysis?.scopeOmissions.length) return ["None identified."];
@@ -272,22 +312,53 @@ export function Step2AnalysisPanel({
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          id="erp-step2-download-analysis-pdf"
-          type="button"
-          className="erp-btn-ghost-panel"
-          onClick={() => void downloadPdf()}
-        >
-          Download PDF
-        </button>
-        <button
-          id="erp-step2-download-analysis-word"
-          type="button"
-          className="erp-btn-ghost-panel"
-          onClick={() => void downloadWord()}
-        >
-          Download Word
-        </button>
+        {isPreviewMode ? (
+          <>
+            <button
+              id="erp-step2-download-analysis-pdf"
+              type="button"
+              disabled
+              title="Unlock your analysis to export"
+              className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="h-4 w-4 shrink-0" />
+                Unlock to Download PDF
+              </span>
+            </button>
+            <button
+              id="erp-step2-download-analysis-word"
+              type="button"
+              disabled
+              title="Unlock your analysis to export"
+              className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LockIcon className="h-4 w-4 shrink-0" />
+                Unlock to Download Word
+              </span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              id="erp-step2-download-analysis-pdf"
+              type="button"
+              className="erp-btn-ghost-panel"
+              onClick={() => void downloadPdf()}
+            >
+              Download PDF
+            </button>
+            <button
+              id="erp-step2-download-analysis-word"
+              type="button"
+              className="erp-btn-ghost-panel"
+              onClick={() => void downloadWord()}
+            >
+              Download Word
+            </button>
+          </>
+        )}
       </div>
 
       <div
@@ -353,7 +424,9 @@ export function Step2AnalysisPanel({
                       <li
                         key={i}
                         id={`erp-step2-proc-${i + 1}`}
-                        className="flex gap-2 text-sm text-[#2a3a4a]"
+                        className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                          `pc:${i}`
+                        )}`}
                       >
                         <span
                           className="erp-find-dot erp-find-dot-red"
@@ -381,7 +454,9 @@ export function Step2AnalysisPanel({
                         <li
                           key={i}
                           id={`erp-step2-omission-${i + 1}`}
-                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                          className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                            `om:${i}`
+                          )}`}
                         >
                           <span
                             className="erp-find-dot erp-find-dot-amber"
@@ -408,7 +483,9 @@ export function Step2AnalysisPanel({
                         <li
                           key={i}
                           id={`erp-step2-pricing-${i + 1}`}
-                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                          className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                            `pr:${i}`
+                          )}`}
                         >
                           <span
                             className="erp-find-dot erp-find-dot-amber"
@@ -435,7 +512,9 @@ export function Step2AnalysisPanel({
                         <li
                           key={i}
                           id={`erp-step2-code-${i + 1}`}
-                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                          className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                            `cd:${i}`
+                          )}`}
                         >
                           <span
                             className="erp-find-dot erp-find-dot-navy"
@@ -462,7 +541,9 @@ export function Step2AnalysisPanel({
                         <li
                           key={i}
                           id={`erp-step2-op-${i + 1}`}
-                          className="flex gap-2 text-sm text-[#2a3a4a]"
+                          className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                            `op:${i}`
+                          )}`}
                         >
                           <span
                             className="erp-find-dot erp-find-dot-navy"
@@ -494,7 +575,9 @@ export function Step2AnalysisPanel({
                     <li
                       key={i}
                       id={`erp-step2-angle-${i + 1}`}
-                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                      className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                        `an:${i}`
+                      )}`}
                     >
                       <span
                         className="erp-find-dot erp-find-dot-red"
@@ -519,7 +602,11 @@ export function Step2AnalysisPanel({
               ) : (
                 <ul className="flex flex-col gap-1.5 text-sm text-[#2a3a4a]">
                   {actionItems.map((t, i) => (
-                    <li key={i} id={`erp-step2-action-${i + 1}`} className="flex gap-2">
+                    <li
+                      key={i}
+                      id={`erp-step2-action-${i + 1}`}
+                      className={`flex gap-2 ${blurFinding(`ac:${i}`)}`}
+                    >
                       <input
                         type="checkbox"
                         className="erp-action-check"
@@ -549,7 +636,9 @@ export function Step2AnalysisPanel({
                     <li
                       key={i}
                       id={`erp-step2-doc-${i + 1}`}
-                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                      className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                        `rq:${i}`
+                      )}`}
                     >
                       <span
                         className="erp-find-dot erp-find-dot-navy"
@@ -577,7 +666,9 @@ export function Step2AnalysisPanel({
                     <li
                       key={i}
                       id={`erp-step2-escalation-${i + 1}`}
-                      className="flex gap-2 text-sm text-[#2a3a4a]"
+                      className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                        `es:${i}`
+                      )}`}
                     >
                       <span
                         className="erp-find-dot erp-find-dot-navy"
@@ -590,6 +681,15 @@ export function Step2AnalysisPanel({
               )}
             </div>
           </section>
+
+          {isPreviewMode && previewMoreFindings > 0 ? (
+            <p
+              className="pb-2 text-sm text-[#7a8a9a]"
+              id="erp-step2-preview-more-findings"
+            >
+              {previewMoreFindings} more findings in your full analysis
+            </p>
+          ) : null}
 
           <section className="pb-2 pt-2">
             <div className="w-full rounded-[10px] border border-[#1e3f6e] bg-[#0a1e38] px-[18px] py-4">

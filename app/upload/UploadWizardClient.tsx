@@ -10,6 +10,16 @@ import {
   wizardFetch,
 } from "@/lib/supabaseClient";
 import {
+  ensurePreviewAnonSession,
+  previewWizardFetch,
+} from "@/lib/preview-wizard-fetch";
+import {
+  tryParseWizardSnapshot,
+  toSupabaseJsonValue,
+  WIZARD_STATE_STORAGE_KEY,
+  type SerializableWizardV1,
+} from "@/lib/wizard-snapshot";
+import {
   Step2AnalysisPanel,
   parseAnalysisResult,
   parseComparisonResult,
@@ -26,19 +36,8 @@ import {
   letterPlaceholdersFromClaimMeta,
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
-import type { Json } from "@/types/database.types";
 import { extractImagesFromPDF, extractTextFromPDF } from "@/lib/estimate-pdf-extract";
 import "./erp-wizard.css";
-
-/** Serialize wizard state to Supabase `Json` (strict `tsc` rejects raw analysis/comparison object types). */
-function toSupabaseJson(value: unknown): Json | null {
-  if (value === null || value === undefined) return null;
-  try {
-    return JSON.parse(JSON.stringify(value)) as Json;
-  } catch {
-    return null;
-  }
-}
 
 const US_STATES: { code: string; name: string }[] = [
   { code: "AL", name: "Alabama" },
@@ -493,6 +492,114 @@ const initialWizardState = (): WizardState => {
   return { ...base, ...deriveLegacyFields(base) };
 };
 
+function buildWizardSnapshot(
+  s: WizardState,
+  currentStep: number
+): string {
+  const payload: SerializableWizardV1 = {
+    v: 1,
+    currentStep,
+    documents: s.documents,
+    claimMeta: s.claimMeta,
+    analyses: s.analyses,
+    comparisons: s.comparisons,
+    strategies: s.strategies,
+    letterType: s.letterType,
+    letterRaw: s.letterRaw,
+    letterPlaceholders: s.letterPlaceholders,
+    prefillApplied: s.prefillApplied,
+    summary: s.summary,
+  };
+  return JSON.stringify(payload);
+}
+
+function restoreWizardFromSnapshot(
+  raw: SerializableWizardV1,
+  accessToken: string,
+  sessionReady: boolean
+): WizardState {
+  const base = initialWizardState();
+  const claimFromRaw =
+    raw.claimMeta && typeof raw.claimMeta === "object"
+      ? (raw.claimMeta as WizardState["claimMeta"])
+      : base.claimMeta;
+  const next: WizardState = {
+    ...base,
+    accessToken,
+    sessionReady,
+    documents: Array.isArray(raw.documents)
+      ? (raw.documents as ClaimDocument[])
+      : base.documents,
+    claimMeta: { ...base.claimMeta, ...claimFromRaw },
+    analyses: (raw.analyses as WizardState["analyses"]) ?? {},
+    comparisons: (raw.comparisons as WizardState["comparisons"]) ?? {},
+    strategies: (raw.strategies as WizardState["strategies"]) ?? {},
+    letterType: raw.letterType,
+    letterRaw: raw.letterRaw,
+    letterPlaceholders: {
+      ...emptyLetterPlaceholders(),
+      ...(raw.letterPlaceholders as LetterPlaceholderFields),
+    },
+    prefillApplied: raw.prefillApplied,
+    summary: (raw.summary as WizardState["summary"]) ?? undefined,
+  };
+  return withDerived(next, {});
+}
+
+async function saveReviewToDatabase(
+  s: WizardState,
+  letterTextForStore: string
+): Promise<boolean> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user?.id) return false;
+    if (!s.letterType) return false;
+    const a = s.analysis;
+    const m = s.claimMeta;
+    const analysisWithClaimMeta =
+      a && typeof a === "object" && a !== null
+        ? {
+            ...(a as Record<string, unknown>),
+            claimMeta: {
+              insuredName: m.insuredName,
+              carrierName: m.carrierName,
+              policyNumber: m.policyNumber,
+              claimNumber: m.claimNumber,
+              dateOfLoss: m.dateOfLoss,
+              adjusterName: m.adjusterName,
+              responseDeadline: m.responseDeadline,
+            },
+          }
+        : a;
+    const { error } = await supabase.from("reviews").insert({
+      user_id: session.user.id,
+      ai_analysis_json: toSupabaseJsonValue(analysisWithClaimMeta),
+      ai_comparison_json: toSupabaseJsonValue(s.comparison),
+      ai_summary_json: toSupabaseJsonValue(s.summary),
+      insured_name: s.claimMeta?.insuredName ?? null,
+      letter_text: letterTextForStore,
+      letter_type: s.letterType,
+    });
+    if (error) {
+      console.error("[upload] reviews insert:", error);
+      return false;
+    }
+    const { error: usageError } = await supabase.rpc("increment_review_usage", {
+      user_id_param: session.user.id,
+    });
+    if (usageError) {
+      console.error("[upload] increment_review_usage:", usageError);
+    }
+    return true;
+  } catch (saveErr) {
+    console.error("Failed to save review:", saveErr);
+    return false;
+  }
+}
+
 const CLAIM_META_AUTO_EXTRACT_KEYS = new Set([
   "policyNumber",
   "claimNumber",
@@ -671,11 +778,20 @@ function stepIsNavigable(
   }
 }
 
-export default function UploadPage() {
+type UploadWizardClientProps = { isPreviewMode?: boolean };
+
+export default function UploadWizardClient({
+  isPreviewMode = false,
+}: UploadWizardClientProps = {}) {
   const router = useRouter();
+  const wizardApiFetch = useMemo(
+    () => (isPreviewMode ? previewWizardFetch : wizardFetch),
+    [isPreviewMode]
+  );
   const [premierUsageWall, setPremierUsageWall] = useState<
     "checking" | "ok" | "blocked"
-  >("checking");
+  >(() => (isPreviewMode ? "ok" : "checking"));
+  const [previewUnlockBusy, setPreviewUnlockBusy] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<WizardState>(() => initialWizardState());
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -716,6 +832,7 @@ export default function UploadPage() {
   }, [router]);
 
   useEffect(() => {
+    if (isPreviewMode) return;
     let cancelled = false;
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -761,9 +878,47 @@ export default function UploadPage() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isPreviewMode]);
 
   useEffect(() => {
+    if (!isPreviewMode) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await ensurePreviewAnonSession();
+      } catch {
+        /* ignore */
+      }
+      if (cancelled) return;
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!url || !key) {
+        setState((s) => ({
+          ...s,
+          accessToken: "bypass",
+          sessionReady: true,
+        }));
+        return;
+      }
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      setState((s) => ({
+        ...s,
+        accessToken: data.session?.access_token ?? s.accessToken,
+        sessionReady: true,
+      }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPreviewMode]);
+
+  useEffect(() => {
+    if (isPreviewMode) {
+      setPremierUsageWall("ok");
+      return;
+    }
     let cancelled = false;
     (async () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -861,7 +1016,7 @@ export default function UploadPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isPreviewMode]);
 
   const patchClaimMeta = useCallback(
     (partial: Partial<WizardState["claimMeta"]>) => {
@@ -1001,7 +1156,7 @@ export default function UploadPage() {
                       ),
                     })
                   );
-                  const ocrRes = await wizardFetch(
+                  const ocrRes = await wizardApiFetch(
                     netlifyFunctionUrl("analyze-estimate"),
                     {
                       method: "POST",
@@ -1178,7 +1333,7 @@ export default function UploadPage() {
         announce("Could not read file.");
       }
     },
-    [announce, setPendingOcrFile]
+    [announce, setPendingOcrFile, wizardApiFetch]
   );
 
   useEffect(() => {
@@ -1440,7 +1595,7 @@ export default function UploadPage() {
               contractorText: contractorJoined,
             };
             if (docCats.length > 1) analyzePayload.category = category;
-            const res = await wizardFetch(
+            const res = await wizardApiFetch(
               netlifyFunctionUrl("analyze-estimate"),
               {
                 method: "POST",
@@ -1541,7 +1696,7 @@ export default function UploadPage() {
             if (docCats.length > 1) compareBody.category = category;
             if (versionDiff) compareBody.versionDiff = versionDiff;
 
-            const res = await wizardFetch(
+            const res = await wizardApiFetch(
               netlifyFunctionUrl("compare-estimates"),
               {
                 method: "POST",
@@ -1596,7 +1751,7 @@ export default function UploadPage() {
         return false;
       }
     },
-    [announce]
+    [announce, wizardApiFetch]
   );
 
   const onSubmitStep1 = useCallback(
@@ -1664,17 +1819,59 @@ export default function UploadPage() {
     [state, announce, executeStep1Pipeline]
   );
 
-  const previewResumeStartedRef = useRef(false);
+  const postPaymentResumeStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!state.sessionReady) return;
-    if (previewResumeStartedRef.current) return;
+    if (!state.sessionReady || isPreviewMode) return;
+    if (postPaymentResumeStartedRef.current) return;
     if (typeof window === "undefined") return;
+
+    const snapRaw = window.sessionStorage.getItem(WIZARD_STATE_STORAGE_KEY);
+    const fromWizard = tryParseWizardSnapshot(snapRaw);
+    if (fromWizard) {
+      postPaymentResumeStartedRef.current = true;
+      const restored = restoreWizardFromSnapshot(
+        fromWizard,
+        state.accessToken,
+        true
+      );
+      setState(restored);
+      setCurrentStep(6);
+      setSubmitError(null);
+      void (async () => {
+        if (restored.letterRaw?.trim()) {
+          const ok = await saveReviewToDatabase(
+            restored,
+            restored.letterRaw
+          );
+          if (ok) {
+            window.sessionStorage.removeItem(WIZARD_STATE_STORAGE_KEY);
+            window.sessionStorage.removeItem("erp_resume");
+            window.sessionStorage.removeItem("erp_extracted_text");
+            announce(
+              "Your full estimate and letter are saved. You can continue in the app."
+            );
+          } else {
+            postPaymentResumeStartedRef.current = false;
+            announce(
+              "Your work was restored; saving to your account will retry when you open the review again."
+            );
+          }
+        } else {
+          window.sessionStorage.removeItem(WIZARD_STATE_STORAGE_KEY);
+          window.sessionStorage.removeItem("erp_resume");
+          window.sessionStorage.removeItem("erp_extracted_text");
+          announce("Your in-progress work was restored to Step 6.");
+        }
+      })();
+      return;
+    }
+
     if (window.sessionStorage.getItem("erp_resume") !== "true") return;
     const raw = window.sessionStorage.getItem("erp_extracted_text");
     if (!raw?.trim()) return;
 
-    previewResumeStartedRef.current = true;
+    postPaymentResumeStartedRef.current = true;
     const text = raw.trim();
     const base = initialWizardState();
     const merged = mergeExtractedClaimMeta(
@@ -1722,12 +1919,18 @@ export default function UploadPage() {
         window.sessionStorage.removeItem("erp_resume");
         window.sessionStorage.removeItem("erp_extracted_text");
       } else {
-        previewResumeStartedRef.current = false;
+        postPaymentResumeStartedRef.current = false;
         setState(workState);
         setSubmitLoading(false);
       }
     })();
-  }, [state.sessionReady, state.accessToken, executeStep1Pipeline]);
+  }, [
+    state.sessionReady,
+    state.accessToken,
+    isPreviewMode,
+    executeStep1Pipeline,
+    announce,
+  ]);
 
   const onStep2Back = useCallback(() => {
     setCurrentStep(1);
@@ -1783,6 +1986,40 @@ export default function UploadPage() {
     setState((s) => ({ ...s, letterType: code }));
   }, []);
 
+  const handlePreviewUnlock = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    setPreviewUnlockBusy(true);
+    try {
+      const s = wizardStateRef.current;
+      const text = getDocumentText(s.carrierText) || "";
+      sessionStorage.setItem("erp_extracted_text", text);
+      sessionStorage.setItem("erp_resume", "true");
+      sessionStorage.setItem(
+        WIZARD_STATE_STORAGE_KEY,
+        buildWizardSnapshot(s, currentStep)
+      );
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ planType: "single" }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        announce(
+          data.error?.trim() ||
+            "Could not start checkout. Please try again or go to Pricing."
+        );
+        return;
+      }
+      window.location.assign(data.url);
+    } catch {
+      announce("Could not start checkout. Please try again.");
+    } finally {
+      setPreviewUnlockBusy(false);
+    }
+  }, [currentStep, announce]);
+
   const onStep6GenerateLetter = useCallback(async () => {
     const s = wizardStateRef.current;
     if (!s.letterType || !s.analysis || !s.strategy) {
@@ -1791,7 +2028,7 @@ export default function UploadPage() {
     }
     setStep6LetterLoading(true);
     try {
-      const res = await wizardFetch(
+      const res = await wizardApiFetch(
         netlifyFunctionUrl("generate-estimate-letter"),
         {
           method: "POST",
@@ -1847,56 +2084,11 @@ export default function UploadPage() {
           "Letter generated. Placeholders from claim metadata were applied where tokens appear."
         );
       }
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user?.id) {
-          const a = wizardStateRef.current.analysis;
-          const m = wizardStateRef.current.claimMeta;
-          const analysisWithClaimMeta =
-            a && typeof a === "object" && a !== null
-              ? {
-                  ...(a as Record<string, unknown>),
-                  claimMeta: {
-                    insuredName: m.insuredName,
-                    carrierName: m.carrierName,
-                    policyNumber: m.policyNumber,
-                    claimNumber: m.claimNumber,
-                    dateOfLoss: m.dateOfLoss,
-                    adjusterName: m.adjusterName,
-                    responseDeadline: m.responseDeadline,
-                  },
-                }
-              : a;
-          const { error } = await supabase.from("reviews").insert({
-            user_id: session.user.id,
-            ai_analysis_json: toSupabaseJson(analysisWithClaimMeta),
-            ai_comparison_json: toSupabaseJson(
-              wizardStateRef.current.comparison
-            ),
-            ai_summary_json: toSupabaseJson(wizardStateRef.current.summary),
-            insured_name:
-              wizardStateRef.current.claimMeta?.insuredName ?? null,
-            letter_text: letterTextForStore,
-            letter_type: s.letterType,
-          });
-          if (!error) {
-            const { error: usageError } = await supabase.rpc(
-              "increment_review_usage",
-              { user_id_param: session.user.id }
-            );
-            if (usageError) {
-              console.error(
-                "[upload] increment_review_usage:",
-                usageError
-              );
-            }
-          }
-        }
-      } catch (saveErr) {
-        console.error("Failed to save review:", saveErr);
+      if (!isPreviewMode) {
+        void saveReviewToDatabase(
+          { ...s, letterRaw: letterTextForStore },
+          letterTextForStore
+        );
       }
     } catch (err) {
       const msg =
@@ -1905,7 +2097,34 @@ export default function UploadPage() {
     } finally {
       setStep6LetterLoading(false);
     }
-  }, [announce]);
+  }, [announce, isPreviewMode, wizardApiFetch]);
+
+  const previewLetterAutogenRef = useRef(false);
+  useEffect(() => {
+    if (!isPreviewMode || currentStep !== 6) {
+      previewLetterAutogenRef.current = false;
+      return;
+    }
+    if (state.letterRaw) return;
+    if (!state.strategy || !state.analysis) return;
+    if (!state.letterType) {
+      setState((s) =>
+        s.letterType ? s : { ...s, letterType: "SUPPLEMENT_DEMAND" }
+      );
+      return;
+    }
+    if (previewLetterAutogenRef.current) return;
+    previewLetterAutogenRef.current = true;
+    void onStep6GenerateLetter();
+  }, [
+    isPreviewMode,
+    currentStep,
+    state.letterRaw,
+    state.strategy,
+    state.analysis,
+    state.letterType,
+    onStep6GenerateLetter,
+  ]);
 
   const onLetterChange = useCallback((text: string) => {
     setState((s) => ({ ...s, letterRaw: text }));
@@ -1983,7 +2202,7 @@ export default function UploadPage() {
 
   return (
     <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
-      <PostPaymentSessionRefresh />
+      {!isPreviewMode && <PostPaymentSessionRefresh />}
       <header className="sticky top-0 z-[100] border-b border-[#1e3f6e] bg-[#091c33] text-white">
         <div className="mx-auto flex min-h-12 max-w-6xl flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-0">
           <Link
@@ -1999,25 +2218,44 @@ export default function UploadPage() {
             </span>
           </Link>
           <nav className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 text-[11px] font-medium sm:ml-auto sm:w-auto sm:gap-3 sm:text-sm">
-            <Link
-              href="/dashboard"
-              className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/pricing"
-              className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
-            >
-              Buy another review
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="erp-btn-ghost shrink-0 text-center"
-            >
-              Log out
-            </button>
+            {isPreviewMode ? (
+              <>
+                <Link
+                  href="/pricing"
+                  className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
+                >
+                  Pricing
+                </Link>
+                <Link
+                  href="/login"
+                  className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
+                >
+                  Log in
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Buy another review
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="erp-btn-ghost shrink-0 text-center"
+                >
+                  Log out
+                </button>
+              </>
+            )}
           </nav>
         </div>
         {premierUsageWall === "ok" && (
@@ -2784,6 +3022,8 @@ export default function UploadPage() {
               onBack={onStep2Back}
               onNext={onStep2Next}
               announce={announce}
+              isPreviewMode={isPreviewMode}
+              wizardApiFetch={wizardApiFetch}
             />
           </section>
           <section
@@ -2803,6 +3043,10 @@ export default function UploadPage() {
               onBack={onStep3Back}
               onNext={onStep3Next}
               announce={announce}
+              isPreviewMode={isPreviewMode}
+              wizardApiFetch={wizardApiFetch}
+              onPreviewUnlock={handlePreviewUnlock}
+              previewUnlockBusy={previewUnlockBusy}
             />
           </section>
           <section
@@ -2818,6 +3062,7 @@ export default function UploadPage() {
               onBack={onStep4Back}
               onNext={onStep4Next}
               announce={announce}
+              isPreviewMode={isPreviewMode}
             />
           </section>
           <section
@@ -2835,6 +3080,8 @@ export default function UploadPage() {
               onGoToLetter={onStep5GoToLetter}
               onStartOver={onWizardStartOver}
               announce={announce}
+              isPreviewMode={isPreviewMode}
+              wizardApiFetch={wizardApiFetch}
             />
           </section>
           <section
@@ -2857,6 +3104,10 @@ export default function UploadPage() {
               onBack={onStep6Back}
               onStartOver={onWizardStartOver}
               announce={announce}
+              isPreviewMode={isPreviewMode}
+              wizardApiFetch={wizardApiFetch}
+              onPreviewUnlock={handlePreviewUnlock}
+              previewUnlockBusy={previewUnlockBusy}
             />
           </section>
         </div>

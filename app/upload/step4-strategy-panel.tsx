@@ -13,7 +13,32 @@ type Props = {
   onNext: () => void | Promise<void>;
   continueLoading?: boolean;
   announce: (message: string) => void;
+  isPreviewMode?: boolean;
 };
+
+function splitFirstSentence(text: string): { first: string; rest: string } {
+  const t = text.trim();
+  if (t.length === 0) return { first: "", rest: "" };
+  const i = t.search(/[.!?](\s|$)/);
+  if (i === -1) return { first: t, rest: "" };
+  return {
+    first: t.slice(0, i + 1).trim(),
+    rest: t.slice(i + 1).trim(),
+  };
+}
+
+const BLUR = "filter blur-[4px] select-none [pointer-events:none]";
+
+function previewSplitParagraph(full: string) {
+  const { first, rest } = splitFirstSentence(full);
+  if (!rest) return <>{full}</>;
+  return (
+    <>
+      {first}{" "}
+      <span className={BLUR}>{rest}</span>
+    </>
+  );
+}
 
 function formatMoney(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -117,6 +142,7 @@ export function Step4StrategyPanel({
   onNext,
   continueLoading = false,
   announce,
+  isPreviewMode = false,
 }: Props) {
   const handleNext = async () => {
     if (!strategy) {
@@ -141,7 +167,11 @@ export function Step4StrategyPanel({
         className="mt-6 rounded-[10px] border-[0.5px] border-[#e0e0dc] bg-white p-4 text-sm leading-relaxed text-[#2a3a4a]"
       >
         {analysis ? (
-          buildAutoRationale(analysis)
+          isPreviewMode ? (
+            previewSplitParagraph(buildAutoRationale(analysis))
+          ) : (
+            buildAutoRationale(analysis)
+          )
         ) : (
           "No analysis is loaded. Return to earlier steps to run analysis before choosing a strategy."
         )}
@@ -186,7 +216,9 @@ export function Step4StrategyPanel({
                 id={`erp-step4-card-${key}-rationale`}
                 className="mt-2 text-sm text-[#6a7a8a]"
               >
-                {cardRationale(code, analysis)}
+                {isPreviewMode
+                  ? previewSplitParagraph(cardRationale(code, analysis))
+                  : cardRationale(code, analysis)}
               </p>
               <p
                 id={`erp-step4-card-${key}-risk`}

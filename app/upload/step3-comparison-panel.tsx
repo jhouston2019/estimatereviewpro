@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
+import { LockIcon } from "@/components/LockIcon";
+import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 import type { ComparisonResult } from "./step2-analysis-panel";
@@ -12,12 +14,18 @@ export type ComparisonClaimMetaSlice = {
   dateOfLoss: string;
 };
 
+type WizardApiFetch = typeof wizardFetch;
+
 type Props = {
   comparison: ComparisonResult | null;
   claimMeta: ComparisonClaimMetaSlice;
   onBack: () => void;
   onNext: () => void;
   announce: (message: string) => void;
+  isPreviewMode?: boolean;
+  wizardApiFetch?: WizardApiFetch;
+  onPreviewUnlock?: () => void;
+  previewUnlockBusy?: boolean;
 };
 
 const REPORT_DIVIDER = "----------------------------------------";
@@ -136,14 +144,19 @@ export function Step3ComparisonPanel({
   onBack,
   onNext,
   announce,
+  isPreviewMode = false,
+  wizardApiFetch,
+  onPreviewUnlock,
+  previewUnlockBusy = false,
 }: Props) {
+  const fetcher = wizardApiFetch ?? wizardFetch;
   const downloadPdf = useCallback(async () => {
     if (!comparison) {
       announce("No comparison data to export.");
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
-    const res = await wizardFetch(netlifyFunctionUrl("generate-pdf"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
       body: JSON.stringify({
         text,
@@ -164,7 +177,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison PDF downloaded.");
-  }, [announce, comparison, claimMeta]);
+  }, [announce, comparison, claimMeta, fetcher]);
 
   const downloadWord = useCallback(async () => {
     if (!comparison) {
@@ -172,7 +185,7 @@ export function Step3ComparisonPanel({
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
-    const res = await wizardFetch(netlifyFunctionUrl("generate-docx"), {
+    const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify({
         text,
@@ -193,7 +206,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison Word document downloaded.");
-  }, [announce, comparison, claimMeta]);
+  }, [announce, comparison, claimMeta, fetcher]);
 
   const mode = comparison?.mode ?? "";
   const lineItems = comparison?.lineItems ?? [];
@@ -224,24 +237,26 @@ export function Step3ComparisonPanel({
 
       {comparison && (
         <>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              id="erp-step3-download-pdf"
-              type="button"
-              className="erp-btn-ghost-panel"
-              onClick={() => void downloadPdf()}
-            >
-              Download PDF
-            </button>
-            <button
-              id="erp-step3-download-word"
-              type="button"
-              className="erp-btn-ghost-panel"
-              onClick={() => void downloadWord()}
-            >
-              Download Word
-            </button>
-          </div>
+          {!isPreviewMode && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                id="erp-step3-download-pdf"
+                type="button"
+                className="erp-btn-ghost-panel"
+                onClick={() => void downloadPdf()}
+              >
+                Download PDF
+              </button>
+              <button
+                id="erp-step3-download-word"
+                type="button"
+                className="erp-btn-ghost-panel"
+                onClick={() => void downloadWord()}
+              >
+                Download Word
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 overflow-x-auto overflow-y-hidden rounded-[10px] border border-[#e0e0dc] bg-white">
             <table
@@ -405,6 +420,40 @@ export function Step3ComparisonPanel({
               </tbody>
             </table>
           </div>
+
+          {isPreviewMode && onPreviewUnlock && (
+            <PreviewPaywallBlock
+              onUnlock={onPreviewUnlock}
+              busy={previewUnlockBusy}
+            />
+          )}
+
+          {isPreviewMode && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                disabled
+                title="Unlock your analysis to export"
+                className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <LockIcon className="h-4 w-4" />
+                  Unlock to Download PDF
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled
+                title="Unlock your analysis to export"
+                className="erp-btn-ghost-panel cursor-not-allowed opacity-60"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <LockIcon className="h-4 w-4" />
+                  Unlock to Download Word
+                </span>
+              </button>
+            </div>
+          )}
         </>
       )}
 
