@@ -10,10 +10,6 @@ import {
   wizardFetch,
 } from "@/lib/supabaseClient";
 import {
-  ensurePreviewAnonSession,
-  previewWizardFetch,
-} from "@/lib/preview-wizard-fetch";
-import {
   tryParseWizardSnapshot,
   toSupabaseJsonValue,
   WIZARD_STATE_STORAGE_KEY,
@@ -784,13 +780,9 @@ export default function UploadWizardClient({
   isPreviewMode = false,
 }: UploadWizardClientProps = {}) {
   const router = useRouter();
-  const wizardApiFetch = useMemo(
-    () => (isPreviewMode ? previewWizardFetch : wizardFetch),
-    [isPreviewMode]
-  );
   const [premierUsageWall, setPremierUsageWall] = useState<
     "checking" | "ok" | "blocked"
-  >(() => (isPreviewMode ? "ok" : "checking"));
+  >("checking");
   const [previewUnlockBusy, setPreviewUnlockBusy] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [state, setState] = useState<WizardState>(() => initialWizardState());
@@ -832,7 +824,6 @@ export default function UploadWizardClient({
   }, [router]);
 
   useEffect(() => {
-    if (isPreviewMode) return;
     let cancelled = false;
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -878,47 +869,9 @@ export default function UploadWizardClient({
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [isPreviewMode]);
+  }, []);
 
   useEffect(() => {
-    if (!isPreviewMode) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        await ensurePreviewAnonSession();
-      } catch {
-        /* ignore */
-      }
-      if (cancelled) return;
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !key) {
-        setState((s) => ({
-          ...s,
-          accessToken: "bypass",
-          sessionReady: true,
-        }));
-        return;
-      }
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return;
-      setState((s) => ({
-        ...s,
-        accessToken: data.session?.access_token ?? s.accessToken,
-        sessionReady: true,
-      }));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isPreviewMode]);
-
-  useEffect(() => {
-    if (isPreviewMode) {
-      setPremierUsageWall("ok");
-      return;
-    }
     let cancelled = false;
     (async () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -1016,7 +969,7 @@ export default function UploadWizardClient({
     return () => {
       cancelled = true;
     };
-  }, [isPreviewMode]);
+  }, []);
 
   const patchClaimMeta = useCallback(
     (partial: Partial<WizardState["claimMeta"]>) => {
@@ -1156,7 +1109,7 @@ export default function UploadWizardClient({
                       ),
                     })
                   );
-                  const ocrRes = await wizardApiFetch(
+                  const ocrRes = await wizardFetch(
                     netlifyFunctionUrl("analyze-estimate"),
                     {
                       method: "POST",
@@ -1333,7 +1286,7 @@ export default function UploadWizardClient({
         announce("Could not read file.");
       }
     },
-    [announce, setPendingOcrFile, wizardApiFetch]
+    [announce, setPendingOcrFile, wizardFetch]
   );
 
   useEffect(() => {
@@ -1595,7 +1548,7 @@ export default function UploadWizardClient({
               contractorText: contractorJoined,
             };
             if (docCats.length > 1) analyzePayload.category = category;
-            const res = await wizardApiFetch(
+            const res = await wizardFetch(
               netlifyFunctionUrl("analyze-estimate"),
               {
                 method: "POST",
@@ -1696,7 +1649,7 @@ export default function UploadWizardClient({
             if (docCats.length > 1) compareBody.category = category;
             if (versionDiff) compareBody.versionDiff = versionDiff;
 
-            const res = await wizardApiFetch(
+            const res = await wizardFetch(
               netlifyFunctionUrl("compare-estimates"),
               {
                 method: "POST",
@@ -1751,7 +1704,7 @@ export default function UploadWizardClient({
         return false;
       }
     },
-    [announce, wizardApiFetch]
+    [announce, wizardFetch]
   );
 
   const onSubmitStep1 = useCallback(
@@ -2028,7 +1981,7 @@ export default function UploadWizardClient({
     }
     setStep6LetterLoading(true);
     try {
-      const res = await wizardApiFetch(
+      const res = await wizardFetch(
         netlifyFunctionUrl("generate-estimate-letter"),
         {
           method: "POST",
@@ -2097,7 +2050,7 @@ export default function UploadWizardClient({
     } finally {
       setStep6LetterLoading(false);
     }
-  }, [announce, isPreviewMode, wizardApiFetch]);
+  }, [announce, isPreviewMode, wizardFetch]);
 
   const previewLetterAutogenRef = useRef(false);
   useEffect(() => {
@@ -3023,7 +2976,7 @@ export default function UploadWizardClient({
               onNext={onStep2Next}
               announce={announce}
               isPreviewMode={isPreviewMode}
-              wizardApiFetch={wizardApiFetch}
+              wizardApiFetch={wizardFetch}
             />
           </section>
           <section
@@ -3044,7 +2997,7 @@ export default function UploadWizardClient({
               onNext={onStep3Next}
               announce={announce}
               isPreviewMode={isPreviewMode}
-              wizardApiFetch={wizardApiFetch}
+              wizardApiFetch={wizardFetch}
               onPreviewUnlock={handlePreviewUnlock}
               previewUnlockBusy={previewUnlockBusy}
             />
@@ -3081,7 +3034,7 @@ export default function UploadWizardClient({
               onStartOver={onWizardStartOver}
               announce={announce}
               isPreviewMode={isPreviewMode}
-              wizardApiFetch={wizardApiFetch}
+              wizardApiFetch={wizardFetch}
               onPreviewUnlock={handlePreviewUnlock}
               previewUnlockBusy={previewUnlockBusy}
             />
@@ -3107,7 +3060,7 @@ export default function UploadWizardClient({
               onStartOver={onWizardStartOver}
               announce={announce}
               isPreviewMode={isPreviewMode}
-              wizardApiFetch={wizardApiFetch}
+              wizardApiFetch={wizardFetch}
               onPreviewUnlock={handlePreviewUnlock}
               previewUnlockBusy={previewUnlockBusy}
             />
