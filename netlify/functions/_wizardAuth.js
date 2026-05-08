@@ -31,6 +31,10 @@ async function verifyWizardAuth(event) {
     };
   }
 
+  if (token === "preview") {
+    return { ok: true, user: { id: "preview", email: null, isPreview: true } };
+  }
+
   if (token === "bypass") {
     const isProduction =
       process.env.NODE_ENV === "production" ||

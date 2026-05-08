@@ -42,6 +42,8 @@ export async function getWizardAuthHeadersJson(): Promise<
   const token = data.session?.access_token;
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  } else {
+    headers.Authorization = `Bearer preview`;
   }
   return headers;
 }

@@ -202,6 +202,8 @@ exports.handler = async (event) => {
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
 
+  const isPreview = auth.user?.isPreview === true;
+
   let body;
   try {
     body = JSON.parse(event.body || "{}");
