@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { findAuthUserIdByEmail } from "@/lib/auth/findAuthUserByEmail";
 import { syncStripeCheckoutSession } from "@/lib/billing/stripeCheckoutSync";
-import { ensureUserForPaidCheckout } from "@/lib/billing/stripeLinkUser";
+import { ensureUserForPaidCheckout, upsertPublicUserRow } from "@/lib/billing/stripeLinkUser";
 import { resolveCheckoutEmailForCreateAccount } from "@/app/create-account/stripeSession";
 
 export type CreateAccountResult =
@@ -16,21 +16,6 @@ function serviceSupabase() {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-}
-
-async function upsertPublicUserRow(
-  supabase: ReturnType<typeof createClient>,
-  id: string,
-  email: string
-): Promise<boolean> {
-  const { error } = await supabase
-    .from("users")
-    .upsert({ id, email }, { onConflict: "id" });
-  if (error) {
-    console.error("[createAccountAfterCheckout] upsertPublicUserRow failed:", error);
-    return false;
-  }
-  return true;
 }
 
 export async function createAccountAfterCheckoutCore(args: {
@@ -142,7 +127,7 @@ export async function createAccountAfterCheckoutCore(args: {
   if (!userId) {
     const authUserId = await findAuthUserIdByEmail(email);
     if (authUserId) {
-      const upserted = await upsertPublicUserRow(supabase, authUserId, email);
+      const upserted = await upsertPublicUserRow(authUserId, email);
       if (upserted) {
         userId = authUserId;
       }
@@ -158,7 +143,6 @@ export async function createAccountAfterCheckoutCore(args: {
 
     if (created?.user?.id) {
       const upserted = await upsertPublicUserRow(
-        supabase,
         created.user.id,
         email
       );
@@ -171,7 +155,7 @@ export async function createAccountAfterCheckoutCore(args: {
       provisionError = createErr.message;
       const authUserId = await findAuthUserIdByEmail(email);
       if (authUserId) {
-        const upserted = await upsertPublicUserRow(supabase, authUserId, email);
+        const upserted = await upsertPublicUserRow(authUserId, email);
         if (upserted) {
           userId = authUserId;
         }

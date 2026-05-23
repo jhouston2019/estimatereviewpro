@@ -48,7 +48,7 @@ export function stripeCustomerIdFromSession(
   return null;
 }
 
-async function upsertPublicUserRow(id: string, email: string): Promise<boolean> {
+export async function upsertPublicUserRow(id: string, email: string): Promise<boolean> {
   const { error } = await getSupabase()
     .from("users")
     .upsert({ id, email }, { onConflict: "id" });

@@ -1,6 +1,6 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-function serviceSupabase(): SupabaseClient | null {
+function serviceSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !key) return null;
@@ -19,7 +19,9 @@ export async function findAuthUserIdByEmail(
   if (trimmed.length < 3) return null;
 
   const supabase = serviceSupabase();
-  if (!supabase) {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!supabase || !baseUrl || !serviceKey) {
     console.error(
       "[findAuthUserIdByEmail] missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
     );
@@ -28,20 +30,32 @@ export async function findAuthUserIdByEmail(
 
   const target = trimmed.toLowerCase();
 
-  const { data: filtered, error: filterErr } =
-    await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 50,
-      filter: trimmed,
+  try {
+    const url = `${baseUrl}/auth/v1/admin/users?filter=${encodeURIComponent(trimmed)}&per_page=50&page=1`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+      },
+      cache: "no-store",
     });
 
-  if (!filterErr && filtered?.users?.length) {
-    const exact = filtered.users.find(
-      (u) => u.email?.trim().toLowerCase() === target
-    );
-    if (exact?.id) return exact.id;
-  } else if (filterErr) {
-    console.warn("[findAuthUserIdByEmail] listUsers filter failed:", filterErr);
+    if (res.ok) {
+      const json = (await res.json()) as {
+        users?: { id: string; email?: string }[];
+      };
+      const exact = json.users?.find(
+        (u) => u.email?.trim().toLowerCase() === target
+      );
+      if (exact?.id) return exact.id;
+    } else {
+      console.warn(
+        "[findAuthUserIdByEmail] admin users filter failed:",
+        res.status
+      );
+    }
+  } catch (err) {
+    console.warn("[findAuthUserIdByEmail] filter request failed:", err);
   }
 
   for (let page = 1; page <= 20; page++) {
