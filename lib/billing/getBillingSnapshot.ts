@@ -119,7 +119,6 @@ export async function getBillingSnapshot(
     } | null;
     usage = ur?.reviews_used ?? 0;
     storedLimit = ur?.reviews_limit ?? 0;
-    billing_period_end = ur?.billing_period_end ?? null;
   }
 
   const reviews_limit = resolveEffectiveReviewLimit({
