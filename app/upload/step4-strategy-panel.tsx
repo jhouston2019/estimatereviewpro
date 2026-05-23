@@ -1,5 +1,6 @@
 "use client";
 
+import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
 import {
   formatStrategyLabel,
   type AnalysisResult,
@@ -14,6 +15,8 @@ type Props = {
   continueLoading?: boolean;
   announce: (message: string) => void;
   isPreviewMode?: boolean;
+  onPreviewUnlock?: () => void;
+  previewUnlockBusy?: boolean;
 };
 
 function splitFirstSentence(text: string): { first: string; rest: string } {
@@ -143,6 +146,8 @@ export function Step4StrategyPanel({
   continueLoading = false,
   announce,
   isPreviewMode = false,
+  onPreviewUnlock,
+  previewUnlockBusy = false,
 }: Props) {
   const handleNext = async () => {
     if (!strategy) {
@@ -260,6 +265,13 @@ export function Step4StrategyPanel({
           </div>
         </div>
       ) : null}
+
+      {isPreviewMode && onPreviewUnlock && (
+        <PreviewPaywallBlock
+          onUnlock={onPreviewUnlock}
+          busy={previewUnlockBusy}
+        />
+      )}
 
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button

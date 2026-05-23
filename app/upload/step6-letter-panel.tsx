@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import { LockIcon } from "@/components/LockIcon";
+import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 
@@ -549,6 +550,13 @@ export function Step6LetterPanel({
             )}
           </div>
         </div>
+      )}
+
+      {isPreviewMode && onPreviewUnlock && (
+        <PreviewPaywallBlock
+          onUnlock={onPreviewUnlock}
+          busy={previewUnlockBusy}
+        />
       )}
 
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">

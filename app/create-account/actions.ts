@@ -4,6 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Stripe from "stripe";
+import { syncStripeCheckoutSession } from "@/lib/billing/stripeCheckoutSync";
+import { ensureUserForPaidCheckout } from "@/lib/billing/stripeLinkUser";
 import type { Database } from "@/lib/supabase-types";
 import { resolveCheckoutEmailForCreateAccount } from "./stripeSession";
 
@@ -41,13 +44,45 @@ export async function createAccountAfterCheckout(
     return { error: "This checkout link is invalid or expired." };
   }
 
-  const { data: row, error: userRowErr } = await serviceSupabase
+  let userId: string | null = null;
+  const { data: existingRow, error: userRowErr } = await serviceSupabase
     .from("users")
     .select("id")
     .eq("email", email)
     .maybeSingle();
 
-  if (userRowErr || !row?.id) {
+  if (userRowErr) {
+    console.error("[createAccountAfterCheckout] users lookup failed:", userRowErr);
+  } else if (existingRow?.id) {
+    userId = existingRow.id;
+  }
+
+  if (!userId) {
+    const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
+    if (!stripeKey) {
+      return {
+        error:
+          "Account setup is temporarily unavailable. Contact support if you completed payment.",
+      };
+    }
+
+    try {
+      const stripe = new Stripe(stripeKey, {
+        apiVersion: "2025-11-17.clover",
+      });
+      const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ["customer"],
+      });
+      userId = await ensureUserForPaidCheckout(checkoutSession);
+      if (userId) {
+        await syncStripeCheckoutSession(checkoutSession);
+      }
+    } catch (err) {
+      console.error("[createAccountAfterCheckout] provision from checkout failed:", err);
+    }
+  }
+
+  if (!userId) {
     return {
       error:
         "We could not find your account. Contact support if you completed payment.",
@@ -55,7 +90,7 @@ export async function createAccountAfterCheckout(
   }
 
   const { error: updateErr } = await serviceSupabase.auth.admin.updateUserById(
-    row.id,
+    userId,
     { password }
   );
 

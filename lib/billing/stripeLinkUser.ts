@@ -28,10 +28,15 @@ export function stripeCustomerIdFromSession(
   return null;
 }
 
-async function upsertPublicUserRow(id: string, email: string) {
-  await supabase
+async function upsertPublicUserRow(id: string, email: string): Promise<boolean> {
+  const { error } = await supabase
     .from("users")
     .upsert({ id, email }, { onConflict: "id" });
+  if (error) {
+    console.error("[stripeLinkUser] upsertPublicUserRow failed:", error);
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -143,8 +148,9 @@ export async function ensureUserForPaidCheckout(
     return null;
   }
   if (!cid) {
-    console.error("[stripeLinkUser] missing Stripe customer id on session");
-    return null;
+    console.warn(
+      "[stripeLinkUser] missing Stripe customer id on session; provisioning user by email only"
+    );
   }
 
   const { data: existingRow } = await supabase
@@ -154,11 +160,13 @@ export async function ensureUserForPaidCheckout(
     .maybeSingle();
 
   if (existingRow?.id) {
-    await supabase
-      .from("users")
-      .update({ stripe_customer_id: cid })
-      .eq("id", existingRow.id);
-    await stripeMetadataHasUserId(cid, existingRow.id);
+    if (cid) {
+      await supabase
+        .from("users")
+        .update({ stripe_customer_id: cid })
+        .eq("id", existingRow.id);
+      await stripeMetadataHasUserId(cid, existingRow.id);
+    }
     await applyAdminAppMetadataForUserId(supabase, existingRow.id);
     return existingRow.id;
   }
@@ -183,11 +191,13 @@ export async function ensureUserForPaidCheckout(
         .eq("email", email)
         .maybeSingle();
       if (row?.id) {
-        await supabase
-          .from("users")
-          .update({ stripe_customer_id: cid })
-          .eq("id", row.id);
-        await stripeMetadataHasUserId(cid, row.id);
+        if (cid) {
+          await supabase
+            .from("users")
+            .update({ stripe_customer_id: cid })
+            .eq("id", row.id);
+          await stripeMetadataHasUserId(cid, row.id);
+        }
         await applyAdminAppMetadataForUserId(supabase, row.id);
         return row.id;
       }
@@ -198,12 +208,15 @@ export async function ensureUserForPaidCheckout(
           (u) => u.email?.toLowerCase() === email.toLowerCase()
         );
         if (found?.id) {
-          await upsertPublicUserRow(found.id, email);
-          await supabase
-            .from("users")
-            .update({ stripe_customer_id: cid })
-            .eq("id", found.id);
-          await stripeMetadataHasUserId(cid, found.id);
+          const upserted = await upsertPublicUserRow(found.id, email);
+          if (!upserted) return null;
+          if (cid) {
+            await supabase
+              .from("users")
+              .update({ stripe_customer_id: cid })
+              .eq("id", found.id);
+            await stripeMetadataHasUserId(cid, found.id);
+          }
           await applyAdminAppMetadataForUserId(supabase, found.id);
           return found.id;
         }
@@ -214,12 +227,15 @@ export async function ensureUserForPaidCheckout(
   }
 
   if (!created.user) return null;
-  await upsertPublicUserRow(created.user.id, email);
-  await supabase
-    .from("users")
-    .update({ stripe_customer_id: cid })
-    .eq("id", created.user.id);
-  await stripeMetadataHasUserId(cid, created.user.id);
+  const upserted = await upsertPublicUserRow(created.user.id, email);
+  if (!upserted) return null;
+  if (cid) {
+    await supabase
+      .from("users")
+      .update({ stripe_customer_id: cid })
+      .eq("id", created.user.id);
+    await stripeMetadataHasUserId(cid, created.user.id);
+  }
   await applyAdminAppMetadataForUserId(supabase, created.user.id);
   return created.user.id;
 }

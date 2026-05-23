@@ -1,16 +1,17 @@
 "use client";
 
+import Link from "next/link";
+
 type Props = {
   onUnlock: () => void;
   busy?: boolean;
-  /** Slightly different subcopy when shown on letter (optional) */
+  /** Kept for API compatibility; all variants use the same copy. */
   variant?: "default" | "letter";
 };
 
 export function PreviewPaywallBlock({
   onUnlock,
   busy = false,
-  variant = "default",
 }: Props) {
   return (
     <div className="my-6 rounded-2xl border-2 border-[#2563EB]/40 bg-gradient-to-b from-slate-900 to-slate-950 p-6 text-center shadow-lg shadow-black/20">
@@ -18,17 +19,8 @@ export function PreviewPaywallBlock({
         Your Full Analysis Is Ready
       </h3>
       <p className="mx-auto mt-2 max-w-lg text-sm text-slate-300 sm:text-base">
-        {variant === "letter" ? (
-          <>
-            Unlock to read your demand letter, the rest of the findings, and
-            your PDF and Word reports — ready for negotiation or litigation.
-          </>
-        ) : (
-          <>
-            Unlock your demand letter, full findings, PDF report, and Word
-            export — structured for negotiation or litigation.
-          </>
-        )}
+        Unlock your demand letter, full findings, PDF report, and Word export
+        — structured for negotiation or litigation.
       </p>
       <button
         type="button"
@@ -38,8 +30,13 @@ export function PreviewPaywallBlock({
       >
         {busy ? "Redirecting…" : "Unlock My Analysis — $49"}
       </button>
-      <p className="mt-3 text-xs text-slate-500">
-        One-time · No subscription required · Your letter is already written
+      <p className="mt-3 text-center text-xs text-slate-500">
+        <Link
+          href="/pricing"
+          className="text-slate-400 underline-offset-2 transition hover:text-slate-300 hover:underline"
+        >
+          Need multiple reviews? See plans →
+        </Link>
       </p>
     </div>
   );

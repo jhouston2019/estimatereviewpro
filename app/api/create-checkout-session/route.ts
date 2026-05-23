@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       // Single review — one-time $49
       sessionConfig = {
         mode: 'payment',
+        customer_creation: 'always',
         payment_method_types: ['card'],
         line_items: [
           {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LockIcon } from "@/components/LockIcon";
+import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { wizardFetch } from "@/lib/supabaseClient";
 import type {
@@ -68,6 +69,8 @@ type Props = {
   isPreviewMode?: boolean;
   /** Defaults to `wizardFetch` for authenticated /upload. */
   wizardApiFetch?: WizardApiFetch;
+  onPreviewUnlock?: () => void;
+  previewUnlockBusy?: boolean;
 };
 
 const STEP2_ACTIONS_KEY = "erp_actions_step2";
@@ -85,6 +88,8 @@ export function Step2AnalysisPanel({
   announce,
   isPreviewMode = false,
   wizardApiFetch,
+  onPreviewUnlock,
+  previewUnlockBusy = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
@@ -715,6 +720,13 @@ export function Step2AnalysisPanel({
           </section>
         </div>
       </div>
+
+      {isPreviewMode && onPreviewUnlock && (
+        <PreviewPaywallBlock
+          onUnlock={onPreviewUnlock}
+          busy={previewUnlockBusy}
+        />
+      )}
 
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
