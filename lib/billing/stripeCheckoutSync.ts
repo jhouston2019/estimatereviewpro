@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { applyAdminAppMetadataForUserId } from "@/lib/auth/adminAppMetadata";
+import { getPlanReviewLimit } from "@/lib/billing/planLimits";
 import {
   ensureUserForPaidCheckout,
   ensureUserForStripeSubscription,
@@ -89,7 +90,10 @@ export async function ensureUserReviewUsageRow(
     .eq("plan_type", planType)
     .maybeSingle();
 
-  if (!plan) {
+  const configuredLimit = getPlanReviewLimit(planType);
+  const reviewsLimit = plan?.reviews_per_month ?? configuredLimit ?? 0;
+
+  if (!plan && configuredLimit == null) {
     console.warn(
       "[ensureUserReviewUsageRow] No subscription_plans row for plan_type:",
       planType
@@ -97,17 +101,21 @@ export async function ensureUserReviewUsageRow(
     return;
   }
 
-  const { error } = await supabase.from("user_review_usage").insert({
+  const insertRow: Record<string, unknown> = {
     user_id: userId,
-    plan_id: plan.id,
     reviews_used: 0,
-    reviews_limit: plan.reviews_per_month ?? 0,
+    reviews_limit: reviewsLimit,
     billing_period_start: new Date().toISOString(),
     billing_period_end: new Date(
       Date.now() + 30 * 24 * 60 * 60 * 1000
     ).toISOString(),
     is_active: true,
-  });
+  };
+  if (plan?.id) {
+    insertRow.plan_id = plan.id;
+  }
+
+  const { error } = await supabase.from("user_review_usage").insert(insertRow);
 
   if (error) {
     console.error("[ensureUserReviewUsageRow] insert failed:", error);

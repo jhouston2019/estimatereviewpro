@@ -24,6 +24,7 @@ export async function GET() {
     return NextResponse.json({
       used: snap.usage,
       limit: snap.reviews_limit,
+      remaining: snap.reviews_remaining,
     });
   } catch (e) {
     console.error("[usage]", e);

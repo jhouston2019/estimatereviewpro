@@ -3,6 +3,7 @@
  */
 import type Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { getPlanReviewLimit } from "@/lib/billing/planLimits";
 import { syncUserPlanTypeToAuthMetadata } from "./stripeCheckoutSync";
 import { userHasPaidAccessForUserId } from "./paidAccess";
 
@@ -49,19 +50,17 @@ export async function ensureEntitlementAfterStripeCheckout(
       ? null
       : parseInt(reviewsLimitRaw || "1", 10);
 
+  const planTypeMeta = session.metadata?.plan_type?.toLowerCase() ?? null;
+  const resolvedLimit =
+    reviewsLimit != null && !Number.isNaN(reviewsLimit) && reviewsLimit > 0
+      ? reviewsLimit
+      : getPlanReviewLimit(planTypeMeta);
+
   const { data: plan, error: planErr } = await supabase
     .from("subscription_plans")
     .select("id, price")
     .eq("plan_name", planName)
     .maybeSingle();
-
-  if (planErr || !plan) {
-    if (session.mode === "payment") {
-      await supabase.from("users").update({ plan_type: "single" }).eq("id", userId);
-      await syncUserPlanTypeToAuthMetadata(userId, "single");
-    }
-    return;
-  }
 
   const now = new Date();
   const periodEnd = new Date(now);
@@ -79,11 +78,51 @@ export async function ensureEntitlementAfterStripeCheckout(
         ? (subField as { id: string }).id
         : null;
 
+  if (planErr || !plan) {
+    if (session.mode === "payment") {
+      await supabase.from("users").update({ plan_type: "single" }).eq("id", userId);
+      await syncUserPlanTypeToAuthMetadata(userId, "single");
+    } else if (planTypeMeta) {
+      await supabase.from("users").update({ plan_type: planTypeMeta }).eq("id", userId);
+      await syncUserPlanTypeToAuthMetadata(userId, planTypeMeta);
+    }
+
+    if (resolvedLimit != null && resolvedLimit > 0) {
+      const { data: existingUsage } = await supabase
+        .from("user_review_usage")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const usagePayload = {
+        reviews_used: 0,
+        reviews_limit: resolvedLimit,
+        billing_period_start: now.toISOString(),
+        billing_period_end: periodEnd.toISOString(),
+        stripe_subscription_id: subId,
+        is_active: true,
+      };
+
+      if (existingUsage) {
+        await supabase
+          .from("user_review_usage")
+          .update(usagePayload)
+          .eq("user_id", userId);
+      } else {
+        await supabase.from("user_review_usage").insert({
+          user_id: userId,
+          ...usagePayload,
+        });
+      }
+    }
+    return;
+  }
+
   await supabase.from("user_review_usage").insert({
     user_id: userId,
     plan_id: plan.id,
     reviews_used: 0,
-    reviews_limit: reviewsLimit,
+    reviews_limit: resolvedLimit ?? reviewsLimit,
     billing_period_start: now.toISOString(),
     billing_period_end: periodEnd.toISOString(),
     stripe_subscription_id: subId,

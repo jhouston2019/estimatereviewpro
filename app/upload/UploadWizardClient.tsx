@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
+import { getPlanReviewLimit } from "@/lib/billing/planLimits";
 import {
   createSupabaseBrowserClient,
   wizardFetch,
@@ -908,15 +909,8 @@ export default function UploadWizardClient({
         return;
       }
       const plan = userRow.plan_type ?? null;
-      const hardcodedLimit =
-        plan === "essential"
-          ? 10
-          : plan === "professional" || plan === "premier"
-            ? 20
-            : plan === "enterprise"
-              ? 50
-              : null;
-      if (hardcodedLimit === null) {
+      const planLimit = getPlanReviewLimit(plan);
+      if (planLimit == null) {
         setPremierUsageWall("ok");
         return;
       }
@@ -937,8 +931,11 @@ export default function UploadWizardClient({
 
       if (!usageErr && ur) {
         const used = ur.reviews_used ?? 0;
-        const lim = ur.reviews_limit;
-        if (lim != null && lim > 0) {
+        const lim =
+          ur.reviews_limit != null && ur.reviews_limit > 0
+            ? ur.reviews_limit
+            : planLimit;
+        if (lim > 0) {
           if (used >= lim) {
             if (!cancelled) setPremierUsageWall("blocked");
             return;
@@ -964,7 +961,7 @@ export default function UploadWizardClient({
         return;
       }
       const n = count ?? 0;
-      setPremierUsageWall(n >= hardcodedLimit ? "blocked" : "ok");
+      setPremierUsageWall(n >= planLimit ? "blocked" : "ok");
     })();
     return () => {
       cancelled = true;

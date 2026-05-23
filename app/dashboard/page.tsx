@@ -3,19 +3,7 @@ import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
-
-function formatDashboardPlanName(plan: string | null): string {
-  if (!plan || plan === "none") return "";
-  const k = plan.toLowerCase();
-  const labels: Record<string, string> = {
-    single: "Single",
-    essential: "Essential",
-    professional: "Professional",
-    enterprise: "Enterprise",
-    premier: "Premier",
-  };
-  return labels[k] ?? k.replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { DashboardPlanUsage } from "@/components/dashboard/DashboardPlanUsage";
 
 export default async function DashboardPage({
   searchParams,
@@ -38,11 +26,15 @@ export default async function DashboardPage({
   let renewalLabel: string | null = null;
   let usedReviews = 0;
   let limitReviews = 0;
+  let reviewsRemainingCount = 0;
   let planType: string | null = null;
+  let planNameDisplay = "";
+  let billingCadence: "one_time" | "monthly" | null = null;
+  let periodEndLabel: string | null = null;
   let hasTeam = false;
 
   const snap = await getBillingSnapshot(supabase, user.id);
-  billingPlan = snap.plan === "none" ? "—" : snap.plan;
+  billingPlan = snap.plan === "none" ? "—" : snap.plan_display_name || snap.plan;
   billingStatusLabel = snap.status === "active" ? "Active" : "Inactive";
   renewalLabel = snap.renewal_date
     ? new Date(snap.renewal_date).toLocaleDateString(undefined, {
@@ -53,7 +45,17 @@ export default async function DashboardPage({
     : null;
   usedReviews = snap.usage;
   limitReviews = snap.reviews_limit;
+  reviewsRemainingCount = snap.reviews_remaining;
   planType = snap.plan === "none" ? null : snap.plan;
+  planNameDisplay = snap.plan_display_name;
+  billingCadence = snap.billing_cadence;
+  periodEndLabel = snap.billing_period_end
+    ? new Date(snap.billing_period_end).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : renewalLabel;
   hasTeam = snap.has_team;
 
   const tier =
@@ -66,8 +68,6 @@ export default async function DashboardPage({
           hasTeam
         ? "pro"
         : "free";
-
-  const planNameDisplay = formatDashboardPlanName(planType);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
@@ -137,15 +137,16 @@ export default async function DashboardPage({
                 <p className="mt-1 text-sm text-slate-200">{renewalLabel}</p>
               </div>
             )}
-            <div>
-              <p className="text-[11px] font-medium text-slate-500">Reviews</p>
-              <p className="mt-1 text-sm text-slate-200">
-                {limitReviews > 0
-                  ? `${usedReviews} of ${limitReviews} reviews used`
-                  : `${usedReviews} reviews used`}
-              </p>
-            </div>
           </div>
+
+          <DashboardPlanUsage
+            planDisplayName={planNameDisplay}
+            usedReviews={usedReviews}
+            limitReviews={limitReviews}
+            reviewsRemaining={reviewsRemainingCount}
+            periodEndLabel={periodEndLabel}
+            billingCadence={billingCadence}
+          />
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/account"
@@ -196,6 +197,15 @@ export default async function DashboardPage({
                   <span className="font-semibold text-slate-100">
                     {planNameDisplay}
                   </span>
+                  {limitReviews > 0 ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <span className="font-semibold text-emerald-300">
+                        {reviewsRemainingCount} of {limitReviews} reviews left
+                      </span>
+                    </>
+                  ) : null}
                 </span>
               ) : null}
               {tier !== "pro" && (
