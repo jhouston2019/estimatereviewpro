@@ -1,12 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import {
-  createAccountAfterCheckout,
-  type CreateAccountState,
-} from "./actions";
-
-const initialState: CreateAccountState = { error: null };
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   sessionId: string;
@@ -14,15 +9,56 @@ type Props = {
 };
 
 export function CreateAccountForm({ sessionId, email }: Props) {
-  const [state, formAction, isPending] = useActionState(
-    createAccountAfterCheckout,
-    initialState
-  );
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsPending(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(formData.get("confirm_password") ?? "");
+
+    try {
+      const res = await fetch("/api/auth/create-account-after-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          session_id: sessionId,
+          password,
+          confirm_password: confirmPassword,
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        redirectTo?: string;
+      };
+
+      if (!res.ok) {
+        setError(data.error ?? "Could not create account. Please try again.");
+        return;
+      }
+
+      router.replace(data.redirectTo ?? "/app");
+      router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="mt-8 w-full max-w-md space-y-5">
-      <input type="hidden" name="session_id" value={sessionId} />
-
+    <form
+      onSubmit={handleSubmit}
+      className="mt-8 w-full max-w-md space-y-5"
+    >
       <div className="space-y-1 text-sm">
         <label
           htmlFor="create-account-email"
@@ -79,9 +115,9 @@ export function CreateAccountForm({ sessionId, email }: Props) {
         />
       </div>
 
-      {state.error ? (
+      {error ? (
         <p className="text-sm text-rose-300" role="alert">
-          {state.error}
+          {error}
         </p>
       ) : null}
 
