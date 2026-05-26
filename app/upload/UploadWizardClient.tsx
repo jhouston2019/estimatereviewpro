@@ -878,7 +878,10 @@ export default function UploadWizardClient({
   }, []);
 
   useEffect(() => {
-    if (isPreviewMode) return;
+    if (isPreviewMode) {
+      setPremierUsageWall("ok");
+      return;
+    }
     let cancelled = false;
     (async () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
