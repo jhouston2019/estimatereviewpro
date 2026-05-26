@@ -5,37 +5,25 @@ export type OcrPageRequest = {
   fileName: string;
   pageNumber: number;
   totalPages: number;
-  /** Use unauthenticated preview OCR (analysis-preview funnel). */
-  usePreviewEndpoint: boolean;
-  fetcher: (
-    input: RequestInfo | URL,
-    init?: RequestInit
-  ) => Promise<Response>;
 };
 
+/**
+ * PDF page OCR — always uses estimate-ocr-preview (no auth).
+ * Reading uploaded PDFs is input extraction, not paid analysis; gating OCR
+ * behind analyze-estimate auth caused regressions after production auth tightened.
+ */
 export async function requestEstimateOcrPage(
   req: OcrPageRequest
 ): Promise<string> {
-  const endpoint = req.usePreviewEndpoint
-    ? netlifyFunctionUrl("estimate-ocr-preview")
-    : netlifyFunctionUrl("analyze-estimate");
-
-  const body = req.usePreviewEndpoint
-    ? JSON.stringify({
-        images: [req.base64Image],
-        fileName: req.fileName,
-      })
-    : JSON.stringify({
-        mode: "extract_only",
-        images: [req.base64Image],
-        fileName: req.fileName,
-        pageNumber: req.pageNumber,
-        totalPages: req.totalPages,
-      });
-
-  const res = await req.fetcher(endpoint, {
+  const res = await fetch(netlifyFunctionUrl("estimate-ocr-preview"), {
     method: "POST",
-    body,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      images: [req.base64Image],
+      fileName: req.fileName,
+      pageNumber: req.pageNumber,
+      totalPages: req.totalPages,
+    }),
   });
 
   const ct = (res.headers.get("content-type") || "").toLowerCase();

@@ -1106,17 +1106,6 @@ export default function UploadWizardClient({
                     fileName: file.name,
                     pageNumber: i + 1,
                     totalPages: images.length,
-                    usePreviewEndpoint: isPreviewMode,
-                    fetcher: isPreviewMode
-                      ? (input, init) =>
-                          fetch(input, {
-                            ...init,
-                            headers: {
-                              "Content-Type": "application/json",
-                              ...(init?.headers as Record<string, string>),
-                            },
-                          })
-                      : wizardFetch,
                   });
                   pageTexts.push(pageText);
                 }
@@ -1274,7 +1263,7 @@ export default function UploadWizardClient({
         announce("Could not read file.");
       }
     },
-    [announce, isPreviewMode, setPendingOcrFile, wizardFetch]
+    [announce, setPendingOcrFile]
   );
 
   useEffect(() => {

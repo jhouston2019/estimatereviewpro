@@ -1,6 +1,6 @@
 /**
- * Unauthenticated page OCR for /analysis-preview only — same vision prompt as
- * analyze-estimate `extract_only` (no auth; no full analysis).
+ * PDF page OCR for the upload wizard (preview and paid). No auth — same vision
+ * prompt as analyze-estimate `extract_only`; paid analysis stays on analyze-estimate.
  */
 
 const OpenAI = require("openai");
