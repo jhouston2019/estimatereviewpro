@@ -165,7 +165,7 @@ export default async function AdminPage() {
             </thead>
             <tbody>
               {data.reviews.map((r) => {
-                const href = `/dashboard/review/${r.id}`;
+                const href = `/deliverables?reviewId=${r.id}`;
                 return (
                   <tr
                     key={r.id}

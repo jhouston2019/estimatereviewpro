@@ -273,7 +273,7 @@ export default async function DashboardPage({
                         </a>
                       )}
                       <Link
-                        href={`/dashboard/review/${review.id}`}
+                        href={`/deliverables?reviewId=${review.id}`}
                         className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 font-semibold hover:border-slate-500 hover:text-slate-50"
                       >
                         View details

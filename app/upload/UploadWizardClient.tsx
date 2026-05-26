@@ -389,6 +389,14 @@ function deriveLegacyFields(
     if (!comparison && s.comparisons[c]) comparison = s.comparisons[c] ?? null;
     if (!strategy && s.strategies[c]) strategy = s.strategies[c] ?? null;
   }
+  if (!analysis) {
+    const vals = Object.values(s.analyses);
+    analysis = vals[0] ?? null;
+  }
+  if (!comparison) {
+    const vals = Object.values(s.comparisons);
+    comparison = vals[0] ?? null;
+  }
   if (!strategy) {
     const vals = Object.values(s.strategies);
     strategy = vals[0] ?? null;
@@ -746,7 +754,7 @@ function stepIsNavigable(
     case 3:
       return comparison !== null;
     case 6:
-      return letterRaw !== null || stepNow >= 6;
+      return analysis !== null;
     default:
       return false;
   }
@@ -1766,6 +1774,38 @@ export default function UploadWizardClient({
     if (postPaymentResumeStartedRef.current) return;
     if (typeof window === "undefined") return;
 
+    const reviewIdToLoad =
+      initialReviewId?.trim() ||
+      window.sessionStorage.getItem(DELIVERABLES_REVIEW_ID_KEY)?.trim() ||
+      "";
+
+    if (reviewIdToLoad && initialReviewId?.trim()) {
+      postPaymentResumeStartedRef.current = true;
+      void (async () => {
+        const d = await fetchDeliverablesForReviewId(reviewIdToLoad);
+        if (!d?.analysis) {
+          postPaymentResumeStartedRef.current = false;
+          announce(
+            "Could not load your saved review. Try again from deliverables."
+          );
+          return;
+        }
+        const step = Math.min(6, Math.max(1, initialStep));
+        const snap = wizardSnapshotFromDeliverables(d, step);
+        writeWizardResumeSnapshot(snap, reviewIdToLoad);
+        const restored = restoreWizardFromSnapshot(
+          snap,
+          state.accessToken,
+          true
+        );
+        setState(restored);
+        setCurrentStep(step);
+        setSubmitError(null);
+        announce(`Wizard restored at step ${step}.`);
+      })();
+      return;
+    }
+
     const snapRaw = window.sessionStorage.getItem(WIZARD_STATE_STORAGE_KEY);
     const fromWizard = tryParseWizardSnapshot(snapRaw);
     if (fromWizard) {
@@ -1784,10 +1824,6 @@ export default function UploadWizardClient({
       return;
     }
 
-    const reviewIdToLoad =
-      initialReviewId?.trim() ||
-      window.sessionStorage.getItem(DELIVERABLES_REVIEW_ID_KEY)?.trim() ||
-      "";
     if (reviewIdToLoad) {
       postPaymentResumeStartedRef.current = true;
       void (async () => {

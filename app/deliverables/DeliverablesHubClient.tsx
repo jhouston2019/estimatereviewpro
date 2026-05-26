@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ReviewDownloadActions } from "@/app/dashboard/review/[id]/review-download-actions";
 import { Step2AnalysisPanel } from "@/app/upload/step2-analysis-panel";
 import { Step3ComparisonPanel } from "@/app/upload/step3-comparison-panel";
 import { Step4StrategyPanel } from "@/app/upload/step4-strategy-panel";
@@ -22,7 +21,6 @@ import {
   deliverablesFromSnapshot,
   deliverablesFromReviewRow,
   deliverablesTitle,
-  safeDeliverablesFileName,
   buildResumedWizardUploadUrl,
   wizardSnapshotFromDeliverables,
   type WizardDeliverables,
@@ -42,15 +40,11 @@ function noop() {}
 function DeliverablesBody({
   d,
   reviewId,
-  createdLabel,
 }: {
   d: WizardDeliverables;
   reviewId: string | null;
-  createdLabel: string;
 }) {
   const router = useRouter();
-  const title = deliverablesTitle(d);
-  const safeBase = safeDeliverablesFileName(title);
   const strategy =
     d.strategy?.trim() || d.analysis?.recommendedStrategy?.trim() || null;
 
@@ -122,9 +116,6 @@ function DeliverablesBody({
     }
   }, [announce, d.analysis, d.claimMeta.claimType, letterPlaceholders, letterType, strategy]);
 
-  const summaryForExport = d.summary;
-  const hasSummary = summaryForExport != null;
-
   const openInWizard = useCallback(
     (step?: number) => {
       router.push(
@@ -151,14 +142,6 @@ function DeliverablesBody({
         >
           Open in wizard
         </button>
-        {reviewId ? (
-          <Link
-            href={`/dashboard/review/${reviewId}`}
-            className="erp-btn-ghost"
-          >
-            Saved review detail
-          </Link>
-        ) : null}
         <Link href="/pricing" className="erp-btn-cta">
           Buy another review
         </Link>
@@ -169,21 +152,6 @@ function DeliverablesBody({
           {announceMsg}
         </p>
       ) : null}
-
-      <ReviewDownloadActions
-        lightPanel
-        reportTitle={title}
-        createdLabel={createdLabel}
-        analysis={d.analysis}
-        analysisRaw={d.analysis}
-        comparison={d.comparison}
-        comparisonRaw={d.comparison}
-        summaryJson={summaryForExport}
-        hasSummary={hasSummary}
-        letterOnFileText={null}
-        newLetterText={letterRaw}
-        safeBaseFileName={safeBase}
-      />
 
       <div className="flex flex-col gap-6">
         {d.analysis ? (
@@ -457,11 +425,7 @@ export function DeliverablesHubClient() {
         ) : null}
       </div>
 
-      <DeliverablesBody
-        d={deliverables}
-        reviewId={reviewId}
-        createdLabel={createdLabel}
-      />
+      <DeliverablesBody d={deliverables} reviewId={reviewId} />
     </main>
   );
 }
