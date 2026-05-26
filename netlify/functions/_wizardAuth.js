@@ -32,19 +32,8 @@ async function verifyWizardAuth(event) {
   }
 
   if (token === "preview") {
-    if (process.env.NODE_ENV !== "production") {
-      return { ok: true, user: { id: "preview", email: null, isPreview: true } };
-    }
-    return {
-      ok: false,
-      response: {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          error: "Preview auth is not allowed in production",
-        }),
-      },
-    };
+    // Public /analysis-preview funnel — must work in production (not tied to NODE_ENV).
+    return { ok: true, user: { id: "preview", email: null, isPreview: true } };
   }
 
   if (token === "bypass") {

@@ -201,6 +201,24 @@ function normalizeLineItem(row) {
   };
 }
 
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`OpenAI call timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
+
+function truncateForModel(text, maxChars) {
+  const t = String(text || "");
+  if (t.length <= maxChars) return t;
+  return t.slice(0, maxChars) + "\n\n[... truncated for processing ...]";
+}
+
 function finalizeResult(mode, parsed) {
   const rawItems = Array.isArray(parsed?.lineItems) ? parsed.lineItems : [];
   const lineItems = rawItems.map(normalizeLineItem);
@@ -236,6 +254,11 @@ exports.handler = async (event) => {
 
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
+  const isPreview = auth.user?.isPreview === true;
+  const model = isPreview ? "gpt-4o-mini" : "gpt-4o";
+  const maxTokens = isPreview ? 2500 : 4000;
+  const openAiTimeoutMs = isPreview ? 20000 : 24000;
+  const textLimit = isPreview ? 120000 : 200000;
 
   let body;
   try {
@@ -251,7 +274,10 @@ exports.handler = async (event) => {
     };
   }
 
-  const carrierText = String(body.carrierText || "").trim();
+  const carrierText = truncateForModel(
+    String(body.carrierText || "").trim(),
+    textLimit
+  );
   if (!carrierText) {
     return {
       statusCode: 400,
@@ -295,23 +321,28 @@ exports.handler = async (event) => {
   const userMessage = buildUserMessage(
     mode,
     carrierText,
-    mode === "LINE_COMPARE" ? contractorText : null,
+    mode === "LINE_COMPARE"
+      ? truncateForModel(contractorText, textLimit)
+      : null,
     claimType,
     category
   );
 
   let parsed;
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.2,
-      max_tokens: 4000,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-    });
+    const completion = await withTimeout(
+      openai.chat.completions.create({
+        model,
+        temperature: 0.2,
+        max_tokens: maxTokens,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+      }),
+      openAiTimeoutMs
+    );
     const raw = completion.choices[0]?.message?.content || "{}";
     parsed = JSON.parse(raw);
   } catch (e) {
@@ -328,16 +359,19 @@ exports.handler = async (event) => {
     if (hasVersionDiff) {
       const vdUser = `PREVIOUS CARRIER VERSION (${String(vdRaw.previousVersion || "PREVIOUS")}):\n${String(vdRaw.previousText)}\n\nCURRENT CARRIER VERSION (${String(vdRaw.currentVersion || "CURRENT")}):\n${String(vdRaw.currentText)}`;
       try {
-        const vdCompletion = await openai.chat.completions.create({
-          model: "gpt-4o",
-          temperature: 0.2,
-          max_tokens: 3000,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: VERSION_DIFF_SYSTEM },
-            { role: "user", content: vdUser },
-          ],
-        });
+        const vdCompletion = await withTimeout(
+          openai.chat.completions.create({
+            model,
+            temperature: 0.2,
+            max_tokens: isPreview ? 2000 : 3000,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: VERSION_DIFF_SYSTEM },
+              { role: "user", content: vdUser },
+            ],
+          }),
+          openAiTimeoutMs
+        );
         const vdRawJson =
           vdCompletion.choices[0]?.message?.content || "{}";
         const vdParsed = JSON.parse(vdRawJson);
