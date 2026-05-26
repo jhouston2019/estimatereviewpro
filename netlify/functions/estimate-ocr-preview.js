@@ -102,10 +102,19 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const isQuota =
+      /429|quota|billing|insufficient/i.test(message) ||
+      (err && typeof err === "object" && "status" in err && err.status === 429);
+    const userMessage = isQuota
+      ? "AI reading limit reached on the server (OpenAI quota). Paste the estimate text below, or retry after billing is updated."
+      : message;
     return {
-      statusCode: 500,
+      statusCode: isQuota ? 429 : 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: message, code: "OCR_FAILED" }),
+      body: JSON.stringify({
+        error: userMessage,
+        code: isQuota ? "OPENAI_QUOTA" : "OCR_FAILED",
+      }),
     };
   }
 };
