@@ -27,6 +27,7 @@ type Props = {
   wizardApiFetch?: WizardApiFetch;
   onPreviewUnlock?: () => void;
   previewUnlockBusy?: boolean;
+  hideNav?: boolean;
 };
 
 const REPORT_DIVIDER = "----------------------------------------";
@@ -149,6 +150,7 @@ export function Step3ComparisonPanel({
   wizardApiFetch,
   onPreviewUnlock,
   previewUnlockBusy = false,
+  hideNav = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   const downloadPdf = useCallback(async () => {
@@ -424,14 +426,14 @@ export function Step3ComparisonPanel({
             </table>
           </div>
 
-          {isPreviewMode && onPreviewUnlock && (
+          {!hideNav && isPreviewMode && onPreviewUnlock && (
             <PreviewPaywallBlock
               onUnlock={onPreviewUnlock}
               busy={previewUnlockBusy}
             />
           )}
 
-          {isPreviewMode && (
+          {!hideNav && isPreviewMode && (
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -460,6 +462,7 @@ export function Step3ComparisonPanel({
         </>
       )}
 
+      {!hideNav ? (
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step3-back"
@@ -478,6 +481,7 @@ export function Step3ComparisonPanel({
           Continue
         </button>
       </div>
+      ) : null}
     </div>
   );
 }

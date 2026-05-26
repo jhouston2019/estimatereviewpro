@@ -43,6 +43,7 @@ type Props = {
   wizardApiFetch?: WizardApiFetch;
   onPreviewUnlock?: () => void | Promise<void>;
   previewUnlockBusy?: boolean;
+  hideNav?: boolean;
 };
 
 function formatMoney(n: number): string {
@@ -282,6 +283,7 @@ export function Step5SummaryPanel({
   wizardApiFetch,
   onPreviewUnlock,
   previewUnlockBusy = false,
+  hideNav = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
@@ -828,13 +830,14 @@ export function Step5SummaryPanel({
         )}
       </div>
 
-      {isPreviewMode && onPreviewUnlock && (
+      {!hideNav && isPreviewMode && onPreviewUnlock && (
         <PreviewPaywallBlock
           onUnlock={onPreviewUnlock}
           busy={previewUnlockBusy}
         />
       )}
 
+      {!hideNav ? (
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step5-back"
@@ -861,6 +864,7 @@ export function Step5SummaryPanel({
           Start over
         </button>
       </div>
+      ) : null}
     </div>
   );
 }

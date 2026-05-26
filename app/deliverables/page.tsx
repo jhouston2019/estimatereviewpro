@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { DeliverablesHubClient } from "./DeliverablesHubClient";
+import { DeliverablesResumeWizardLink } from "./DeliverablesResumeWizardLink";
+import "@/app/upload/erp-wizard.css";
 
 export const metadata = {
   title: "Your deliverables | Estimate Review Pro",
@@ -12,7 +14,7 @@ export const metadata = {
 function DeliverablesFallback() {
   return (
     <main className="mx-auto flex min-h-[50vh] max-w-6xl items-center justify-center px-6 py-16">
-      <p className="text-sm text-slate-400">Loading…</p>
+      <p className="text-sm text-[#8aacc8]">Loading…</p>
     </main>
   );
 }
@@ -21,29 +23,36 @@ export default async function DeliverablesPage() {
   await requireUserAndPaywall();
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950">
-      <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1e3a8a] shadow-lg shadow-[#1e3a8a]/30">
+    <div className="erp-wizard-shell flex min-h-screen flex-col bg-[#0f2744]">
+      <header className="sticky top-0 z-[100] border-b border-[#1e3f6e] bg-[#091c33] text-white">
+        <div className="mx-auto flex min-h-12 max-w-6xl flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-0">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2"
+            aria-label="Estimate Review Pro home"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#f0a050]">
               <span className="text-xs font-black text-white">ER</span>
             </div>
-            <span className="text-sm font-semibold text-slate-50">
+            <span className="truncate text-xs font-semibold text-[#e8f0f8] sm:text-sm">
               Estimate Review Pro
             </span>
           </Link>
-          <nav className="flex items-center gap-3 text-xs font-medium text-slate-200">
+          <nav className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 text-[11px] font-medium sm:ml-auto sm:w-auto sm:gap-3 sm:text-sm">
             <Link
               href="/dashboard"
-              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500"
+              className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]"
             >
               Dashboard
             </Link>
+            <Suspense fallback={null}>
+              <DeliverablesResumeWizardLink className="shrink-0 text-[#8aacc8] transition hover:text-[#e8f0f8]" />
+            </Suspense>
             <Link
-              href="/upload?step=2"
-              className="rounded-full border border-slate-700 px-3 py-1.5 hover:border-slate-500"
+              href="/pricing"
+              className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
             >
-              Wizard
+              Buy another review
             </Link>
           </nav>
         </div>

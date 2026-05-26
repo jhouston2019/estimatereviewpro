@@ -17,8 +17,13 @@ import {
   PAID_RESUME_SESSION_KEY,
   tryParseWizardSnapshot,
   WIZARD_STATE_STORAGE_KEY,
+  writeWizardResumeSnapshot,
   type SerializableWizardV1,
 } from "@/lib/wizard-snapshot";
+import {
+  fetchDeliverablesForReviewId,
+  wizardSnapshotFromDeliverables,
+} from "@/lib/wizard-deliverables";
 import {
   Step2AnalysisPanel,
   parseAnalysisResult,
@@ -750,11 +755,14 @@ function stepIsNavigable(
 type UploadWizardClientProps = {
   isPreviewMode?: boolean;
   initialStep?: number;
+  /** Resume a saved review from deliverables / dashboard (not a new free review). */
+  initialReviewId?: string;
 };
 
 export default function UploadWizardClient({
   isPreviewMode = false,
   initialStep = 1,
+  initialReviewId,
 }: UploadWizardClientProps = {}) {
   const router = useRouter();
   const [premierUsageWall, setPremierUsageWall] = useState<
@@ -1768,10 +1776,42 @@ export default function UploadWizardClient({
         true
       );
       const step = Math.min(6, Math.max(1, initialStep));
+      writeWizardResumeSnapshot(fromWizard, initialReviewId ?? null);
       setState(restored);
       setCurrentStep(step);
       setSubmitError(null);
       announce(`Wizard restored at step ${step}.`);
+      return;
+    }
+
+    const reviewIdToLoad =
+      initialReviewId?.trim() ||
+      window.sessionStorage.getItem(DELIVERABLES_REVIEW_ID_KEY)?.trim() ||
+      "";
+    if (reviewIdToLoad) {
+      postPaymentResumeStartedRef.current = true;
+      void (async () => {
+        const d = await fetchDeliverablesForReviewId(reviewIdToLoad);
+        if (!d?.analysis) {
+          postPaymentResumeStartedRef.current = false;
+          announce(
+            "Could not load your saved review. Try again from deliverables."
+          );
+          return;
+        }
+        const step = Math.min(6, Math.max(1, initialStep));
+        const snap = wizardSnapshotFromDeliverables(d, step);
+        writeWizardResumeSnapshot(snap, reviewIdToLoad);
+        const restored = restoreWizardFromSnapshot(
+          snap,
+          state.accessToken,
+          true
+        );
+        setState(restored);
+        setCurrentStep(step);
+        setSubmitError(null);
+        announce(`Wizard restored at step ${step}.`);
+      })();
       return;
     }
 
@@ -1837,6 +1877,7 @@ export default function UploadWizardClient({
     state.accessToken,
     isPreviewMode,
     initialStep,
+    initialReviewId,
     executeStep1Pipeline,
     announce,
   ]);

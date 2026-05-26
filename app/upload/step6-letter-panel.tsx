@@ -131,6 +131,7 @@ type Props = {
   wizardApiFetch?: WizardApiFetch;
   onPreviewUnlock?: () => void;
   previewUnlockBusy?: boolean;
+  hideNav?: boolean;
 };
 
 export function Step6LetterPanel({
@@ -151,6 +152,7 @@ export function Step6LetterPanel({
   wizardApiFetch,
   onPreviewUnlock,
   previewUnlockBusy = false,
+  hideNav = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   useEffect(() => {
@@ -550,13 +552,14 @@ export function Step6LetterPanel({
         </div>
       )}
 
-      {isPreviewMode && onPreviewUnlock && (
+      {!hideNav && isPreviewMode && onPreviewUnlock && (
         <PreviewPaywallBlock
           onUnlock={onPreviewUnlock}
           busy={previewUnlockBusy}
         />
       )}
 
+      {!hideNav ? (
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step6-back"
@@ -575,6 +578,7 @@ export function Step6LetterPanel({
           Start over
         </button>
       </div>
+      ) : null}
     </div>
   );
 }

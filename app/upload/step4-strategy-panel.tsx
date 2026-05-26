@@ -17,6 +17,7 @@ type Props = {
   isPreviewMode?: boolean;
   onPreviewUnlock?: () => void;
   previewUnlockBusy?: boolean;
+  hideNav?: boolean;
 };
 
 function splitFirstSentence(text: string): { first: string; rest: string } {
@@ -148,6 +149,7 @@ export function Step4StrategyPanel({
   isPreviewMode = false,
   onPreviewUnlock,
   previewUnlockBusy = false,
+  hideNav = false,
 }: Props) {
   const handleNext = async () => {
     if (!strategy) {
@@ -260,13 +262,14 @@ export function Step4StrategyPanel({
         </div>
       ) : null}
 
-      {isPreviewMode && onPreviewUnlock && (
+      {!hideNav && isPreviewMode && onPreviewUnlock && (
         <PreviewPaywallBlock
           onUnlock={onPreviewUnlock}
           busy={previewUnlockBusy}
         />
       )}
 
+      {!hideNav ? (
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step4-back"
@@ -286,6 +289,7 @@ export function Step4StrategyPanel({
           {continueLoading ? "Generating…" : "Continue"}
         </button>
       </div>
+      ) : null}
     </div>
   );
 }

@@ -77,6 +77,8 @@ type Props = {
   wizardApiFetch?: WizardApiFetch;
   onPreviewUnlock?: () => void;
   previewUnlockBusy?: boolean;
+  /** Deliverables hub: full step content without wizard nav / paywall. */
+  hideNav?: boolean;
 };
 
 const STEP2_ACTIONS_KEY = "erp_actions_step2";
@@ -96,6 +98,7 @@ export function Step2AnalysisPanel({
   wizardApiFetch,
   onPreviewUnlock,
   previewUnlockBusy = false,
+  hideNav = false,
 }: Props) {
   const fetcher = wizardApiFetch ?? wizardFetch;
   const [checkedActions, setCheckedActions] = useState<Set<number>>(new Set());
@@ -716,13 +719,14 @@ export function Step2AnalysisPanel({
         </div>
       </div>
 
-      {isPreviewMode && onPreviewUnlock ? (
+      {!hideNav && isPreviewMode && onPreviewUnlock ? (
         <PreviewPaywallBlock
           onUnlock={onPreviewUnlock}
           busy={previewUnlockBusy}
         />
       ) : null}
 
+      {!hideNav ? (
       <div className="mt-10 flex flex-wrap gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">
         <button
           id="erp-step2-back"
@@ -741,6 +745,7 @@ export function Step2AnalysisPanel({
           Continue
         </button>
       </div>
+      ) : null}
     </div>
   );
 }

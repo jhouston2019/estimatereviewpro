@@ -44,3 +44,16 @@ export function toSupabaseJsonValue(value: unknown): Json | null {
     return null;
   }
 }
+
+/** Persist wizard state so /upload can resume this review (not a fresh preview). */
+export function writeWizardResumeSnapshot(
+  snap: SerializableWizardV1,
+  reviewId?: string | null
+): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(WIZARD_STATE_STORAGE_KEY, JSON.stringify(snap));
+  window.sessionStorage.setItem(PAID_RESUME_SESSION_KEY, "true");
+  if (reviewId?.trim()) {
+    window.sessionStorage.setItem(DELIVERABLES_REVIEW_ID_KEY, reviewId.trim());
+  }
+}

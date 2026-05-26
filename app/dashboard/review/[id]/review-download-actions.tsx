@@ -24,6 +24,8 @@ type Props = {
   letterOnFileText: string | null;
   newLetterText: string | null;
   safeBaseFileName: string;
+  /** White wizard-style panel (deliverables hub). */
+  lightPanel?: boolean;
 };
 
 function triggerBlobDownload(blob: Blob, fileName: string) {
@@ -47,6 +49,7 @@ export function ReviewDownloadActions({
   letterOnFileText,
   newLetterText,
   safeBaseFileName,
+  lightPanel = false,
 }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -259,12 +262,34 @@ export function ReviewDownloadActions({
     }
   }, [doDocx, newLetterText, safeBaseFileName]);
 
+  const btnClass = lightPanel
+    ? "erp-btn-ghost-panel disabled:cursor-not-allowed disabled:opacity-50"
+    : "rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50";
+
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-300">
+    <section
+      className={
+        lightPanel
+          ? "rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a]"
+          : "rounded-3xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/50"
+      }
+    >
+      <h2
+        className={
+          lightPanel
+            ? "text-[11px] font-semibold uppercase tracking-[0.07em] text-[#1a2a3a] border-b-[0.5px] border-[#ebebea] pb-2"
+            : "text-xs font-semibold uppercase tracking-[0.15em] text-blue-300"
+        }
+      >
         Downloads
       </h2>
-      <p className="mt-2 text-sm text-slate-400">
+      <p
+        className={
+          lightPanel
+            ? "mt-2 text-sm text-[#7a8a9a]"
+            : "mt-2 text-sm text-slate-400"
+        }
+      >
         Exports use the same PDF and Word services as the upload wizard.
       </p>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -272,7 +297,7 @@ export function ReviewDownloadActions({
           type="button"
           onClick={onAnalysisPdf}
           disabled={busy !== null || !canExportAnalysis}
-          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnClass}
         >
           {busy === "analysis-pdf" ? "Working…" : "Download Analysis (PDF)"}
         </button>
@@ -280,7 +305,7 @@ export function ReviewDownloadActions({
           type="button"
           onClick={onComparisonPdf}
           disabled={busy !== null || !canExportComparison}
-          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnClass}
         >
           {busy === "comparison-pdf" ? "Working…" : "Download Comparison (PDF)"}
         </button>
@@ -288,7 +313,7 @@ export function ReviewDownloadActions({
           type="button"
           onClick={onFullReportPdf}
           disabled={busy !== null || !canExportAnalysis}
-          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnClass}
         >
           {busy === "full-pdf" ? "Working…" : "Download Full Report (PDF)"}
         </button>
@@ -296,7 +321,7 @@ export function ReviewDownloadActions({
           type="button"
           onClick={onLetterOnFileDocx}
           disabled={busy !== null || !letterOnFileText?.trim()}
-          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnClass}
         >
           {busy === "letter-on-file-docx"
             ? "Working…"
@@ -306,13 +331,20 @@ export function ReviewDownloadActions({
           type="button"
           onClick={onNewLetterDocx}
           disabled={busy !== null || !newLetterText?.trim()}
-          className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2.5 text-left text-sm font-medium text-slate-100 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className={btnClass}
         >
           {busy === "new-letter-docx" ? "Working…" : "Download new letter (Word)"}
         </button>
       </div>
       {err ? (
-        <p className="mt-3 text-sm text-amber-300" role="alert">
+        <p
+          className={
+            lightPanel
+              ? "mt-3 text-sm text-[#b83030]"
+              : "mt-3 text-sm text-amber-300"
+          }
+          role="alert"
+        >
           {err}
         </p>
       ) : null}
