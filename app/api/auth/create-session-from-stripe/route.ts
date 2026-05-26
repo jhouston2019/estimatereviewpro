@@ -189,10 +189,8 @@ async function createSessionFromStripe(
     );
   }
 
-  if (resolvedPlanType != null && resolvedPlanType !== "none") {
-    await ensureUserReviewUsageRow(userId, resolvedPlanType);
-    await syncUserPlanTypeToAuthMetadata(userId, resolvedPlanType);
-  }
+  await ensureUserReviewUsageRow(userId, resolvedPlanType);
+  await syncUserPlanTypeToAuthMetadata(userId, resolvedPlanType);
 
   const cid = stripeCustomerIdFromSession(checkoutSession);
   if (cid) {
