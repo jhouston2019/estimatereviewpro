@@ -226,6 +226,20 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: "No images provided", code: "NO_IMAGES" }),
       };
     }
+    const maxB64 = 4_500_000;
+    for (let i = 0; i < images.length; i++) {
+      const len = String(images[i] || "").length;
+      if (len > maxB64) {
+        return {
+          statusCode: 413,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            error: `Page ${i + 1} image is too large for OCR (${Math.round(len / 1024)}KB). Paste text or use a smaller PDF.`,
+            code: "IMAGE_TOO_LARGE",
+          }),
+        };
+      }
+    }
     console.log(
       "OCR ENV CHECK:",
       !!process.env.OPENAI_API_KEY,
@@ -248,7 +262,7 @@ exports.handler = async (event) => {
       },
       ...images.map((base64) => ({
         type: "image_url",
-        image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "high" },
+        image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "auto" },
       })),
     ];
     try {

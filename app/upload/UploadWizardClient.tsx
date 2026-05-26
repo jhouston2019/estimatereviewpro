@@ -35,6 +35,10 @@ import {
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
 import { extractImagesFromPDF, extractTextFromPDF } from "@/lib/estimate-pdf-extract";
+import {
+  ocrImageTooLarge,
+  requestEstimateOcrPage,
+} from "@/lib/estimate-ocr-client";
 import "./erp-wizard.css";
 
 const US_STATES: { code: string; name: string }[] = [
@@ -1091,32 +1095,30 @@ export default function UploadWizardClient({
                       ),
                     })
                   );
-                  const ocrRes = await wizardFetch(
-                    netlifyFunctionUrl("analyze-estimate"),
-                    {
-                      method: "POST",
-                      body: JSON.stringify({
-                        mode: "extract_only",
-                        images: [images[i]],
-                        fileName: file.name,
-                        pageNumber: i + 1,
-                        totalPages: images.length,
-                      }),
-                    }
-                  );
-                  if (!ocrRes.ok) {
-                    const err = (await ocrRes.json().catch(() => ({}))) as {
-                      error?: string;
-                    };
+                  const pageB64 = images[i]!;
+                  if (ocrImageTooLarge(pageB64)) {
                     throw new Error(
-                      err.error ?? `Page ${i + 1} extraction failed`
+                      `Page ${i + 1} is too large to upload for OCR. Paste the estimate text below or split the PDF.`
                     );
                   }
-                  const ocrData = (await ocrRes.json()) as {
-                    text?: string;
-                    error?: string;
-                  };
-                  if (ocrData.text?.trim()) pageTexts.push(ocrData.text);
+                  const pageText = await requestEstimateOcrPage({
+                    base64Image: pageB64,
+                    fileName: file.name,
+                    pageNumber: i + 1,
+                    totalPages: images.length,
+                    usePreviewEndpoint: isPreviewMode,
+                    fetcher: isPreviewMode
+                      ? (input, init) =>
+                          fetch(input, {
+                            ...init,
+                            headers: {
+                              "Content-Type": "application/json",
+                              ...(init?.headers as Record<string, string>),
+                            },
+                          })
+                      : wizardFetch,
+                  });
+                  pageTexts.push(pageText);
                 }
                 const fullText = pageTexts.join("\n\n");
                 if (!fullText.trim()) {
@@ -1161,7 +1163,11 @@ export default function UploadWizardClient({
                   );
                 }
                 announce(`AI vision extracted text from ${file.name}`);
-              } catch {
+              } catch (ocrErr) {
+                const detail =
+                  ocrErr instanceof Error
+                    ? ocrErr.message
+                    : "AI vision could not read this PDF";
                 setState((s) =>
                   withDerived(s, {
                     documents: s.documents.map((d) =>
@@ -1170,13 +1176,13 @@ export default function UploadWizardClient({
                             ...d,
                             extractStatus: "error" as const,
                             extractedText: "",
-                            statusMessage: `Could not read "${file.name}". Please paste the estimate text below.`,
+                            statusMessage: `Could not read "${file.name}": ${detail}. Paste the estimate text below.`,
                           }
                         : d
                     ),
                   })
                 );
-                announce("Could not read PDF with AI vision.");
+                announce(`Could not read PDF: ${detail}`);
               }
               return;
             }
@@ -1268,7 +1274,7 @@ export default function UploadWizardClient({
         announce("Could not read file.");
       }
     },
-    [announce, setPendingOcrFile, wizardFetch]
+    [announce, isPreviewMode, setPendingOcrFile, wizardFetch]
   );
 
   useEffect(() => {

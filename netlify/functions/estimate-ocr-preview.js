@@ -46,6 +46,21 @@ exports.handler = async (event) => {
     };
   }
 
+  const maxB64 = 4_500_000;
+  for (let i = 0; i < images.length; i++) {
+    const len = String(images[i] || "").length;
+    if (len > maxB64) {
+      return {
+        statusCode: 413,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: `Page ${i + 1} image is too large for OCR. Paste text or use a smaller PDF.`,
+          code: "IMAGE_TOO_LARGE",
+        }),
+      };
+    }
+  }
+
   if (!process.env.OPENAI_API_KEY) {
     return {
       statusCode: 503,
@@ -64,7 +79,7 @@ exports.handler = async (event) => {
     },
     ...images.map((base64) => ({
       type: "image_url",
-      image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "high" },
+      image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "auto" },
     })),
   ];
 
