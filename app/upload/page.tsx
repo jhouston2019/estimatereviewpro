@@ -6,7 +6,7 @@ export default async function UploadRoutePage({
 }: {
   searchParams: Promise<{ step?: string }>;
 }) {
-  await requireUserAndPaywall();
+  await requireUserAndPaywall({ unpaidRedirect: "/analysis-preview" });
   const sp = await searchParams;
   const parsed = parseInt(sp.step ?? "1", 10);
   const initialStep = Number.isFinite(parsed)

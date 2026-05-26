@@ -76,10 +76,19 @@ async function getOrCreateUsersRow(
 /**
  * Auth + product paywall. Entitlement is read only from a real `public.users` row.
  */
-export async function requireUserAndPaywall(): Promise<{
+type RequireUserAndPaywallOptions = {
+  /** Where to send authenticated users without paid access (default: pricing). */
+  unpaidRedirect?: string;
+};
+
+export async function requireUserAndPaywall(
+  options: RequireUserAndPaywallOptions = {}
+): Promise<{
   supabase: Awaited<ReturnType<typeof createSupabaseServerComponentClient>>;
   user: User;
 }> {
+  const unpaidRedirect =
+    options.unpaidRedirect ?? "/pricing?message=payment_required";
   assertProductionPaymentBypassNotMisconfigured();
   const supabase = await createSupabaseServerComponentClient();
   const {
@@ -89,11 +98,7 @@ export async function requireUserAndPaywall(): Promise<{
     redirect("/login");
   }
 
-  const row = await getOrCreateUsersRow(
-    supabase,
-    user,
-    "/pricing?message=payment_required"
-  );
+  const row = await getOrCreateUsersRow(supabase, user, unpaidRedirect);
 
   const isAdmin = row.is_admin === true;
 
@@ -103,10 +108,10 @@ export async function requireUserAndPaywall(): Promise<{
     );
     if (paidErr) {
       console.error("[serverPageGuards] user_has_paid_access error:", paidErr);
-      redirect("/pricing?message=payment_required");
+      redirect(unpaidRedirect);
     }
     if (paid !== true) {
-      redirect("/pricing?message=payment_required");
+      redirect(unpaidRedirect);
     }
   }
 

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
-import { tryParseWizardSnapshot } from "@/lib/wizard-snapshot";
+import { tryParseWizardSnapshot, PAID_RESUME_SESSION_KEY } from "@/lib/wizard-snapshot";
 
 export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
   const router = useRouter();
@@ -39,6 +39,9 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
             (window.sessionStorage.getItem("erp_extracted_text") || "").trim()
           );
         const resume = hasWizardSnapshot || hasTextResume;
+        if (resume && typeof window !== "undefined") {
+          window.sessionStorage.setItem(PAID_RESUME_SESSION_KEY, "true");
+        }
         const { data: userData } = await supabase
           .from("users")
           .select("plan_type")

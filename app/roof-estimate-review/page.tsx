@@ -65,7 +65,7 @@ export default function RoofEstimateReviewPage() {
         }
       ]}
       ctaLabel="Start Roof Estimate Review"
-      ctaHref="/upload?vertical=roof"
+      ctaHref="/analysis-preview"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",

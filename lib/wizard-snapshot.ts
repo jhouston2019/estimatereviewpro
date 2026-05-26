@@ -2,6 +2,8 @@ import type { Json } from "@/types/database.types";
 
 export const WIZARD_STATE_STORAGE_KEY = "erp_wizard_state" as const;
 export const DELIVERABLES_REVIEW_ID_KEY = "erp_deliverables_review_id" as const;
+/** Set after Stripe success so /upload can skip the usage wall for this session only. */
+export const PAID_RESUME_SESSION_KEY = "erp_paid_resume" as const;
 
 export type SerializableWizardV1 = {
   v: 1;

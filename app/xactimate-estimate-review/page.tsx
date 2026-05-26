@@ -61,7 +61,7 @@ export default function XactimateEstimateReviewPage() {
           }
 ]}
       ctaLabel="Start Xactimate Estimate Review"
-      ctaHref="/upload?vertical=xactimate"
+      ctaHref="/analysis-preview"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",

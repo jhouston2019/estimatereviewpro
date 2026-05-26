@@ -65,7 +65,7 @@ export default function InteriorEstimateReviewPage() {
         }
       ]}
       ctaLabel="Start Interior Estimate Review"
-      ctaHref="/upload?vertical=interior"
+      ctaHref="/analysis-preview"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",

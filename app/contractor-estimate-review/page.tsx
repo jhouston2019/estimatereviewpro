@@ -65,7 +65,7 @@ export default function ContractorEstimateReviewPage() {
         }
       ]}
       ctaLabel="Start Contractor Estimate Comparison"
-      ctaHref="/upload?vertical=contractor"
+      ctaHref="/analysis-preview"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",

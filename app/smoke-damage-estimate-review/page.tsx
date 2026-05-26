@@ -65,7 +65,7 @@ export default function SmokeDamageEstimateReviewPage() {
           }
 ]}
       ctaLabel="Start Your Estimate Review"
-      ctaHref="/upload"
+      ctaHref="/analysis-preview"
       schema={{
         "@context": "https://schema.org",
         "@type": "Service",

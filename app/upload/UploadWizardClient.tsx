@@ -13,6 +13,8 @@ import {
 } from "@/lib/supabaseClient";
 import { saveWizardReview } from "@/lib/save-wizard-review";
 import {
+  DELIVERABLES_REVIEW_ID_KEY,
+  PAID_RESUME_SESSION_KEY,
   tryParseWizardSnapshot,
   WIZARD_STATE_STORAGE_KEY,
   type SerializableWizardV1,
@@ -727,8 +729,10 @@ function stepIsNavigable(
   analysis: AnalysisResult | null,
   comparison: ComparisonResult | null,
   letterRaw: string | null,
-  stepNow: number
+  stepNow: number,
+  isPreviewMode: boolean
 ): boolean {
+  if (isPreviewMode && step > 2) return false;
   switch (step) {
     case 1:
       return true;
@@ -849,14 +853,20 @@ export default function UploadWizardClient({
   }, []);
 
   useEffect(() => {
+    if (isPreviewMode && currentStep > 2) {
+      setCurrentStep(2);
+    }
+  }, [isPreviewMode, currentStep]);
+
+  useEffect(() => {
     if (isPreviewMode) {
       setPremierUsageWall("ok");
       return;
     }
     if (typeof window !== "undefined") {
       const pendingPostPayment =
-        Boolean(window.sessionStorage.getItem(WIZARD_STATE_STORAGE_KEY)) ||
-        window.sessionStorage.getItem("erp_resume") === "true";
+        window.sessionStorage.getItem(PAID_RESUME_SESSION_KEY) === "true" ||
+        Boolean(window.sessionStorage.getItem(DELIVERABLES_REVIEW_ID_KEY));
       if (pendingPostPayment) {
         setPremierUsageWall("ok");
         return;
@@ -1845,9 +1855,15 @@ export default function UploadWizardClient({
   }, [announce]);
 
   const onStep2Next = useCallback(() => {
+    if (isPreviewMode) {
+      announce(
+        "Unlock your analysis to access comparison, strategy, summary, and letter."
+      );
+      return;
+    }
     setCurrentStep(3);
     announce("Step 3 — Comparison.");
-  }, [announce]);
+  }, [announce, isPreviewMode]);
 
   const onStep3Back = useCallback(() => {
     setCurrentStep(2);
@@ -2182,7 +2198,8 @@ export default function UploadWizardClient({
                   state.analysis,
                   state.comparison,
                   state.letterRaw,
-                  currentStep
+                  currentStep,
+                  isPreviewMode
                 );
                 const circleClass = `flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
                   isActive
@@ -2885,13 +2902,6 @@ export default function UploadWizardClient({
                   >
                     {submitError}
                   </p>
-                )}
-
-                {isPreviewMode && handlePreviewUnlock && (
-                  <PreviewPaywallBlock
-                    onUnlock={handlePreviewUnlock}
-                    busy={previewUnlockBusy}
-                  />
                 )}
 
                 <div className="flex flex-wrap items-center gap-4 border-t-[0.5px] border-[#1e3f6e] pt-6">

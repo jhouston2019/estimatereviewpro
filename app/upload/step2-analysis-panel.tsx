@@ -737,14 +737,26 @@ export function Step2AnalysisPanel({
         >
           Back
         </button>
-        <button
-          id="erp-step2-next"
-          type="button"
-          className="erp-btn-cta"
-          onClick={onNext}
-        >
-          Continue
-        </button>
+        {isPreviewMode && onPreviewUnlock ? (
+          <button
+            id="erp-step2-unlock"
+            type="button"
+            disabled={previewUnlockBusy}
+            onClick={() => onPreviewUnlock()}
+            className="erp-btn-cta disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {previewUnlockBusy ? "Redirecting…" : "Unlock My Analysis — $49"}
+          </button>
+        ) : (
+          <button
+            id="erp-step2-next"
+            type="button"
+            className="erp-btn-cta"
+            onClick={onNext}
+          >
+            Continue
+          </button>
+        )}
       </div>
     </div>
   );
