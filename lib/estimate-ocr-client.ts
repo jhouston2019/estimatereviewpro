@@ -1,4 +1,5 @@
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
+import { normalizeOcrPageText } from "@/lib/estimate-ocr-text";
 
 export type OcrPageRequest = {
   base64Image: string;
@@ -46,11 +47,17 @@ export async function requestEstimateOcrPage(
     throw new Error(detail);
   }
 
-  const text = payload.text?.trim() ?? "";
-  if (!text) {
+  const raw = payload.text?.trim() ?? "";
+  if (!raw) {
     throw new Error("OCR returned no text for this page");
   }
-  return text;
+  const normalized = normalizeOcrPageText(raw);
+  if (normalized.unusable) {
+    throw new Error(
+      "AI vision could not read this page. Paste the estimate text below or try a clearer PDF export."
+    );
+  }
+  return normalized.text;
 }
 
 /** ~5.5MB JSON body budget for Netlify (base64 page images). */

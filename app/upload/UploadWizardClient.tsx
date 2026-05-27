@@ -453,6 +453,41 @@ function extractStatusClassName(doc: ClaimDocument): string {
   return "text-sm text-[#4a5a6a]";
 }
 
+const LONG_EXTRACT_COLLAPSE_CHARS = 2500;
+const EXTRACT_PREVIEW_CHARS = 1400;
+
+function extractTextFieldLabel(doc: ClaimDocument): string {
+  if (doc.extractStatus === "extracting") {
+    return doc.side === "CARRIER"
+      ? "Extracting carrier estimate…"
+      : "Extracting estimate text…";
+  }
+  if (doc.extractStatus === "done" && doc.extractedText.trim()) {
+    return doc.side === "CARRIER"
+      ? "Extracted carrier estimate"
+      : "Extracted estimate text";
+  }
+  return doc.side === "CARRIER"
+    ? "Paste carrier estimate text"
+    : "Paste estimate text";
+}
+
+function extractTextFieldHint(doc: ClaimDocument): string | null {
+  if (doc.extractStatus === "done" && doc.extractedText.trim()) {
+    return "Review or edit before continuing. The full text is used for analysis.";
+  }
+  if (doc.extractStatus === "error") {
+    return "Paste or upload again if extraction failed.";
+  }
+  return null;
+}
+
+function extractTextPreview(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= EXTRACT_PREVIEW_CHARS) return trimmed;
+  return `${trimmed.slice(0, EXTRACT_PREVIEW_CHARS).trimEnd()}…`;
+}
+
 const initialWizardState = (): WizardState => {
   const base: WizardState = {
     accessToken: "bypass",
@@ -798,6 +833,9 @@ export default function UploadWizardClient({
   const [deliverablesReviewId, setDeliverablesReviewId] = useState<string | null>(
     () => initialReviewId?.trim() || null
   );
+  const [expandedExtractDocIds, setExpandedExtractDocIds] = useState<
+    Set<string>
+  >(() => new Set());
   const liveRegionRef = useRef<HTMLDivElement>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const wizardStateRef = useRef(state);
@@ -1062,6 +1100,11 @@ export default function UploadWizardClient({
   const readDocumentFile = useCallback(
     async (docId: string, file: File | null) => {
       if (!file) return;
+      setExpandedExtractDocIds((prev) => {
+        const next = new Set(prev);
+        next.delete(docId);
+        return next;
+      });
       try {
         if (
           file.type === "text/plain" ||
@@ -1163,6 +1206,7 @@ export default function UploadWizardClient({
                   throw new Error("No pages rendered for OCR");
                 }
                 const pageTexts: string[] = [];
+                let ocrPartialFailure = false;
                 for (let i = 0; i < images.length; i++) {
                   setState((s) =>
                     withDerived(s, {
@@ -1183,13 +1227,27 @@ export default function UploadWizardClient({
                       `Page ${i + 1} is too large to upload for OCR. Paste the estimate text below or split the PDF.`
                     );
                   }
-                  const pageText = await requestEstimateOcrPage({
-                    base64Image: pageB64,
-                    fileName: file.name,
-                    pageNumber: i + 1,
-                    totalPages: images.length,
-                  });
-                  pageTexts.push(pageText);
+                  try {
+                    const pageText = await requestEstimateOcrPage({
+                      base64Image: pageB64,
+                      fileName: file.name,
+                      pageNumber: i + 1,
+                      totalPages: images.length,
+                    });
+                    pageTexts.push(pageText);
+                  } catch (pageErr) {
+                    ocrPartialFailure = true;
+                    announce(
+                      `Page ${i + 1} of ${images.length} could not be read automatically.`
+                    );
+                    if (i === images.length - 1 && pageTexts.length === 0) {
+                      const msg =
+                        pageErr instanceof Error
+                          ? pageErr.message
+                          : "Page OCR failed";
+                      throw new Error(msg);
+                    }
+                  }
                 }
                 const fullText = pageTexts.join("\n\n");
                 if (!fullText.trim()) {
@@ -1205,7 +1263,7 @@ export default function UploadWizardClient({
                       ...d,
                       extractedText: fullText,
                       extractStatus: "done" as const,
-                      statusMessage: `"${file.name}" — AI vision extracted text from ${pageCount} page${pageCount > 1 ? "s" : ""}.`,
+                      statusMessage: `"${file.name}" — AI vision extracted text from ${pageTexts.length} of ${pageCount} page${pageCount > 1 ? "s" : ""}.${ocrPartialFailure ? " Paste any missing pages in the text field below." : ""}`,
                       category: detected,
                       autoDetected: true,
                       label: d.labelLocked
@@ -2675,27 +2733,81 @@ export default function UploadWizardClient({
                           <div>
                             <label
                               htmlFor={step1DocPasteId(idx)}
-                              className="mb-2 block text-sm font-medium text-[#4a5a6a]"
+                              className="mb-1 block text-sm font-medium text-[#4a5a6a]"
                             >
-                              {doc.side === "CARRIER"
-                                ? "Paste carrier estimate text"
-                                : "Paste estimate text"}
+                              {extractTextFieldLabel(doc)}
                             </label>
-                            <textarea
-                              id={step1DocPasteId(idx)}
-                              name={step1DocPasteId(idx)}
-                              rows={idx === 0 ? 8 : 6}
-                              className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
-                              placeholder={
-                                doc.side === "CARRIER"
-                                  ? "Paste line items and totals…"
-                                  : "Paste contractor, PA, or other estimate text"
-                              }
-                              value={doc.extractedText}
-                              onChange={(ev) =>
-                                updateDocumentText(doc.id, ev.target.value)
-                              }
-                            />
+                            {extractTextFieldHint(doc) ? (
+                              <p className="mb-2 text-xs text-[#7a8a9a]">
+                                {extractTextFieldHint(doc)}
+                              </p>
+                            ) : null}
+                            {doc.extractStatus === "done" &&
+                            doc.extractedText.trim().length >
+                              LONG_EXTRACT_COLLAPSE_CHARS &&
+                            !expandedExtractDocIds.has(doc.id) ? (
+                              <div className="space-y-2">
+                                <pre
+                                  className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border-[0.5px] border-[#e4e4e4] bg-[#f8f9fb] px-3 py-2 font-mono text-xs leading-relaxed text-[#2a3a4a]"
+                                  aria-label="Extracted text preview"
+                                >
+                                  {extractTextPreview(doc.extractedText)}
+                                </pre>
+                                <button
+                                  type="button"
+                                  className="text-xs font-semibold text-[#1e3f6e] underline-offset-2 hover:underline"
+                                  onClick={() =>
+                                    setExpandedExtractDocIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.add(doc.id);
+                                      return next;
+                                    })
+                                  }
+                                >
+                                  Show full text to review or edit (
+                                  {doc.extractedText.trim().length.toLocaleString()}{" "}
+                                  characters)
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                {doc.extractStatus === "done" &&
+                                doc.extractedText.trim().length >
+                                  LONG_EXTRACT_COLLAPSE_CHARS &&
+                                expandedExtractDocIds.has(doc.id) ? (
+                                  <button
+                                    type="button"
+                                    className="mb-2 text-xs font-semibold text-[#1e3f6e] underline-offset-2 hover:underline"
+                                    onClick={() =>
+                                      setExpandedExtractDocIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(doc.id);
+                                        return next;
+                                      })
+                                    }
+                                  >
+                                    Collapse to preview
+                                  </button>
+                                ) : null}
+                                <textarea
+                                  id={step1DocPasteId(idx)}
+                                  name={step1DocPasteId(idx)}
+                                  rows={idx === 0 ? 8 : 6}
+                                  className="w-full rounded-lg border-[0.5px] border-[#d8d8d8] bg-white px-3 py-2 font-mono text-sm text-[#2a3a4a] placeholder:text-[#4a5a6a]/70 focus:border-[#f0a050] focus:outline-none focus:ring-1 focus:ring-[#f0a050]"
+                                  placeholder={
+                                    doc.extractStatus === "done"
+                                      ? "Edit extracted text if needed…"
+                                      : doc.side === "CARRIER"
+                                        ? "Paste line items and totals…"
+                                        : "Paste contractor, PA, or other estimate text"
+                                  }
+                                  value={doc.extractedText}
+                                  onChange={(ev) =>
+                                    updateDocumentText(doc.id, ev.target.value)
+                                  }
+                                />
+                              </>
+                            )}
                           </div>
                           <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="min-w-0">

@@ -16,6 +16,54 @@ function optionsResponse() {
   return { statusCode: 200, headers: corsHeaders, body: "" };
 }
 
+const REFUSAL_RX = [
+  /unable to extract text from the image/i,
+  /cannot extract text from the image/i,
+  /if you can provide the text or necessary details/i,
+  /i can help you with any questions/i,
+  /i'?m unable to extract/i,
+];
+
+function isRefusalParagraph(p) {
+  const t = String(p || "").trim();
+  if (!t) return true;
+  if (t.length > 500) return false;
+  return REFUSAL_RX.some((rx) => rx.test(t));
+}
+
+function stripRefusalPreamble(text) {
+  let raw = String(text || "").trim();
+  if (!raw) return { text: "", stripped: false };
+  if (raw.includes("[UNREADABLE_PAGE]")) {
+    const after = raw
+      .split("[UNREADABLE_PAGE]")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join("\n\n");
+    return { text: after, stripped: true };
+  }
+  const parts = raw.split(/\n\s*\n/);
+  let stripped = false;
+  while (parts.length && isRefusalParagraph(parts[0])) {
+    stripped = true;
+    parts.shift();
+  }
+  const joined = parts.join("\n\n").trim();
+  return { text: joined || raw, stripped };
+}
+
+function isUnusableOcr(text) {
+  const cleaned = stripRefusalPreamble(text).text.trim();
+  if (!cleaned) return true;
+  if (cleaned.length < 80 && REFUSAL_RX.some((rx) => rx.test(cleaned))) return true;
+  const hasEstimate =
+    /\$\s*[\d,]+/.test(cleaned) ||
+    /\b(qty|quantity|total|replace|remove)\b/i.test(cleaned) ||
+    (cleaned.length > 400 && /\d{2,}/.test(cleaned));
+  if (!hasEstimate && REFUSAL_RX.some((rx) => rx.test(cleaned))) return true;
+  return false;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return optionsResponse();
   if (event.httpMethod !== "POST") {
@@ -75,7 +123,7 @@ exports.handler = async (event) => {
   const content = [
     {
       type: "text",
-      text: "Extract all text from this insurance estimate document. Return the complete text including all line items, quantities, unit prices, totals, header information (insured name, policy number, claim number, date of loss, adjuster name, carrier name), and any other visible text. Preserve structure as much as possible. Return plain text only.",
+      text: "Extract all text from this insurance estimate document. Return the complete text including all line items, quantities, unit prices, totals, header information (insured name, policy number, claim number, date of loss, adjuster name, carrier name), and any other visible text. Preserve structure as much as possible. Return plain text only. Do not apologize or ask the user to paste text. If the page is unreadable, respond with exactly [UNREADABLE_PAGE] and nothing else.",
     },
     ...images.map((base64) => ({
       type: "image_url",
@@ -90,7 +138,19 @@ exports.handler = async (event) => {
       max_tokens: 4000,
       messages: [{ role: "user", content }],
     });
-    const extractedText = response.choices[0]?.message?.content ?? "";
+    const rawText = response.choices[0]?.message?.content ?? "";
+    const { text: extractedText, stripped } = stripRefusalPreamble(rawText);
+    if (isUnusableOcr(extractedText)) {
+      return {
+        statusCode: 422,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error:
+            "AI vision could not read this page. Paste the estimate text below or try a clearer PDF export.",
+          code: "OCR_UNREADABLE",
+        }),
+      };
+    }
     return {
       statusCode: 200,
       headers: corsHeaders,
@@ -98,6 +158,7 @@ exports.handler = async (event) => {
         text: extractedText,
         pages: images.length,
         fileName: fileName ?? null,
+        strippedRefusal: stripped,
       }),
     };
   } catch (err) {
