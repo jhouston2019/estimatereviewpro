@@ -1,12 +1,17 @@
 const PDFJS_CDN_VERSION = "4.4.168";
 
-export async function extractTextFromPDF(file: File): Promise<string> {
+async function loadPdfDocument(file: File) {
   const pdfjsLib = await import("pdfjs-dist");
   if (typeof window !== "undefined") {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
   }
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+}
+
+/** One string per PDF page (1-based index maps to array index 0). */
+export async function extractTextPagesFromPDF(file: File): Promise<string[]> {
+  const pdf = await loadPdfDocument(file);
   const textPages: string[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -16,31 +21,35 @@ export async function extractTextFromPDF(file: File): Promise<string> {
       .join(" ");
     textPages.push(pageText);
   }
-  return textPages.join("\n\n");
+  return textPages;
 }
 
-const PREVIEW_PDF_OCR_MAX_PAGES = 3;
-const OCR_MAX_PIXEL_WIDTH = 1024;
-const OCR_JPEG_QUALITY = 0.72;
+export async function extractTextFromPDF(file: File): Promise<string> {
+  const pages = await extractTextPagesFromPDF(file);
+  return pages.join("\n\n");
+}
+
+export const PDF_OCR_MAX_PAGES = 12;
+
+const OCR_MAX_PIXEL_WIDTH = 1800;
+const OCR_JPEG_QUALITY = 0.82;
 
 /**
  * Renders up to 3 pages as JPEG base64 (matches upload wizard for OCR).
  * Images are capped in width so Netlify/OpenAI vision requests stay under limits.
  */
-export async function extractImagesFromPDF(file: File): Promise<string[]> {
-  const pdfjsLib = await import("pdfjs-dist");
-  if (typeof window !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_CDN_VERSION}/pdf.worker.min.mjs`;
-  }
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+export async function extractImagesFromPDF(
+  file: File,
+  maxPages: number = PDF_OCR_MAX_PAGES
+): Promise<string[]> {
+  const pdf = await loadPdfDocument(file);
   const images: string[] = [];
-  const maxPages = Math.min(pdf.numPages, PREVIEW_PDF_OCR_MAX_PAGES);
-  for (let i = 1; i <= maxPages; i++) {
+  const pageLimit = Math.min(pdf.numPages, maxPages);
+  for (let i = 1; i <= pageLimit; i++) {
     const page = await pdf.getPage(i);
     const baseViewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(1.5, OCR_MAX_PIXEL_WIDTH / baseViewport.width);
-    const viewport = page.getViewport({ scale: Math.max(0.5, scale) });
+    const scale = Math.min(2, OCR_MAX_PIXEL_WIDTH / baseViewport.width);
+    const viewport = page.getViewport({ scale: Math.max(0.75, scale) });
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
     canvas.height = viewport.height;

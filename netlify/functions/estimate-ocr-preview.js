@@ -123,19 +123,19 @@ exports.handler = async (event) => {
   const content = [
     {
       type: "text",
-      text: "Extract all text from this insurance estimate document. Return the complete text including all line items, quantities, unit prices, totals, header information (insured name, policy number, claim number, date of loss, adjuster name, carrier name), and any other visible text. Preserve structure as much as possible. Return plain text only. Do not apologize or ask the user to paste text. If the page is unreadable, respond with exactly [UNREADABLE_PAGE] and nothing else.",
+      text: "You are an OCR engine for insurance estimate PDF pages. Extract every visible line item row with DESCRIPTION, QTY, REMOVE, REPLACE, TAX, O&P, TOTAL, quantities, unit costs, and all dollar amounts. Include headers and footer totals. Preserve table rows line-by-line. Return plain text only — no commentary. Do not apologize or ask the user to paste text. If the page is unreadable, respond with exactly [UNREADABLE_PAGE] and nothing else.",
     },
     ...images.map((base64) => ({
       type: "image_url",
-      image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "auto" },
+      image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "high" },
     })),
   ];
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 4000,
+      model: "gpt-4o",
+      max_tokens: 4096,
       messages: [{ role: "user", content }],
     });
     const rawText = response.choices[0]?.message?.content ?? "";

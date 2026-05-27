@@ -41,7 +41,14 @@ import {
   letterPlaceholdersFromClaimMeta,
   type LetterPlaceholderFields,
 } from "./step6-letter-panel";
-import { extractImagesFromPDF, extractTextFromPDF } from "@/lib/estimate-pdf-extract";
+import {
+  extractImagesFromPDF,
+  extractTextPagesFromPDF,
+} from "@/lib/estimate-pdf-extract";
+import {
+  hasEstimateLineContent,
+  nativePdfPageTextIsSufficient,
+} from "@/lib/estimate-ocr-text";
 import {
   ocrImageTooLarge,
   requestEstimateOcrPage,
@@ -1185,8 +1192,51 @@ export default function UploadWizardClient({
             })
           );
           try {
-            const text = await extractTextFromPDF(file);
-            if (text.trim().length < 500) {
+            const nativePages = await extractTextPagesFromPDF(file);
+            const text = nativePages.join("\n\n");
+            const needsVision =
+              !hasEstimateLineContent(text) && text.trim().length < 2500;
+
+            if (!needsVision && text.trim().length >= 80) {
+              let extractedKeysForAnnounce: string[] = [];
+              setState((s) => {
+                const detected = autoDetectCategory(text);
+                const documents = s.documents.map((d) => {
+                  if (d.id !== docId) return d;
+                  return {
+                    ...d,
+                    extractedText: text,
+                    extractStatus: "done" as const,
+                    statusMessage: `"${file.name}" — text extracted from PDF (${text.length} characters).`,
+                    category: detected,
+                    autoDetected: true,
+                    label: d.labelLocked
+                      ? d.label
+                      : buildDefaultLabel(d.side, detected, d.version),
+                  };
+                });
+                const updatedDoc = documents.find((d) => d.id === docId);
+                let claimMeta = s.claimMeta;
+                if (updatedDoc?.side === "CARRIER") {
+                  const merged = mergeExtractedClaimMeta(
+                    s.claimMeta,
+                    extractClaimMetaFromText(text)
+                  );
+                  claimMeta = merged.claimMeta;
+                  extractedKeysForAnnounce = merged.extractedKeys;
+                }
+                return withDerived(s, { documents, claimMeta });
+              });
+              if (extractedKeysForAnnounce.length > 0) {
+                setAutoExtractedFields(
+                  (prev) => new Set([...prev, ...extractedKeysForAnnounce])
+                );
+                announce(
+                  `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
+                );
+              }
+              announce(`Text extracted from ${file.name}`);
+            } else {
               setState((s) =>
                 withDerived(s, {
                   documents: s.documents.map((d) =>
@@ -1206,8 +1256,33 @@ export default function UploadWizardClient({
                   throw new Error("No pages rendered for OCR");
                 }
                 const pageTexts: string[] = [];
+                let visionPagesRead = 0;
                 let ocrPartialFailure = false;
-                for (let i = 0; i < images.length; i++) {
+                const pageCount = images.length;
+
+                const requestPageOcr = async (
+                  pageB64: string,
+                  pageNumber: number
+                ) => {
+                  try {
+                    return await requestEstimateOcrPage({
+                      base64Image: pageB64,
+                      fileName: file.name,
+                      pageNumber,
+                      totalPages: pageCount,
+                    });
+                  } catch {
+                    await new Promise((r) => setTimeout(r, 600));
+                    return await requestEstimateOcrPage({
+                      base64Image: pageB64,
+                      fileName: file.name,
+                      pageNumber,
+                      totalPages: pageCount,
+                    });
+                  }
+                };
+
+                for (let i = 0; i < pageCount; i++) {
                   setState((s) =>
                     withDerived(s, {
                       documents: s.documents.map((d) =>
@@ -1215,55 +1290,77 @@ export default function UploadWizardClient({
                           ? {
                               ...d,
                               extractStatus: "extracting" as const,
-                              statusMessage: `Reading "${file.name}" with AI vision… (page ${i + 1} of ${images.length})`,
+                              statusMessage: `Reading "${file.name}"… (page ${i + 1} of ${pageCount})`,
                             }
                           : d
                       ),
                     })
                   );
+                  const nativePage = (nativePages[i] ?? "").trim();
+                  if (nativePdfPageTextIsSufficient(nativePage)) {
+                    pageTexts.push(nativePage);
+                    continue;
+                  }
+
                   const pageB64 = images[i]!;
                   if (ocrImageTooLarge(pageB64)) {
+                    if (nativePage) {
+                      pageTexts.push(nativePage);
+                      ocrPartialFailure = true;
+                      continue;
+                    }
                     throw new Error(
                       `Page ${i + 1} is too large to upload for OCR. Paste the estimate text below or split the PDF.`
                     );
                   }
                   try {
-                    const pageText = await requestEstimateOcrPage({
-                      base64Image: pageB64,
-                      fileName: file.name,
-                      pageNumber: i + 1,
-                      totalPages: images.length,
-                    });
+                    const pageText = await requestPageOcr(pageB64, i + 1);
                     pageTexts.push(pageText);
-                  } catch (pageErr) {
+                    visionPagesRead += 1;
+                  } catch {
                     ocrPartialFailure = true;
                     announce(
-                      `Page ${i + 1} of ${images.length} could not be read automatically.`
+                      `Page ${i + 1} of ${pageCount} could not be read automatically.`
                     );
-                    if (i === images.length - 1 && pageTexts.length === 0) {
-                      const msg =
-                        pageErr instanceof Error
-                          ? pageErr.message
-                          : "Page OCR failed";
-                      throw new Error(msg);
+                    if (nativePage) {
+                      pageTexts.push(nativePage);
+                    }
+                    if (pageTexts.length === 0 && i === pageCount - 1) {
+                      throw new Error(
+                        "Could not read any pages from this PDF. Paste the full estimate text below or export a text-based PDF from Xactimate."
+                      );
                     }
                   }
                 }
+
+                for (let i = pageCount; i < nativePages.length; i++) {
+                  const extra = nativePages[i]?.trim();
+                  if (extra) pageTexts.push(extra);
+                }
+
                 const fullText = pageTexts.join("\n\n");
                 if (!fullText.trim()) {
                   throw new Error("OCR returned no text");
                 }
-                const pageCount = images.length;
+
+                const incomplete =
+                  ocrPartialFailure || !hasEstimateLineContent(fullText);
+
                 let extractedKeysForAnnounce: string[] = [];
                 setState((s) => {
                   const detected = autoDetectCategory(fullText);
                   const documents = s.documents.map((d) => {
                     if (d.id !== docId) return d;
+                    const pagesReadLabel = `${pageTexts.length} of ${Math.max(pageCount, nativePages.length)} page${pageCount > 1 ? "s" : ""}`;
                     return {
                       ...d,
                       extractedText: fullText,
-                      extractStatus: "done" as const,
-                      statusMessage: `"${file.name}" — AI vision extracted text from ${pageTexts.length} of ${pageCount} page${pageCount > 1 ? "s" : ""}.${ocrPartialFailure ? " Paste any missing pages in the text field below." : ""}`,
+                      extractStatus: incomplete
+                        ? ("error" as const)
+                        : ("done" as const),
+                      statusMessage: incomplete
+                        ? `"${file.name}" — only ${pagesReadLabel} captured and line items may be missing. Paste the full estimate (all pages) in the text field below, or re-export a PDF from Xactimate with selectable text.`
+                        : `"${file.name}" — extracted text from ${pagesReadLabel}${visionPagesRead > 0 ? " (AI vision)" : ""}.`,
                       category: detected,
                       autoDetected: true,
                       label: d.labelLocked
@@ -1291,7 +1388,11 @@ export default function UploadWizardClient({
                     `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
                   );
                 }
-                announce(`AI vision extracted text from ${file.name}`);
+                announce(
+                  incomplete
+                    ? `${file.name}: incomplete extraction — paste remaining pages.`
+                    : `Text extracted from ${file.name}`
+                );
               } catch (ocrErr) {
                 const detail =
                   ocrErr instanceof Error
@@ -1315,44 +1416,6 @@ export default function UploadWizardClient({
               }
               return;
             }
-            let extractedKeysForAnnounce: string[] = [];
-            setState((s) => {
-              const detected = autoDetectCategory(text);
-              const documents = s.documents.map((d) => {
-                if (d.id !== docId) return d;
-                return {
-                  ...d,
-                  extractedText: text,
-                  extractStatus: "done" as const,
-                  statusMessage: `"${file.name}" — text extracted successfully (${text.length} characters).`,
-                  category: detected,
-                  autoDetected: true,
-                  label: d.labelLocked
-                    ? d.label
-                    : buildDefaultLabel(d.side, detected, d.version),
-                };
-              });
-              const updatedDoc = documents.find((d) => d.id === docId);
-              let claimMeta = s.claimMeta;
-              if (updatedDoc?.side === "CARRIER") {
-                const merged = mergeExtractedClaimMeta(
-                  s.claimMeta,
-                  extractClaimMetaFromText(text)
-                );
-                claimMeta = merged.claimMeta;
-                extractedKeysForAnnounce = merged.extractedKeys;
-              }
-              return withDerived(s, { documents, claimMeta });
-            });
-            if (extractedKeysForAnnounce.length > 0) {
-              setAutoExtractedFields(
-                (prev) => new Set([...prev, ...extractedKeysForAnnounce])
-              );
-              announce(
-                `Auto-filled ${extractedKeysForAnnounce.length} claim field${extractedKeysForAnnounce.length > 1 ? "s" : ""} from document.`
-              );
-            }
-            announce(`Text extracted from ${file.name}`);
           } catch {
             setState((s) =>
               withDerived(s, {

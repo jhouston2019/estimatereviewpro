@@ -66,6 +66,22 @@ export function stripOcrRefusalPreamble(text: string): {
   };
 }
 
+/** True when text looks like line items / dollars (not just a cover sheet). */
+export function hasEstimateLineContent(text: string): boolean {
+  const t = stripOcrRefusalPreamble(text).text.trim();
+  if (!t) return false;
+  const dollarHits = (t.match(/\$\s*[\d,]+(?:\.\d{2})?/g) || []).length;
+  if (dollarHits >= 2) return true;
+  const hasTableHeaders =
+    /\b(DESCRIPTION|QTY|QUANTITY|REMOVE|REPLACE|RCV|ACV|O&P)\b/i.test(t);
+  const hasQty = /\b(qty|quantity)\b/i.test(t);
+  if (hasTableHeaders && (dollarHits >= 1 || hasQty)) return true;
+  if (hasQty && /\b(total|subtotal|rcv|acv|line total)\b/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
 /** True when nothing usable remains for estimate analysis. */
 export function isOcrTextUnusable(text: string): boolean {
   const { text: cleaned } = stripOcrRefusalPreamble(text);
@@ -75,15 +91,20 @@ export function isOcrTextUnusable(text: string): boolean {
   if (t.length < 80 && OCR_REFUSAL_LINE_PATTERNS.some((rx) => rx.test(t))) {
     return true;
   }
-  const hasEstimateSignals =
-    /\$\s*[\d,]+/.test(t) ||
-    /\b(qty|quantity|total|replace|remove|rcv|acv)\b/i.test(t) ||
-    /\b\d+\.?\d*\s*(sf|lf|ea|sq|hr|day)\b/i.test(t) ||
-    (t.length > 400 && /\d{2,}/.test(t));
-  if (!hasEstimateSignals && OCR_REFUSAL_LINE_PATTERNS.some((rx) => rx.test(t))) {
+  if (OCR_REFUSAL_LINE_PATTERNS.some((rx) => rx.test(t)) && !hasEstimateLineContent(t)) {
+    return true;
+  }
+  if (!hasEstimateLineContent(t) && t.length < 1200) {
     return true;
   }
   return false;
+}
+
+/** Prefer embedded PDF text when a page already has line items. */
+export function nativePdfPageTextIsSufficient(pageText: string): boolean {
+  const t = pageText.trim();
+  if (t.length < 120) return false;
+  return hasEstimateLineContent(t);
 }
 
 export function normalizeOcrPageText(raw: string): {
