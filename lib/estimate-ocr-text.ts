@@ -72,13 +72,20 @@ export function hasEstimateLineContent(text: string): boolean {
   if (!t) return false;
   const dollarHits = (t.match(/\$\s*[\d,]+(?:\.\d{2})?/g) || []).length;
   if (dollarHits >= 2) return true;
+  const amountHits = (t.match(/\b\d{1,3}(?:,\d{3})+\.\d{2}\b/g) || []).length;
+  if (amountHits >= 6) return true;
   const hasTableHeaders =
-    /\b(DESCRIPTION|QTY|QUANTITY|REMOVE|REPLACE|RCV|ACV|O&P)\b/i.test(t);
+    /\b(DESCRIPTION|QTY|QUANTITY|REMOVE|REPLACE|RCV|ACV|O&P|TOTAL)\b/i.test(
+      t
+    );
   const hasQty = /\b(qty|quantity)\b/i.test(t);
-  if (hasTableHeaders && (dollarHits >= 1 || hasQty)) return true;
+  if (hasTableHeaders && (dollarHits >= 1 || hasQty || amountHits >= 2)) {
+    return true;
+  }
   if (hasQty && /\b(total|subtotal|rcv|acv|line total)\b/i.test(t)) {
     return true;
   }
+  if (hasTableHeaders && t.length > 8000) return true;
   return false;
 }
 

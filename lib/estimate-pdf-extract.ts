@@ -1,5 +1,11 @@
 const PDFJS_CDN_VERSION = "4.4.168";
 
+/** Max pages sent to AI vision (cost/time); embedded text is read for every page. */
+export const PDF_VISION_MAX_PAGES = 15;
+
+/** Above this page count we never imply full-document vision OCR. */
+export const PDF_LARGE_PAGE_THRESHOLD = 25;
+
 async function loadPdfDocument(file: File) {
   const pdfjsLib = await import("pdfjs-dist");
   if (typeof window !== "undefined") {
@@ -9,11 +15,21 @@ async function loadPdfDocument(file: File) {
   return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 }
 
-/** One string per PDF page (1-based index maps to array index 0). */
-export async function extractTextPagesFromPDF(file: File): Promise<string[]> {
+export type PdfTextExtractionResult = {
+  pages: string[];
+  totalPages: number;
+};
+
+/** One string per PDF page (index 0 = page 1). Reads every page's text layer. */
+export async function extractTextPagesFromPDF(
+  file: File,
+  onProgress?: (page: number, total: number) => void
+): Promise<PdfTextExtractionResult> {
   const pdf = await loadPdfDocument(file);
   const textPages: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
+  const total = pdf.numPages;
+  for (let i = 1; i <= total; i++) {
+    onProgress?.(i, total);
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
     const pageText = textContent.items
@@ -21,32 +37,28 @@ export async function extractTextPagesFromPDF(file: File): Promise<string[]> {
       .join(" ");
     textPages.push(pageText);
   }
-  return textPages;
+  return { pages: textPages, totalPages: total };
 }
 
 export async function extractTextFromPDF(file: File): Promise<string> {
-  const pages = await extractTextPagesFromPDF(file);
+  const { pages } = await extractTextPagesFromPDF(file);
   return pages.join("\n\n");
 }
-
-export const PDF_OCR_MAX_PAGES = 12;
 
 const OCR_MAX_PIXEL_WIDTH = 1800;
 const OCR_JPEG_QUALITY = 0.82;
 
-/**
- * Renders up to 3 pages as JPEG base64 (matches upload wizard for OCR).
- * Images are capped in width so Netlify/OpenAI vision requests stay under limits.
- */
-export async function extractImagesFromPDF(
+/** Render specific 1-based page numbers as JPEG base64 for vision OCR. */
+export async function extractPageImagesFromPDF(
   file: File,
-  maxPages: number = PDF_OCR_MAX_PAGES
+  pageNumbers: number[]
 ): Promise<string[]> {
+  if (pageNumbers.length === 0) return [];
   const pdf = await loadPdfDocument(file);
   const images: string[] = [];
-  const pageLimit = Math.min(pdf.numPages, maxPages);
-  for (let i = 1; i <= pageLimit; i++) {
-    const page = await pdf.getPage(i);
+  for (const pageNum of pageNumbers) {
+    if (pageNum < 1 || pageNum > pdf.numPages) continue;
+    const page = await pdf.getPage(pageNum);
     const baseViewport = page.getViewport({ scale: 1 });
     const scale = Math.min(2, OCR_MAX_PIXEL_WIDTH / baseViewport.width);
     const viewport = page.getViewport({ scale: Math.max(0.75, scale) });
@@ -61,4 +73,35 @@ export async function extractImagesFromPDF(
     if (base64) images.push(base64);
   }
   return images;
+}
+
+/** @deprecated Use extractPageImagesFromPDF — renders first N pages only. */
+export async function extractImagesFromPDF(
+  file: File,
+  maxPages: number = PDF_VISION_MAX_PAGES
+): Promise<string[]> {
+  const indices = Array.from({ length: maxPages }, (_, i) => i + 1);
+  return extractPageImagesFromPDF(file, indices);
+}
+
+export function countNativePagesWithText(pages: string[], minChars = 40): number {
+  return pages.filter((p) => p.trim().length >= minChars).length;
+}
+
+export function mergeNativeAndVisionPages(
+  nativePages: string[],
+  visionByPageIndex: Map<number, string>,
+  pageHasSufficientNative: (pageText: string) => boolean
+): string {
+  const parts: string[] = [];
+  for (let i = 0; i < nativePages.length; i++) {
+    const native = (nativePages[i] ?? "").trim();
+    const vision = visionByPageIndex.get(i)?.trim();
+    if (vision && !pageHasSufficientNative(native)) {
+      parts.push(vision);
+    } else if (native) {
+      parts.push(native);
+    }
+  }
+  return parts.join("\n\n");
 }
