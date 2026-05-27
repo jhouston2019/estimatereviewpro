@@ -93,6 +93,7 @@ export async function getBillingSnapshot(
     .from("user_review_usage")
     .select("reviews_used, reviews_limit")
     .eq("user_id", userId)
+    .eq("is_active", true)
     .maybeSingle();
   const ur = usageRow as {
     reviews_used: number | null;

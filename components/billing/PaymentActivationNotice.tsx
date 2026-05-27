@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   enabled: boolean;
@@ -11,6 +12,7 @@ type Props = {
  * Polls /api/billing/status until Supabase shows paid access (never trust URL alone).
  */
 export function PaymentActivationNotice({ enabled }: Props) {
+  const router = useRouter();
   const [state, setState] = useState<"idle" | "waiting" | "ready" | "timeout">(
     "idle"
   );
@@ -30,6 +32,7 @@ export function PaymentActivationNotice({ enabled }: Props) {
         if (cancelled) return;
         if (data.hasPaidAccess) {
           setState("ready");
+          router.refresh();
           return;
         }
         if (Date.now() - started > maxMs) {
@@ -46,7 +49,7 @@ export function PaymentActivationNotice({ enabled }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, router]);
 
   if (!enabled || state === "idle" || state === "ready") return null;
 

@@ -74,14 +74,16 @@ export function resolveEffectiveReviewLimit(args: {
   teamReviewLimit?: number | null;
   metadataLimit?: number | null;
 }): number {
-  if (args.storedLimit > 0) return args.storedLimit;
-  if (args.metadataLimit != null && args.metadataLimit > 0) {
-    return args.metadataLimit;
-  }
-  if (args.teamReviewLimit != null && args.teamReviewLimit > 0) {
-    return args.teamReviewLimit;
-  }
-  return getPlanReviewLimit(args.planType) ?? 0;
+  const planCap = getPlanReviewLimit(args.planType) ?? 0;
+  const candidates = [
+    planCap,
+    args.storedLimit > 0 ? args.storedLimit : 0,
+    args.metadataLimit != null && args.metadataLimit > 0 ? args.metadataLimit : 0,
+    args.teamReviewLimit != null && args.teamReviewLimit > 0
+      ? args.teamReviewLimit
+      : 0,
+  ];
+  return Math.max(0, ...candidates);
 }
 
 export function reviewsRemaining(

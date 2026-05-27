@@ -193,7 +193,9 @@ async function createSessionFromStripe(
   if (resolvedPlanType === "single") {
     await provisionSingleReviewCredit(userId);
   } else {
-    await ensureUserReviewUsageRow(userId, resolvedPlanType);
+    await ensureUserReviewUsageRow(userId, resolvedPlanType, {
+      resetUsage: true,
+    });
   }
   await syncUserPlanTypeToAuthMetadata(userId, resolvedPlanType);
 
@@ -412,6 +414,9 @@ export async function POST(request: NextRequest) {
     return await withOkTrue(inner);
   } catch (e) {
     console.error("create-session-from-stripe error:", e);
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return NextResponse.json(
+      { ok: false, error: "Failed to finalize checkout" },
+      { status: 500 }
+    );
   }
 }

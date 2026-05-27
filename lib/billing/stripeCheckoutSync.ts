@@ -67,22 +67,15 @@ export async function syncUserPlanTypeToAuthMetadata(
 }
 
 /**
- * After checkout sets users.plan_type, create user_review_usage if none yet.
+ * After checkout sets users.plan_type, create or refresh user_review_usage.
+ * On new purchase (`resetUsage`), grant a fresh billing period and zero used count.
  */
 export async function ensureUserReviewUsageRow(
   userId: string,
-  planType: string
+  planType: string,
+  opts?: { resetUsage?: boolean }
 ): Promise<void> {
   if (!planType || planType === "none") return;
-
-  const { data: existingUsage } = await supabase
-    .from("user_review_usage")
-    .select("user_id")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (existingUsage) return;
 
   const { data: plan } = await supabase
     .from("subscription_plans")
@@ -101,21 +94,54 @@ export async function ensureUserReviewUsageRow(
     return;
   }
 
-  const insertRow: Record<string, unknown> = {
-    user_id: userId,
-    reviews_used: 0,
+  const now = new Date();
+  const periodEnd =
+    planType === "single"
+      ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : billingPeriodEndOneMonthFromNow();
+
+  const payload: Record<string, unknown> = {
     reviews_limit: reviewsLimit,
-    billing_period_start: new Date().toISOString(),
-    billing_period_end: new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000
-    ).toISOString(),
+    billing_period_start: now.toISOString(),
+    billing_period_end: periodEnd,
     is_active: true,
+    updated_at: now.toISOString(),
   };
   if (plan?.id) {
-    insertRow.plan_id = plan.id;
+    payload.plan_id = plan.id;
+  }
+  if (opts?.resetUsage) {
+    payload.reviews_used = 0;
   }
 
-  const { error } = await supabase.from("user_review_usage").insert(insertRow);
+  const { data: existing } = await supabase
+    .from("user_review_usage")
+    .select("user_id, reviews_limit")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    if (!opts?.resetUsage) {
+      const prior = (existing as { reviews_limit?: number | null }).reviews_limit ?? 0;
+      payload.reviews_limit = Math.max(prior, reviewsLimit);
+      delete payload.billing_period_start;
+      delete payload.billing_period_end;
+    }
+    const { error } = await supabase
+      .from("user_review_usage")
+      .update(payload)
+      .eq("user_id", userId);
+    if (error) {
+      console.error("[ensureUserReviewUsageRow] update failed:", error);
+    }
+    return;
+  }
+
+  const { error } = await supabase.from("user_review_usage").insert({
+    user_id: userId,
+    reviews_used: 0,
+    ...payload,
+  });
 
   if (error) {
     console.error("[ensureUserReviewUsageRow] insert failed:", error);

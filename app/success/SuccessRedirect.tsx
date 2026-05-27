@@ -16,12 +16,18 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
 
     const supabase = createSupabaseBrowserClient();
 
-    fetch("/api/auth/create-session-from-stripe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ session_id: sessionId }),
-    }).finally(async () => {
+    void (async () => {
+      try {
+        await fetch("/api/auth/create-session-from-stripe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+      } catch (e) {
+        console.error("[SuccessRedirect] create-session-from-stripe:", e);
+      }
+
       const { data } = await supabase.auth.refreshSession();
       if (data.session) {
         console.info(
@@ -40,9 +46,9 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
           window.sessionStorage.removeItem(NEW_REVIEW_PLAN_KEY);
           clearCompletedReviewSession();
           if (newReviewPlan === "single") {
-            router.replace("/upload");
+            router.replace("/upload?payment=success");
           } else {
-            router.replace("/dashboard");
+            router.replace("/dashboard?payment=success");
           }
           return;
         }
@@ -71,14 +77,14 @@ export function SuccessRedirect({ sessionId }: { sessionId: string | null }) {
         if (resume) {
           router.replace("/deliverables");
         } else if (planType === "single") {
-          router.replace("/upload");
+          router.replace("/upload?payment=success");
         } else {
-          router.replace("/dashboard");
+          router.replace("/dashboard?payment=success");
         }
       } else {
         router.replace("/create-account?session_id=" + encodeURIComponent(sessionId));
       }
-    });
+    })();
   }, [router, sessionId]);
 
   return <div>Finishing up…</div>;
