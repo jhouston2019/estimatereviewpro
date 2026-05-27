@@ -408,7 +408,22 @@ export function DeliverablesHubClient() {
   }
 
   if (!deliverables) {
-    return null;
+    return (
+      <main className="mx-auto max-w-6xl px-6 py-16 text-center">
+        <p className="text-sm text-[#f0a050]">
+          Could not load your review report. Return to the wizard and use View
+          Complete Review/Report again.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link href="/upload?step=6" className="erp-btn-cta">
+            Go to wizard
+          </Link>
+          <Link href="/dashboard" className="erp-btn-ghost">
+            Dashboard
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (

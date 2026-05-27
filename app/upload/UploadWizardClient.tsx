@@ -566,7 +566,7 @@ function restoreWizardFromSnapshot(
 async function saveReviewToDatabase(
   s: WizardState,
   letterTextForStore: string
-): Promise<boolean> {
+): Promise<string | null> {
   const result = await saveWizardReview({
     claimMeta: s.claimMeta,
     analysis: s.analysis,
@@ -577,9 +577,9 @@ async function saveReviewToDatabase(
   });
   if (!result.ok) {
     console.error("[upload] saveReview:", result.error);
-    return false;
+    return null;
   }
-  return true;
+  return result.reviewId;
 }
 
 const CLAIM_META_AUTO_EXTRACT_KEYS = new Set([
@@ -827,13 +827,53 @@ export default function UploadWizardClient({
     if (stored) setDeliverablesReviewId(stored);
   }, [initialReviewId, isPreviewMode]);
 
-  const completeReviewReportHref = useMemo(() => {
-    if (isPreviewMode || !state.analysis) return null;
-    if (deliverablesReviewId) {
-      return `/deliverables?reviewId=${encodeURIComponent(deliverablesReviewId)}`;
-    }
-    return "/deliverables";
-  }, [deliverablesReviewId, isPreviewMode, state.analysis]);
+  const canOpenCompleteReviewReport = !isPreviewMode && Boolean(state.analysis);
+
+  const persistWizardForDeliverables = useCallback(
+    (reviewId: string | null) => {
+      if (typeof window === "undefined") return;
+      const snap = tryParseWizardSnapshot(
+        buildWizardSnapshot(wizardStateRef.current, currentStep)
+      );
+      if (!snap) return;
+      if (!reviewId?.trim()) {
+        window.sessionStorage.removeItem(DELIVERABLES_REVIEW_ID_KEY);
+      }
+      writeWizardResumeSnapshot(snap, reviewId?.trim() || null);
+    },
+    [currentStep]
+  );
+
+  useEffect(() => {
+    if (isPreviewMode || !state.analysis) return;
+    const t = window.setTimeout(() => {
+      persistWizardForDeliverables(deliverablesReviewId);
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [
+    state,
+    currentStep,
+    deliverablesReviewId,
+    isPreviewMode,
+    state.analysis,
+    persistWizardForDeliverables,
+  ]);
+
+  const handleOpenCompleteReviewReport = useCallback(() => {
+    if (!canOpenCompleteReviewReport) return;
+    persistWizardForDeliverables(deliverablesReviewId);
+    const rid = deliverablesReviewId?.trim();
+    router.push(
+      rid
+        ? `/deliverables?reviewId=${encodeURIComponent(rid)}`
+        : "/deliverables"
+    );
+  }, [
+    canOpenCompleteReviewReport,
+    deliverablesReviewId,
+    persistWizardForDeliverables,
+    router,
+  ]);
 
   const handleLogout = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -2100,7 +2140,17 @@ export default function UploadWizardClient({
         void saveReviewToDatabase(
           { ...s, letterRaw: letterTextForStore },
           letterTextForStore
-        );
+        ).then((savedId) => {
+          if (!savedId) return;
+          setDeliverablesReviewId(savedId);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(
+              DELIVERABLES_REVIEW_ID_KEY,
+              savedId
+            );
+          }
+          persistWizardForDeliverables(savedId);
+        });
       }
     } catch (err) {
       const msg =
@@ -2109,7 +2159,7 @@ export default function UploadWizardClient({
     } finally {
       setStep6LetterLoading(false);
     }
-  }, [announce, isPreviewMode, wizardFetch]);
+  }, [announce, isPreviewMode, persistWizardForDeliverables, wizardFetch]);
 
   const previewLetterAutogenRef = useRef(false);
   useEffect(() => {
@@ -2253,14 +2303,21 @@ export default function UploadWizardClient({
               </>
             ) : (
               <>
-                {completeReviewReportHref ? (
-                  <Link
-                    href={completeReviewReportHref}
+                {canOpenCompleteReviewReport ? (
+                  <button
+                    type="button"
+                    onClick={handleOpenCompleteReviewReport}
                     className="shrink-0 rounded-full border border-[#f0a050] bg-[#f0a050]/10 px-2.5 py-1.5 text-xs font-semibold text-[#f0a050] transition hover:bg-[#f0a050]/20 sm:px-4 sm:py-2 sm:text-sm"
                   >
-                    Complete review report
-                  </Link>
+                    View Complete Review/Report
+                  </button>
                 ) : null}
+                <Link
+                  href="/dashboard"
+                  className="shrink-0 rounded-full border border-[#1e3f6e] px-2.5 py-1.5 text-xs font-semibold text-[#e8f0f8] transition hover:border-[#8aacc8] sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Dashboard
+                </Link>
                 <Link
                   href="/pricing"
                   className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:px-4 sm:py-2 sm:text-sm"
