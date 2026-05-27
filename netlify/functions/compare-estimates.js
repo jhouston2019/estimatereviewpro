@@ -77,7 +77,8 @@ Rules:
 - Do not invent Xactimate line codes, statute numbers, case citations, or policy coverage provisions.
 - claimType is context for labeling trades only; never use it as a numeric source for dollars.
 - All numbers must be finite. Use 0 when no amount is supported by the text.
-- lineItems may be an empty array only if the carrier text has no parseable line-level content; prefer at least one summary row if a total exists in the carrier text.`;
+- lineItems may be an empty array ONLY if neither pasted estimate contains any line items, quantities, or dollar amounts.
+- When both texts include estimate tables or totals, you MUST return at least 8 lineItems (or one row per major trade/room section). Do not return lineItems: [] if dollar figures exist in either text.`;
 }
 
 function buildUserMessage(
@@ -216,7 +217,22 @@ function withTimeout(promise, timeoutMs) {
 function truncateForModel(text, maxChars) {
   const t = String(text || "");
   if (t.length <= maxChars) return t;
-  return t.slice(0, maxChars) + "\n\n[... truncated for processing ...]";
+  const head = Math.floor(maxChars * 0.55);
+  const tail = maxChars - head - 80;
+  if (tail < 1000) {
+    return t.slice(0, maxChars) + "\n\n[... truncated for processing ...]";
+  }
+  return (
+    t.slice(0, head) +
+    "\n\n[... middle of document omitted for processing — totals and line items may appear below ...]\n\n" +
+    t.slice(-tail)
+  );
+}
+
+function textLooksLikeEstimate(body) {
+  return /\$\s*[\d,]+|\b(DESCRIPTION|QTY|QUANTITY|REMOVE|REPLACE)\b/i.test(
+    String(body || "")
+  );
 }
 
 function finalizeResult(mode, parsed) {
@@ -292,7 +308,7 @@ exports.handler = async (event) => {
   const contractorText =
     body.contractorText === undefined || body.contractorText === null
       ? null
-      : body.contractorText;
+      : truncateForModel(String(body.contractorText).trim(), textLimit);
   const claimType = String(body.claimType || "");
   const category = body.category;
 
@@ -348,14 +364,35 @@ exports.handler = async (event) => {
   } catch (e) {
     console.error("compare-estimates OpenAI:", e);
     return {
-      statusCode: 200,
+      statusCode: 502,
       headers: corsHeaders,
-      body: JSON.stringify(emptyResult(mode)),
+      body: JSON.stringify({
+        error: "Comparison generation failed",
+        code: "COMPARE_OPENAI_FAILED",
+        mode,
+      }),
     };
   }
 
   try {
     const out = finalizeResult(mode, parsed);
+    if (
+      out.lineItems.length === 0 &&
+      textLooksLikeEstimate(carrierText) &&
+      (mode !== "LINE_COMPARE" || textLooksLikeEstimate(contractorText))
+    ) {
+      console.warn("compare-estimates: model returned empty lineItems");
+      return {
+        statusCode: 502,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error:
+            "Comparison returned no line items. Try again or ensure both estimates have readable line-item text.",
+          code: "COMPARE_EMPTY",
+          mode,
+        }),
+      };
+    }
     if (hasVersionDiff) {
       const vdUser = `PREVIOUS CARRIER VERSION (${String(vdRaw.previousVersion || "PREVIOUS")}):\n${String(vdRaw.previousText)}\n\nCURRENT CARRIER VERSION (${String(vdRaw.currentVersion || "CURRENT")}):\n${String(vdRaw.currentText)}`;
       try {
@@ -388,9 +425,13 @@ exports.handler = async (event) => {
   } catch (e) {
     console.error("compare-estimates finalize:", e);
     return {
-      statusCode: 200,
+      statusCode: 502,
       headers: corsHeaders,
-      body: JSON.stringify(emptyResult(mode)),
+      body: JSON.stringify({
+        error: "Comparison response invalid",
+        code: "COMPARE_FINALIZE_FAILED",
+        mode,
+      }),
     };
   }
 };

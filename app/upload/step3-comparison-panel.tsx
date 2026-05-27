@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { LockIcon } from "@/components/LockIcon";
 import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
+import { comparisonHasLineRows } from "@/lib/estimate-json-parse";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import { previewBlurClassForIndex } from "@/lib/preview-blur";
 import { wizardFetch } from "@/lib/supabaseClient";
@@ -28,6 +29,8 @@ type Props = {
   onPreviewUnlock?: () => void;
   previewUnlockBusy?: boolean;
   hideNav?: boolean;
+  compareBusy?: boolean;
+  onRerunComparison?: () => void;
 };
 
 const REPORT_DIVIDER = "----------------------------------------";
@@ -151,11 +154,14 @@ export function Step3ComparisonPanel({
   onPreviewUnlock,
   previewUnlockBusy = false,
   hideNav = false,
+  compareBusy = false,
+  onRerunComparison,
 }: Props) {
+  const hasRows = comparisonHasLineRows(comparison);
   const fetcher = wizardApiFetch ?? wizardFetch;
   const downloadPdf = useCallback(async () => {
-    if (!comparison) {
-      announce("No comparison data to export.");
+    if (!comparison || !hasRows) {
+      announce("No comparison line items to export. Re-run comparison first.");
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
@@ -180,11 +186,11 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison PDF downloaded.");
-  }, [announce, comparison, claimMeta, fetcher]);
+  }, [announce, comparison, claimMeta, fetcher, hasRows]);
 
   const downloadWord = useCallback(async () => {
-    if (!comparison) {
-      announce("No comparison data to export.");
+    if (!comparison || !hasRows) {
+      announce("No comparison line items to export. Re-run comparison first.");
       return;
     }
     const text = buildComparisonText(comparison, claimMeta);
@@ -209,7 +215,7 @@ export function Step3ComparisonPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison Word document downloaded.");
-  }, [announce, comparison, claimMeta, fetcher]);
+  }, [announce, comparison, claimMeta, fetcher, hasRows]);
 
   const mode = comparison?.mode ?? "";
   const lineItems = comparison?.lineItems ?? [];
@@ -238,10 +244,44 @@ export function Step3ComparisonPanel({
         </p>
       )}
 
-      {comparison && (
+      {comparison && !hasRows && (
+        <div
+          className="mt-6 rounded-xl border border-rose-500/40 bg-rose-50 px-4 py-4 text-sm text-rose-900"
+          role="alert"
+        >
+          <p className="font-semibold">No line-item comparison was generated.</p>
+          <p className="mt-2 text-rose-800/90">
+            This usually means the carrier or contractor/PA estimate text is
+            incomplete (cover page only, partial PDF, or a failed compare). Paste
+            full line items on Step 1 for both documents, then re-run comparison.
+          </p>
+          {onRerunComparison ? (
+            <button
+              type="button"
+              className="erp-btn-cta mt-4"
+              disabled={compareBusy}
+              onClick={onRerunComparison}
+            >
+              {compareBusy ? "Building comparison…" : "Re-run comparison"}
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {comparison && hasRows && (
         <>
           {!isPreviewMode && (
             <div className="mt-6 flex flex-wrap gap-3">
+              {onRerunComparison ? (
+                <button
+                  type="button"
+                  className="erp-btn-ghost-panel"
+                  disabled={compareBusy}
+                  onClick={onRerunComparison}
+                >
+                  {compareBusy ? "Refreshing…" : "Re-run comparison"}
+                </button>
+              ) : null}
               <button
                 id="erp-step3-download-pdf"
                 type="button"

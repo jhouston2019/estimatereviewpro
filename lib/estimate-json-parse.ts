@@ -55,6 +55,16 @@ function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === "object" && x !== null;
 }
 
+/** True when comparison has no line rows and no non-zero totals. */
+export function comparisonHasLineRows(c: ComparisonResult | null): boolean {
+  if (!c) return false;
+  if ((c.lineItems?.length ?? 0) > 0) return true;
+  return (
+    Math.abs(c.totalCarrier ?? 0) > 0 ||
+    Math.abs(c.totalContractor ?? 0) > 0
+  );
+}
+
 export function parseComparisonResult(
   raw: unknown
 ): ComparisonResult | null {

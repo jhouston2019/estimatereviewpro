@@ -24,6 +24,7 @@ import {
   fetchDeliverablesForReviewId,
   wizardSnapshotFromDeliverables,
 } from "@/lib/wizard-deliverables";
+import { comparisonHasLineRows } from "@/lib/estimate-json-parse";
 import {
   Step2AnalysisPanel,
   parseAnalysisResult,
@@ -829,6 +830,7 @@ export default function UploadWizardClient({
   );
   const [state, setState] = useState<WizardState>(() => initialWizardState());
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [compareBusy, setCompareBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [step6LetterLoading, setStep6LetterLoading] = useState(false);
   const [docDragOverIndex, setDocDragOverIndex] = useState<number | null>(
@@ -1679,6 +1681,146 @@ export default function UploadWizardClient({
     announce("Step 1 cleared.");
   }, [announce]);
 
+  const runComparisonsForState = useCallback(
+    async (
+      workState: WizardState
+    ): Promise<Record<string, ComparisonResult> | null> => {
+      const m = workState.claimMeta;
+      const docCats = categoriesWithNonemptyDocs(workState.documents);
+      const compareTargets = new Set<ClaimDocumentCategory>();
+      for (const category of docCats) {
+        const hasCarrier = workState.documents.some(
+          (d) =>
+            d.category === category &&
+            d.side === "CARRIER" &&
+            d.extractedText.trim()
+        );
+        const hasOther = workState.documents.some(
+          (d) =>
+            d.category === category &&
+            d.side !== "CARRIER" &&
+            d.extractedText.trim()
+        );
+        const segs = carrierVersionSegmentsForCategory(
+          workState.documents,
+          category
+        );
+        if ((hasCarrier && hasOther) || segs.length >= 2) {
+          compareTargets.add(category);
+        }
+      }
+
+      if (compareTargets.size === 0) {
+        return {};
+      }
+
+      const fetchCategoryComparison = async (
+        category: ClaimDocumentCategory
+      ): Promise<ComparisonResult | null> => {
+        const segs = carrierVersionSegmentsForCategory(
+          workState.documents,
+          category
+        );
+        const latestText = segs[segs.length - 1]?.text ?? "";
+        const otherDocs = workState.documents.filter(
+          (d) =>
+            d.category === category &&
+            d.side !== "CARRIER" &&
+            d.extractedText.trim()
+        );
+        const contractorJoined =
+          otherDocs.length > 0
+            ? otherDocs.map((d) => d.extractedText.trim()).join("\n\n---\n\n")
+            : null;
+
+        let versionDiff:
+          | {
+              previousText: string;
+              currentText: string;
+              previousVersion: string;
+              currentVersion: string;
+            }
+          | undefined;
+        if (segs.length >= 2) {
+          const prev = segs[segs.length - 2]!;
+          const curr = segs[segs.length - 1]!;
+          versionDiff = {
+            previousText: prev.text,
+            currentText: curr.text,
+            previousVersion: prev.version,
+            currentVersion: curr.version,
+          };
+        }
+
+        const compareBody: Record<string, unknown> = {
+          carrierText: latestText,
+          contractorText: contractorJoined,
+          claimType: m.claimType,
+        };
+        if (docCats.length > 1) compareBody.category = category;
+        if (versionDiff) compareBody.versionDiff = versionDiff;
+
+        const res = await wizardFetch(
+          netlifyFunctionUrl("compare-estimates"),
+          {
+            method: "POST",
+            body: JSON.stringify(compareBody),
+          }
+        );
+        if (!res.ok) {
+          await res.text().catch(() => "");
+          return null;
+        }
+        const compareJson: unknown = await res.json();
+        const parsed = parseComparisonResult(compareJson);
+        if (!parsed || !comparisonHasLineRows(parsed)) return null;
+        return parsed;
+      };
+
+      const nextComparisons: Record<string, ComparisonResult> = {};
+      for (const category of compareTargets) {
+        let parsed = await fetchCategoryComparison(category);
+        if (!parsed) {
+          announce(`Retrying comparison for ${category}…`);
+          parsed = await fetchCategoryComparison(category);
+        }
+        if (!parsed) {
+          announce(
+            `Comparison failed for ${category}. Ensure both carrier and contractor/PA estimates have complete line-item text, then use Re-run comparison on Step 3.`
+          );
+          return null;
+        }
+        nextComparisons[category] = parsed;
+      }
+      return nextComparisons;
+    },
+    [announce, wizardFetch]
+  );
+
+  const rerunComparison = useCallback(async () => {
+    setCompareBusy(true);
+    setSubmitError(null);
+    try {
+      const work = wizardStateRef.current;
+      const comps = await runComparisonsForState(work);
+      if (!comps) {
+        setSubmitError(
+          "Comparison could not be built. Check that both documents have full estimate line items (not just cover pages), then try again."
+        );
+        return;
+      }
+      setState((s) => withDerived(s, { comparisons: comps }));
+      const primary = Object.values(comps)[0] ?? null;
+      if (primary && comparisonHasLineRows(primary)) {
+        announce(
+          `Comparison ready — ${primary.lineItems.length} line item${primary.lineItems.length === 1 ? "" : "s"}.`
+        );
+      }
+    } finally {
+      setCompareBusy(false);
+    }
+  }, [announce, runComparisonsForState]);
+
   const executeStep1Pipeline = useCallback(
     async (workState: WizardState): Promise<boolean> => {
       const m = workState.claimMeta;
@@ -1764,105 +1906,25 @@ export default function UploadWizardClient({
           nextAnalyses[category] = parsedAnalysis;
         }
 
-        const compareTargets = new Set<ClaimDocumentCategory>();
-        for (const category of docCats) {
-          const hasCarrier = workState.documents.some(
-            (d) =>
-              d.category === category &&
-              d.side === "CARRIER" &&
-              d.extractedText.trim()
+        const nextComparisons = await runComparisonsForState(workState);
+        if (nextComparisons === null) {
+          setSubmitError(
+            "Comparison could not be built. Ensure both estimates include line items, then use Re-run comparison on Step 3."
           );
-          const hasOther = workState.documents.some(
-            (d) =>
-              d.category === category &&
-              d.side !== "CARRIER" &&
-              d.extractedText.trim()
-          );
-          const segs = carrierVersionSegmentsForCategory(
-            workState.documents,
-            category
-          );
-          if ((hasCarrier && hasOther) || segs.length >= 2) {
-            compareTargets.add(category);
-          }
-        }
-
-        const compareResults = await Promise.all(
-          [...compareTargets].map(async (category) => {
-            const segs = carrierVersionSegmentsForCategory(
-              workState.documents,
-              category
-            );
-            const latestText = segs[segs.length - 1]?.text ?? "";
-            const otherDocs = workState.documents.filter(
-              (d) =>
-                d.category === category &&
-                d.side !== "CARRIER" &&
-                d.extractedText.trim()
-            );
-            const contractorJoined =
-              otherDocs.length > 0
-                ? otherDocs
-                    .map((d) => d.extractedText.trim())
-                    .join("\n\n---\n\n")
-                : null;
-
-            let versionDiff:
-              | {
-                  previousText: string;
-                  currentText: string;
-                  previousVersion: string;
-                  currentVersion: string;
-                }
-              | undefined;
-            if (segs.length >= 2) {
-              const prev = segs[segs.length - 2]!;
-              const curr = segs[segs.length - 1]!;
-              versionDiff = {
-                previousText: prev.text,
-                currentText: curr.text,
-                previousVersion: prev.version,
-                currentVersion: curr.version,
-              };
-            }
-
-            const compareBody: Record<string, unknown> = {
-              carrierText: latestText,
-              contractorText: contractorJoined,
-              claimType: m.claimType,
-            };
-            if (docCats.length > 1) compareBody.category = category;
-            if (versionDiff) compareBody.versionDiff = versionDiff;
-
-            const res = await wizardFetch(
-              netlifyFunctionUrl("compare-estimates"),
+          setState((s) =>
+            withDerived(
               {
-                method: "POST",
-                body: JSON.stringify(compareBody),
-              }
-            );
-            return { category, res };
-          })
-        );
-
-        const nextComparisons: Record<string, ComparisonResult> = {};
-        for (const { category, res } of compareResults) {
-          if (!res.ok) {
-            await res.text().catch(() => "");
-            setSubmitError("Comparison failed. Please try again.");
-            announce("Compare request failed.");
-            setSubmitLoading(false);
-            return false;
-          }
-          const compareJson: unknown = await res.json();
-          const parsedComparison = parseComparisonResult(compareJson);
-          if (!parsedComparison) {
-            setSubmitError("Comparison failed. Please try again.");
-            announce("Comparison parse failed.");
-            setSubmitLoading(false);
-            return false;
-          }
-          nextComparisons[category] = parsedComparison;
+                ...s,
+                claimMeta: workState.claimMeta,
+                documents: workState.documents,
+              },
+              { analyses: nextAnalyses, comparisons: {} }
+            )
+          );
+          setSubmitLoading(false);
+          setCurrentStep(2);
+          announce("Step 2 — Analysis (comparison pending).");
+          return true;
         }
 
         setState((s) =>
@@ -1889,7 +1951,7 @@ export default function UploadWizardClient({
         return false;
       }
     },
-    [announce, wizardFetch]
+    [announce, runComparisonsForState, wizardFetch]
   );
 
   const onSubmitStep1 = useCallback(
@@ -3306,6 +3368,10 @@ export default function UploadWizardClient({
               wizardApiFetch={wizardFetch}
               onPreviewUnlock={handlePreviewUnlock}
               previewUnlockBusy={previewUnlockBusy}
+              compareBusy={compareBusy}
+              onRerunComparison={
+                isPreviewMode ? undefined : () => void rerunComparison()
+              }
             />
           </section>
           <section
