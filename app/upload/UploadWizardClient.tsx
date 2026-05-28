@@ -27,6 +27,15 @@ import {
 import { comparisonHasLineRows } from "@/lib/estimate-json-parse";
 import { buildLocalComparison } from "@/lib/run-local-comparison";
 import {
+  analyzeDocumentsForComparison,
+  guidanceForComparisonBlocked,
+  guidanceForDocument,
+  inferExtractIssue,
+  type DocumentExtractIssue,
+  type WizardGuidance,
+} from "@/lib/wizard-document-guidance";
+import { WizardGuidanceBanner } from "./wizard-guidance-banner";
+import {
   Step2AnalysisPanel,
   parseAnalysisResult,
   parseComparisonResult,
@@ -144,6 +153,8 @@ interface ClaimDocument {
   extractStatus: "idle" | "extracting" | "done" | "error";
   /** Shown under the file slot (e.g. after PDF/image upload). */
   statusMessage?: string;
+  /** Drives “what to do next” banners on Step 1 / comparison. */
+  extractIssue?: DocumentExtractIssue;
   side: ClaimDocumentSide;
   category: ClaimDocumentCategory;
   version: ClaimDocumentVersion;
@@ -858,6 +869,9 @@ export default function UploadWizardClient({
   const [submitLoading, setSubmitLoading] = useState(false);
   const [compareBusy, setCompareBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [step3Guidance, setStep3Guidance] = useState<WizardGuidance | null>(
+    null
+  );
   const [step6LetterLoading, setStep6LetterLoading] = useState(false);
   const [docDragOverIndex, setDocDragOverIndex] = useState<number | null>(
     null
@@ -1229,7 +1243,8 @@ export default function UploadWizardClient({
             const applyPdfExtractResult = (
               fullText: string,
               statusMessage: string,
-              extractStatus: "done" | "error"
+              extractStatus: "done" | "error",
+              extractIssue: DocumentExtractIssue
             ) => {
               let extractedKeysForAnnounce: string[] = [];
               setState((s) => {
@@ -1241,6 +1256,7 @@ export default function UploadWizardClient({
                     extractedText: fullText,
                     extractStatus,
                     statusMessage,
+                    extractIssue,
                     category: detected,
                     autoDetected: true,
                     label: d.labelLocked
@@ -1301,7 +1317,8 @@ export default function UploadWizardClient({
               applyPdfExtractResult(
                 nativeFull,
                 `"${file.name}" — embedded text from all ${totalPages} page${totalPages > 1 ? "s" : ""} (${nativeChars.toLocaleString()} characters).`,
-                "done"
+                "done",
+                null
               );
               announce(`Text extracted from ${file.name}`);
               return;
@@ -1422,6 +1439,16 @@ export default function UploadWizardClient({
             const incomplete =
               ocrPartialFailure || !hasEstimateLineContent(fullText);
 
+            const pdfExtractIssue: DocumentExtractIssue = !fullText.trim()
+              ? "ocr_failed"
+              : !hasEstimateLineContent(fullText)
+                ? "no_line_items"
+                : incomplete ||
+                    ocrPartialFailure ||
+                    totalPages > PDF_LARGE_PAGE_THRESHOLD
+                  ? "partial_pdf"
+                  : null;
+
             const statusMessage = incomplete
               ? totalPages > PDF_LARGE_PAGE_THRESHOLD
                 ? `"${file.name}" — ${totalPages} pages: read ${nativeTextPageCount} with embedded text and AI vision on ${visionByPageIndex.size} page${visionByPageIndex.size === 1 ? "" : "s"}. Line items may be incomplete — paste the full estimate below or use a shorter Xactimate PDF export.`
@@ -1431,7 +1458,8 @@ export default function UploadWizardClient({
             applyPdfExtractResult(
               fullText,
               statusMessage,
-              incomplete ? "error" : "done"
+              incomplete ? "error" : "done",
+              pdfExtractIssue
             );
             announce(
               incomplete
@@ -1448,6 +1476,11 @@ export default function UploadWizardClient({
               lastPartialExtract.trim().length > 0
                 ? lastPartialExtract
                 : "";
+            const partialIssue: DocumentExtractIssue = keepPartial.trim()
+              ? hasEstimateLineContent(keepPartial)
+                ? "partial_pdf"
+                : "no_line_items"
+              : "ocr_failed";
             setState((s) =>
               withDerived(s, {
                 documents: s.documents.map((d) =>
@@ -1456,6 +1489,7 @@ export default function UploadWizardClient({
                         ...d,
                         extractStatus: "error" as const,
                         extractedText: keepPartial,
+                        extractIssue: partialIssue,
                         statusMessage: keepPartial
                           ? `${detail} Partial text is shown below — add missing pages or paste the full estimate.`
                           : `${detail} Paste the full estimate text below.`,
@@ -1531,6 +1565,9 @@ export default function UploadWizardClient({
             extractedText: text,
             extractStatus: text.trim() ? ("done" as const) : ("idle" as const),
             statusMessage: undefined,
+            extractIssue: text.trim()
+              ? inferExtractIssue("done", undefined, text)
+              : undefined,
             category: detected,
             autoDetected: true,
             label: d.labelLocked
@@ -1837,20 +1874,24 @@ export default function UploadWizardClient({
     try {
       const work = wizardStateRef.current;
       const comps = await runComparisonsForState(work);
-      if (comps === null) {
-        setSubmitError(
-          "Comparison could not be built. Check that both documents have full estimate line items (not just cover pages), then try again."
+      if (comps === null || Object.keys(comps).length === 0) {
+        const readiness = analyzeDocumentsForComparison(work.documents);
+        setStep3Guidance(
+          guidanceForComparisonBlocked({
+            missingCarrier: readiness.missingCarrier,
+            missingContractor: readiness.missingContractor,
+            carrierNoLines: readiness.carrierNoLines,
+            contractorNoLines: readiness.contractorNoLines,
+            partialDocs: readiness.partialDocLabels,
+          })
+        );
+        setSubmitError(null);
+        announce(
+          "Comparison could not be built. See the guide on this step, then fix documents on Step 1."
         );
         return;
       }
-      if (Object.keys(comps).length === 0) {
-        setSubmitError(
-          hasComparisonTargets(work)
-            ? "Comparison could not be built. Check that both documents have full estimate line items (not just cover pages), then try again."
-            : "Add both a carrier estimate and a contractor/PA estimate on Step 1 before comparing."
-        );
-        return;
-      }
+      setStep3Guidance(null);
       setState((s) => withDerived(s, { comparisons: comps }));
       const primary = Object.values(comps)[0] ?? null;
       if (primary && comparisonHasLineRows(primary)) {
@@ -1971,8 +2012,18 @@ export default function UploadWizardClient({
 
         const nextComparisons = await runComparisonsForState(workState);
         if (nextComparisons === null) {
+          const readiness = analyzeDocumentsForComparison(workState.documents);
+          setStep3Guidance(
+            guidanceForComparisonBlocked({
+              missingCarrier: readiness.missingCarrier,
+              missingContractor: readiness.missingContractor,
+              carrierNoLines: readiness.carrierNoLines,
+              contractorNoLines: readiness.contractorNoLines,
+              partialDocs: readiness.partialDocLabels,
+            })
+          );
           setSubmitError(
-            "Comparison could not be built. Ensure both estimates include line items, then use Re-run comparison on Step 3."
+            "Comparison could not be built yet. Fix the documents using the guides on Step 1, then open Step 3 and re-run comparison."
           );
           setState((s) =>
             withDerived(
@@ -2052,6 +2103,40 @@ export default function UploadWizardClient({
           "At least one carrier-side document with text is required."
         );
         announce("Submit blocked: carrier document required.");
+        return;
+      }
+      const carrierDocs = state.documents.filter(
+        (d) => d.side === "CARRIER" && d.extractedText.trim()
+      );
+      for (const d of carrierDocs) {
+        if (!hasEstimateLineContent(d.extractedText)) {
+          setSubmitError(
+            `Carrier estimate (“${d.label}”) needs line items with dollar amounts. Follow the guide under that document, paste from Xactimate, then continue.`
+          );
+          announce("Submit blocked: carrier text has no line items.");
+          return;
+        }
+      }
+      const otherDocs = state.documents.filter(
+        (d) => d.side !== "CARRIER" && d.extractedText.trim()
+      );
+      for (const d of otherDocs) {
+        if (!hasEstimateLineContent(d.extractedText)) {
+          setSubmitError(
+            `Contractor/PA estimate (“${d.label}”) needs line items with dollar amounts. Follow the guide under that document, then continue.`
+          );
+          announce("Submit blocked: contractor text has no line items.");
+          return;
+        }
+      }
+      if (
+        otherDocs.length === 0 &&
+        state.documents.some((d) => d.side !== "CARRIER")
+      ) {
+        setSubmitError(
+          "Add contractor or PA estimate text (with line items and dollar amounts) on Document 2 before continuing."
+        );
+        announce("Submit blocked: contractor document empty.");
         return;
       }
       const documentText = getDocumentText(state.carrierText);
@@ -2248,6 +2333,11 @@ export default function UploadWizardClient({
   const onStep3Back = useCallback(() => {
     setCurrentStep(2);
     announce("Returned to Step 2.");
+  }, [announce]);
+
+  const onGoToStep1FromStep3 = useCallback(() => {
+    setCurrentStep(1);
+    announce("Returned to Step 1 to fix estimate documents.");
   }, [announce]);
 
   const onStep3Next = useCallback(() => {
@@ -2870,6 +2960,15 @@ export default function UploadWizardClient({
                             )}
                             <span>{extractStatusMessage(doc)}</span>
                           </p>
+                          {(() => {
+                            const g = guidanceForDocument(doc);
+                            return g ? (
+                              <WizardGuidanceBanner
+                                guidance={g}
+                                className="mt-3"
+                              />
+                            ) : null;
+                          })()}
                           {idx === 0 && (
                             <div className="mt-2">
                               <button
@@ -3353,6 +3452,24 @@ export default function UploadWizardClient({
                 </div>
                 </div>
 
+                {state.documents.some(
+                  (d) => guidanceForDocument(d) !== null
+                ) ? (
+                  <WizardGuidanceBanner
+                    guidance={{
+                      severity: "warning",
+                      title: "Fix document text before continuing",
+                      body: "One or more documents need full line-item text (not just a cover page or partial PDF read).",
+                      steps: [
+                        "Check each yellow guide under your documents above.",
+                        "Paste the full line-item list from Xactimate when a PDF did not extract completely.",
+                        "Both carrier and contractor/PA estimates need dollar amounts on multiple lines.",
+                      ],
+                    }}
+                    className="mb-4"
+                  />
+                ) : null}
+
                 {submitError && (
                   <p
                     className="rounded-[10px] border border-[#e4e4e4] bg-[#fce8e8] px-4 py-3 text-sm text-[#8a2020]"
@@ -3416,6 +3533,14 @@ export default function UploadWizardClient({
             aria-hidden={currentStep !== 3}
             className="rounded-[10px] border-[0.5px] border-[#e4e4e4] bg-white px-[18px] py-4 text-[#2a3a4a] md:px-[18px] md:py-4"
           >
+            {step3Guidance ? (
+              <WizardGuidanceBanner
+                guidance={step3Guidance}
+                actionLabel="Fix documents on Step 1"
+                onAction={onGoToStep1FromStep3}
+                className="mb-6"
+              />
+            ) : null}
             <Step3ComparisonPanel
               comparison={state.comparison}
               claimMeta={{
@@ -3433,6 +3558,7 @@ export default function UploadWizardClient({
               previewUnlockBusy={previewUnlockBusy}
               compareBusy={compareBusy}
               onRerunComparison={() => void rerunComparison()}
+              onFixDocuments={onGoToStep1FromStep3}
             />
           </section>
           <section

@@ -31,6 +31,7 @@ type Props = {
   hideNav?: boolean;
   compareBusy?: boolean;
   onRerunComparison?: () => void;
+  onFixDocuments?: () => void;
 };
 
 const REPORT_DIVIDER = "----------------------------------------";
@@ -156,6 +157,7 @@ export function Step3ComparisonPanel({
   hideNav = false,
   compareBusy = false,
   onRerunComparison,
+  onFixDocuments,
 }: Props) {
   const hasRows = comparisonHasLineRows(comparison);
   const fetcher = wizardApiFetch ?? wizardFetch;
@@ -255,16 +257,27 @@ export function Step3ComparisonPanel({
             Paste full line items on Step 1 for both the carrier and
             contractor/PA estimates, then re-run comparison.
           </p>
-          {onRerunComparison ? (
-            <button
-              type="button"
-              className="erp-btn-cta mt-4"
-              disabled={compareBusy}
-              onClick={onRerunComparison}
-            >
-              {compareBusy ? "Building comparison…" : "Re-run comparison"}
-            </button>
-          ) : null}
+          <div className="mt-4 flex flex-wrap gap-3">
+            {onFixDocuments ? (
+              <button
+                type="button"
+                className="erp-btn-ghost-panel"
+                onClick={onFixDocuments}
+              >
+                Fix documents on Step 1
+              </button>
+            ) : null}
+            {onRerunComparison ? (
+              <button
+                type="button"
+                className="erp-btn-cta"
+                disabled={compareBusy}
+                onClick={onRerunComparison}
+              >
+                {compareBusy ? "Building comparison…" : "Re-run comparison"}
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 
