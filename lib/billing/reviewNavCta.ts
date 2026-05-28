@@ -1,7 +1,7 @@
 import { UPLOAD_NEW_REVIEW_HREF } from "@/lib/wizard-snapshot";
 
 export type ReviewNavCta = {
-  label: "Run another review" | "Buy another review";
+  label: "New review" | "Buy another review";
   href: string;
 };
 
@@ -12,7 +12,7 @@ export type ReviewNavBillingInput = {
   reviews_remaining: number;
 };
 
-/** Nav CTA: run another review when allotment remains; buy more when exhausted or no plan. */
+/** Nav CTA (non-dashboard pages): new review when allotment remains; buy more when exhausted. */
 export function reviewNavCtaFromSnapshot(
   snap: ReviewNavBillingInput
 ): ReviewNavCta {
@@ -25,7 +25,7 @@ export function reviewNavCtaFromSnapshot(
     snap.reviews_remaining > 0
   ) {
     return {
-      label: "Run another review",
+      label: "New review",
       href: UPLOAD_NEW_REVIEW_HREF,
     };
   }

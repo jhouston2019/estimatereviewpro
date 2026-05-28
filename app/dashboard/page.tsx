@@ -3,7 +3,6 @@ import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
-import { ReviewNavCtaLink } from "@/components/billing/ReviewNavCtaLink";
 import { DashboardPlanUsage } from "@/components/dashboard/DashboardPlanUsage";
 
 export default async function DashboardPage({
@@ -100,14 +99,6 @@ export default async function DashboardPage({
             >
               Account
             </Link>
-            <ReviewNavCtaLink
-              billing={{
-                plan: planType ?? "none",
-                status: snap.status,
-                reviews_limit: limitReviews,
-                reviews_remaining: reviewsRemainingCount,
-              }}
-            />
           </nav>
         </div>
       </header>
@@ -186,12 +177,21 @@ export default async function DashboardPage({
             </p>
           </div>
           <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 min-[400px]:w-auto min-[400px]:items-end">
-            <Link
-              href="/upload?new=1"
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
-            >
-              New review
-            </Link>
+            {reviewsRemainingCount > 0 ? (
+              <Link
+                href="/upload?new=1"
+                className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
+              >
+                New review
+              </Link>
+            ) : (
+              <Link
+                href="/pricing"
+                className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
+              >
+                Buy another review
+              </Link>
+            )}
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
               {planNameDisplay ? (
