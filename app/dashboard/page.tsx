@@ -3,7 +3,9 @@ import { requireUserAndPaywall } from "@/lib/auth/serverPageGuards";
 import { getBillingSnapshot } from "@/lib/billing/getBillingSnapshot";
 import { PaymentActivationNotice } from "@/components/billing/PaymentActivationNotice";
 import { PostPaymentSessionRefresh } from "@/components/billing/PostPaymentSessionRefresh";
+import { ReviewNavCtaLink } from "@/components/billing/ReviewNavCtaLink";
 import { DashboardPlanUsage } from "@/components/dashboard/DashboardPlanUsage";
+import { UPLOAD_NEW_REVIEW_HREF } from "@/lib/wizard-snapshot";
 
 export default async function DashboardPage({
   searchParams,
@@ -99,6 +101,15 @@ export default async function DashboardPage({
             >
               Account
             </Link>
+            <ReviewNavCtaLink
+              variant="dashboard-header"
+              billing={{
+                plan: planType ?? "none",
+                status: snap.status,
+                reviews_limit: limitReviews,
+                reviews_remaining: reviewsRemainingCount,
+              }}
+            />
           </nav>
         </div>
       </header>
@@ -163,54 +174,35 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        <section className="flex flex-col justify-between gap-4 min-[400px]:flex-row min-[400px]:items-center">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
-              Dashboard
-            </p>
-            <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-50 min-[400px]:text-2xl">
-              Your estimate reviews
-            </h1>
-            <p className="mt-1 text-xs text-slate-300">
-              Upload new estimates, download AI reports, and re‑run analysis as
-              claims evolve.
-            </p>
-          </div>
-          <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 min-[400px]:w-auto min-[400px]:items-end">
-            {reviewsRemainingCount > 0 ? (
-              <Link
-                href="/upload?new=1"
-                className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
-              >
-                New review
-              </Link>
-            ) : (
-              <Link
-                href="/pricing"
-                className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
-              >
-                Buy another review
-              </Link>
-            )}
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+        <section>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300">
+            Dashboard
+          </p>
+          <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-50 min-[400px]:text-2xl">
+            Your estimate reviews
+          </h1>
+          <p className="mt-1 max-w-2xl text-xs text-slate-300">
+            Upload new estimates, download AI reports, and re‑run analysis as
+            claims evolve.
+          </p>
+          {planNameDisplay ? (
+            <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-              {planNameDisplay ? (
-                <span className="min-w-0 break-words">
-                  Current plan:{" "}
-                  <span className="font-semibold text-slate-100">
-                    {planNameDisplay}
-                  </span>
-                  {limitReviews > 0 ? (
-                    <>
-                      {" "}
-                      ·{" "}
-                      <span className="font-semibold text-emerald-300">
-                        {reviewsRemainingCount} of {limitReviews} reviews left
-                      </span>
-                    </>
-                  ) : null}
+              <span className="min-w-0 break-words">
+                Current plan:{" "}
+                <span className="font-semibold text-slate-100">
+                  {planNameDisplay}
                 </span>
-              ) : null}
+                {limitReviews > 0 ? (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <span className="font-semibold text-emerald-300">
+                      {reviewsRemainingCount} of {limitReviews} reviews left
+                    </span>
+                  </>
+                ) : null}
+              </span>
               {tier !== "pro" && (
                 <Link
                   href="/account"
@@ -220,7 +212,7 @@ export default async function DashboardPage({
                 </Link>
               )}
             </div>
-          </div>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-200 shadow-lg shadow-slate-950/60 sm:p-5">
@@ -235,10 +227,27 @@ export default async function DashboardPage({
           </div>
           <div className="mt-3 space-y-2">
             {!reviews || reviews.length === 0 ? (
-              <p className="text-[11px] text-slate-400">
-                No reviews yet. Start by uploading a contractor and carrier
-                estimate.
-              </p>
+              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/30 px-4 py-8 text-center sm:px-6">
+                <p className="text-sm text-slate-300">
+                  No reviews yet. Upload a contractor and carrier estimate to
+                  run your first comparison.
+                </p>
+                {reviewsRemainingCount > 0 ? (
+                  <Link
+                    href={UPLOAD_NEW_REVIEW_HREF}
+                    className="mt-5 inline-flex items-center justify-center rounded-full bg-[#2563EB] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:text-base"
+                  >
+                    Start new review
+                  </Link>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="mt-5 inline-flex items-center justify-center rounded-full bg-[#2563EB] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] sm:text-base"
+                  >
+                    Buy another review
+                  </Link>
+                )}
+              </div>
             ) : (
               <div className="divide-y divide-slate-900/80">
                 {reviews.map((review: any) => (
