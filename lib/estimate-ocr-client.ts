@@ -60,6 +60,59 @@ export async function requestEstimateOcrPage(
   return normalized.text;
 }
 
+export type OcrPageJob = {
+  pageIndex: number;
+  pageNumber: number;
+  base64Image: string;
+};
+
+/** Run single-page OCR jobs in parallel (faster than one-by-one). */
+export async function requestEstimateOcrParallel(
+  jobs: OcrPageJob[],
+  fileName: string,
+  totalPages: number,
+  options?: {
+    maxConcurrent?: number;
+    onProgress?: (done: number, total: number) => void;
+  }
+): Promise<{ results: Map<number, string>; failedPageNumbers: number[] }> {
+  const maxConcurrent = options?.maxConcurrent ?? 3;
+  const results = new Map<number, string>();
+  const failedPageNumbers: number[] = [];
+  let done = 0;
+
+  const runOne = async (job: OcrPageJob) => {
+    try {
+      const text = await requestEstimateOcrPage({
+        base64Image: job.base64Image,
+        fileName,
+        pageNumber: job.pageNumber,
+        totalPages,
+      });
+      results.set(job.pageIndex, text);
+    } catch {
+      failedPageNumbers.push(job.pageNumber);
+    } finally {
+      done += 1;
+      options?.onProgress?.(done, jobs.length);
+    }
+  };
+
+  const queue = [...jobs];
+  const workers = Array.from(
+    { length: Math.min(maxConcurrent, queue.length) },
+    async () => {
+      while (queue.length > 0) {
+        const job = queue.shift();
+        if (job) await runOne(job);
+      }
+    }
+  );
+  await Promise.all(workers);
+
+  return { results, failedPageNumbers };
+}
+
 /** ~5.5MB JSON body budget for Netlify (base64 page images). */
 export const OCR_MAX_BASE64_CHARS = 4_000_000;
 

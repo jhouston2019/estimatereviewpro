@@ -1,10 +1,38 @@
 const PDFJS_CDN_VERSION = "4.4.168";
 
-/** Max pages sent to AI vision (cost/time); embedded text is read for every page. */
-export const PDF_VISION_MAX_PAGES = 15;
+/** Max pages sent to AI vision on normal-sized PDFs. */
+export const PDF_VISION_MAX_PAGES = 10;
 
-/** Above this page count we never imply full-document vision OCR. */
+/** Above this page count we cap vision and use sparse native text scan. */
 export const PDF_LARGE_PAGE_THRESHOLD = 25;
+
+/** Above this page count, vision is further reduced (paste recommended). */
+export const PDF_HUGE_PAGE_THRESHOLD = 80;
+
+/** For large PDFs, only read embedded text on head/tail pages (not all 300+). */
+export const LARGE_PDF_NATIVE_HEAD_PAGES = 35;
+export const LARGE_PDF_NATIVE_TAIL_PAGES = 12;
+
+function pageNumbersToScan(totalPages: number): number[] {
+  if (totalPages <= PDF_LARGE_PAGE_THRESHOLD) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const head = Math.min(LARGE_PDF_NATIVE_HEAD_PAGES, totalPages);
+  const tail = Math.min(LARGE_PDF_NATIVE_TAIL_PAGES, totalPages);
+  const set = new Set<number>();
+  for (let p = 1; p <= head; p++) set.add(p);
+  for (let p = Math.max(1, totalPages - tail + 1); p <= totalPages; p++) {
+    set.add(p);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/** Vision page cap scales down on very large uploads. */
+export function visionPageCap(totalPages: number): number {
+  if (totalPages > PDF_HUGE_PAGE_THRESHOLD) return 6;
+  if (totalPages > PDF_LARGE_PAGE_THRESHOLD) return 8;
+  return PDF_VISION_MAX_PAGES;
+}
 
 async function loadPdfDocument(file: File) {
   const pdfjsLib = await import("pdfjs-dist");
@@ -18,39 +46,52 @@ async function loadPdfDocument(file: File) {
 export type PdfTextExtractionResult = {
   pages: string[];
   totalPages: number;
+  /** True when only head/tail pages were scanned for embedded text. */
+  sparseNativeScan?: boolean;
 };
 
-/** One string per PDF page (index 0 = page 1). Reads every page's text layer. */
+/** One string per PDF page (index 0 = page 1). Large PDFs scan head/tail only for speed. */
 export async function extractTextPagesFromPDF(
   file: File,
-  onProgress?: (page: number, total: number) => void
+  onProgress?: (
+    page: number,
+    total: number,
+    scanned: number,
+    scanTotal: number,
+    sparseNativeScan: boolean
+  ) => void
 ): Promise<PdfTextExtractionResult> {
   const pdf = await loadPdfDocument(file);
-  const textPages: string[] = [];
   const total = pdf.numPages;
-  for (let i = 1; i <= total; i++) {
-    onProgress?.(i, total);
+  const textPages: string[] = new Array(total).fill("");
+  const toScan = pageNumbersToScan(total);
+  const sparse = total > PDF_LARGE_PAGE_THRESHOLD;
+
+  for (let si = 0; si < toScan.length; si++) {
+    const i = toScan[si]!;
+    onProgress?.(i, total, si + 1, toScan.length, sparse);
     try {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
         .map((item) => ("str" in item ? item.str : ""))
         .join(" ");
-      textPages.push(pageText);
+      textPages[i - 1] = pageText;
     } catch {
-      textPages.push("");
+      textPages[i - 1] = "";
     }
-    if (i % 25 === 0) {
+    if (si % 12 === 0) {
       await new Promise<void>((r) => setTimeout(r, 0));
     }
   }
-  return { pages: textPages, totalPages: total };
+
+  return { pages: textPages, totalPages: total, sparseNativeScan: sparse };
 }
 
 /** First N page indices (0-based) to run AI vision on for large/scanned PDFs. */
 export function defaultVisionPageIndices(
   totalPages: number,
-  maxVision: number = PDF_VISION_MAX_PAGES
+  maxVision: number = visionPageCap(totalPages)
 ): number[] {
   const n = Math.min(totalPages, maxVision);
   return Array.from({ length: n }, (_, i) => i);
@@ -61,8 +102,8 @@ export async function extractTextFromPDF(file: File): Promise<string> {
   return pages.join("\n\n");
 }
 
-const OCR_MAX_PIXEL_WIDTH = 1800;
-const OCR_JPEG_QUALITY = 0.82;
+const OCR_MAX_PIXEL_WIDTH = 1500;
+const OCR_JPEG_QUALITY = 0.75;
 
 /** Render specific 1-based page numbers as JPEG base64 for vision OCR. */
 export async function extractPageImagesFromPDF(

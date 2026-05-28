@@ -184,7 +184,7 @@ export default async function DashboardPage({
           </div>
           <div className="flex w-full flex-col items-stretch gap-3 text-xs text-slate-200 min-[400px]:w-auto min-[400px]:items-end">
             <Link
-              href="/upload"
+              href="/upload?new=1"
               className="inline-flex w-full items-center justify-center rounded-full bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#2563EB]/40 transition hover:bg-[#1E40AF] md:w-auto"
             >
               New review

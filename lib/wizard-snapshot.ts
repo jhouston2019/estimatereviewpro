@@ -8,6 +8,9 @@ export const PAID_RESUME_SESSION_KEY = "erp_paid_resume" as const;
 export const NEW_REVIEW_CHECKOUT_KEY = "erp_new_review_checkout" as const;
 export const NEW_REVIEW_PLAN_KEY = "erp_new_review_plan" as const;
 
+/** Paid wizard URL that clears prior session and starts blank Step 1. */
+export const UPLOAD_NEW_REVIEW_HREF = "/upload?new=1" as const;
+
 export type SerializableWizardV1 = {
   v: 1;
   currentStep: number;

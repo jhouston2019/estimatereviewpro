@@ -13,6 +13,7 @@ import {
 } from "@/lib/supabaseClient";
 import { saveWizardReview } from "@/lib/save-wizard-review";
 import {
+  clearCompletedReviewSession,
   DELIVERABLES_REVIEW_ID_KEY,
   PAID_RESUME_SESSION_KEY,
   tryParseWizardSnapshot,
@@ -58,8 +59,10 @@ import {
   extractPageImagesFromPDF,
   extractTextPagesFromPDF,
   mergeNativeAndVisionPages,
+  PDF_HUGE_PAGE_THRESHOLD,
   PDF_LARGE_PAGE_THRESHOLD,
   PDF_VISION_MAX_PAGES,
+  visionPageCap,
 } from "@/lib/estimate-pdf-extract";
 import {
   hasEstimateLineContent,
@@ -67,7 +70,7 @@ import {
 } from "@/lib/estimate-ocr-text";
 import {
   ocrImageTooLarge,
-  requestEstimateOcrPage,
+  requestEstimateOcrParallel,
 } from "@/lib/estimate-ocr-client";
 import "./erp-wizard.css";
 
@@ -850,12 +853,15 @@ type UploadWizardClientProps = {
   initialStep?: number;
   /** Resume a saved review from deliverables / dashboard (not a new free review). */
   initialReviewId?: string;
+  /** From /upload?new=1 — discard saved wizard and show empty documents + metadata. */
+  startFreshReview?: boolean;
 };
 
 export default function UploadWizardClient({
   isPreviewMode = false,
   initialStep = 1,
   initialReviewId,
+  startFreshReview = false,
 }: UploadWizardClientProps = {}) {
   const router = useRouter();
   const [premierUsageWall, setPremierUsageWall] = useState<
@@ -1286,24 +1292,29 @@ export default function UploadWizardClient({
               }
             };
 
-            const { pages: nativePages, totalPages } =
-              await extractTextPagesFromPDF(file, (page, total) => {
-                if (page % 10 === 0 || page === total) {
-                  setState((s) =>
-                    withDerived(s, {
-                      documents: s.documents.map((d) =>
-                        d.id === docId
-                          ? {
-                              ...d,
-                              extractStatus: "extracting" as const,
-                              statusMessage: `Reading PDF text… page ${page} of ${total}`,
-                            }
-                          : d
-                      ),
-                    })
-                  );
+            const { pages: nativePages, totalPages, sparseNativeScan } =
+              await extractTextPagesFromPDF(
+                file,
+                (page, total, scanned, scanTotal, sparse) => {
+                  if (scanned % 5 === 0 || scanned === scanTotal) {
+                    setState((s) =>
+                      withDerived(s, {
+                        documents: s.documents.map((d) =>
+                          d.id === docId
+                            ? {
+                                ...d,
+                                extractStatus: "extracting" as const,
+                                statusMessage: sparse
+                                  ? `Reading PDF text… sample ${scanned} of ${scanTotal} (${total} pages total)`
+                                  : `Reading PDF text… page ${page} of ${total}`,
+                              }
+                            : d
+                        ),
+                      })
+                    );
+                  }
                 }
-              });
+              );
 
             const nativeFull = nativePages.join("\n\n");
             const nativeChars = nativeFull.trim().length;
@@ -1326,16 +1337,17 @@ export default function UploadWizardClient({
 
             const visionByPageIndex = new Map<number, string>();
             let ocrPartialFailure = false;
+            const maxVision = visionPageCap(totalPages);
 
             const pagesNeedingVision: number[] =
               totalPages > PDF_LARGE_PAGE_THRESHOLD &&
               !hasEstimateLineContent(nativeFull)
-                ? defaultVisionPageIndices(totalPages)
+                ? defaultVisionPageIndices(totalPages, maxVision)
                 : (() => {
                     const indices: number[] = [];
                     for (
                       let i = 0;
-                      i < totalPages && indices.length < PDF_VISION_MAX_PAGES;
+                      i < totalPages && indices.length < maxVision;
                       i++
                     ) {
                       if (!nativePdfPageTextIsSufficient(nativePages[i] ?? "")) {
@@ -1346,6 +1358,10 @@ export default function UploadWizardClient({
                   })();
 
             if (pagesNeedingVision.length > 0) {
+              const estMinutes = Math.max(
+                1,
+                Math.ceil((pagesNeedingVision.length * 8) / 60 / 3)
+              );
               setState((s) =>
                 withDerived(s, {
                   documents: s.documents.map((d) =>
@@ -1353,7 +1369,10 @@ export default function UploadWizardClient({
                       ? {
                           ...d,
                           extractStatus: "extracting" as const,
-                          statusMessage: `AI vision on ${pagesNeedingVision.length} page${pagesNeedingVision.length > 1 ? "s" : ""} (embedded text already read from ${totalPages} pages)…`,
+                          statusMessage:
+                            totalPages > PDF_HUGE_PAGE_THRESHOLD
+                              ? `AI vision on ${pagesNeedingVision.length} key pages (~${estMinutes} min) — for ${totalPages}-page PDFs, pasting from Xactimate is much faster.`
+                              : `AI vision on ${pagesNeedingVision.length} page${pagesNeedingVision.length > 1 ? "s" : ""} in parallel (~${estMinutes} min)…`,
                         }
                       : d
                   ),
@@ -1366,58 +1385,54 @@ export default function UploadWizardClient({
                 pageNumbers1Based
               );
 
-              const requestPageOcr = async (
-                pageB64: string,
-                pageNumber: number
-              ) => {
-                try {
-                  return await requestEstimateOcrPage({
+              const jobs = pagesNeedingVision
+                .map((pageIndex, j) => {
+                  const pageB64 = images[j];
+                  if (!pageB64 || ocrImageTooLarge(pageB64)) {
+                    ocrPartialFailure = true;
+                    return null;
+                  }
+                  return {
+                    pageIndex,
+                    pageNumber: pageIndex + 1,
                     base64Image: pageB64,
-                    fileName: file.name,
-                    pageNumber,
-                    totalPages: totalPages,
-                  });
-                } catch {
-                  await new Promise((r) => setTimeout(r, 600));
-                  return await requestEstimateOcrPage({
-                    base64Image: pageB64,
-                    fileName: file.name,
-                    pageNumber,
-                    totalPages: totalPages,
-                  });
-                }
-              };
+                  };
+                })
+                .filter((j): j is NonNullable<typeof j> => j !== null);
 
-              for (let j = 0; j < images.length; j++) {
-                const pageIndex = pagesNeedingVision[j]!;
-                const pageNum = pageIndex + 1;
-                setState((s) =>
-                  withDerived(s, {
-                    documents: s.documents.map((d) =>
-                      d.id === docId
-                        ? {
-                            ...d,
-                            extractStatus: "extracting" as const,
-                            statusMessage: `AI vision… page ${pageNum} of ${totalPages}`,
-                          }
-                        : d
-                    ),
-                  })
+              const { results, failedPageNumbers } =
+                await requestEstimateOcrParallel(
+                  jobs,
+                  file.name,
+                  totalPages,
+                  {
+                    maxConcurrent: 3,
+                    onProgress: (done, total) => {
+                      setState((s) =>
+                        withDerived(s, {
+                          documents: s.documents.map((d) =>
+                            d.id === docId
+                              ? {
+                                  ...d,
+                                  extractStatus: "extracting" as const,
+                                  statusMessage: `AI vision… ${done} of ${total} pages processed (${totalPages}-page PDF)`,
+                                }
+                              : d
+                          ),
+                        })
+                      );
+                    },
+                  }
                 );
-                const pageB64 = images[j]!;
-                if (ocrImageTooLarge(pageB64)) {
-                  ocrPartialFailure = true;
-                  continue;
-                }
-                try {
-                  const pageText = await requestPageOcr(pageB64, pageNum);
-                  visionByPageIndex.set(pageIndex, pageText);
-                } catch {
-                  ocrPartialFailure = true;
-                  announce(
-                    `Page ${pageNum} of ${totalPages} could not be read with AI vision.`
-                  );
-                }
+
+              for (const [idx, text] of results) {
+                visionByPageIndex.set(idx, text);
+              }
+              if (failedPageNumbers.length > 0) {
+                ocrPartialFailure = true;
+                announce(
+                  `${failedPageNumbers.length} page${failedPageNumbers.length === 1 ? "" : "s"} could not be read with AI vision. Paste missing text below.`
+                );
               }
             }
 
@@ -1437,7 +1452,9 @@ export default function UploadWizardClient({
             }
 
             const incomplete =
-              ocrPartialFailure || !hasEstimateLineContent(fullText);
+              ocrPartialFailure ||
+              !hasEstimateLineContent(fullText) ||
+              sparseNativeScan;
 
             const pdfExtractIssue: DocumentExtractIssue = !fullText.trim()
               ? "ocr_failed"
@@ -1450,7 +1467,9 @@ export default function UploadWizardClient({
                   : null;
 
             const statusMessage = incomplete
-              ? totalPages > PDF_LARGE_PAGE_THRESHOLD
+              ? totalPages > PDF_HUGE_PAGE_THRESHOLD
+                ? `"${file.name}" — ${totalPages} pages: sampled embedded text + AI vision on ${visionByPageIndex.size} page${visionByPageIndex.size === 1 ? "" : "s"}. For large claims, paste the full line-item export from Xactimate below (fastest).`
+                : totalPages > PDF_LARGE_PAGE_THRESHOLD
                 ? `"${file.name}" — ${totalPages} pages: read ${nativeTextPageCount} with embedded text and AI vision on ${visionByPageIndex.size} page${visionByPageIndex.size === 1 ? "" : "s"}. Line items may be incomplete — paste the full estimate below or use a shorter Xactimate PDF export.`
                 : `"${file.name}" — extraction incomplete (${nativeTextPageCount} of ${totalPages} pages with text). Paste the full estimate below or re-export from Xactimate.`
               : `"${file.name}" — embedded text from ${totalPages} page${totalPages > 1 ? "s" : ""}${visionByPageIndex.size > 0 ? ` (+ AI vision on ${visionByPageIndex.size} page${visionByPageIndex.size > 1 ? "s" : ""})` : ""} (${fullText.length.toLocaleString()} characters).`;
@@ -1734,6 +1753,8 @@ export default function UploadWizardClient({
   }, [announce]);
 
   const onResetStep1 = useCallback(() => {
+    clearCompletedReviewSession();
+    setDeliverablesReviewId(null);
     setState((s) => ({
       ...initialWizardState(),
       accessToken: s.accessToken,
@@ -1741,6 +1762,7 @@ export default function UploadWizardClient({
     }));
     setAutoExtractedFields(new Set());
     setSubmitError(null);
+    setStep3Guidance(null);
     announce("Step 1 cleared.");
   }, [announce]);
 
@@ -2168,6 +2190,29 @@ export default function UploadWizardClient({
   );
 
   const postPaymentResumeStartedRef = useRef(false);
+  const freshReviewHandledRef = useRef(false);
+
+  useEffect(() => {
+    if (!startFreshReview || freshReviewHandledRef.current) return;
+    if (typeof window === "undefined") return;
+    freshReviewHandledRef.current = true;
+    postPaymentResumeStartedRef.current = true;
+    clearCompletedReviewSession();
+    setDeliverablesReviewId(null);
+    setCurrentStep(1);
+    setSubmitError(null);
+    setStep3Guidance(null);
+    setAutoExtractedFields(new Set());
+    setState((s) => ({
+      ...initialWizardState(),
+      accessToken: s.accessToken,
+      sessionReady: s.sessionReady,
+    }));
+    announce(
+      "New review — upload carrier and contractor estimates to begin."
+    );
+    window.history.replaceState(null, "", "/upload");
+  }, [announce, startFreshReview]);
 
   useEffect(() => {
     if (!state.sessionReady || isPreviewMode) return;
@@ -2544,12 +2589,16 @@ export default function UploadWizardClient({
   );
 
   const onWizardStartOver = useCallback(() => {
+    clearCompletedReviewSession();
+    setDeliverablesReviewId(null);
     setState((s) => ({
       ...initialWizardState(),
       accessToken: s.accessToken,
       sessionReady: s.sessionReady,
     }));
     setAutoExtractedFields(new Set());
+    setSubmitError(null);
+    setStep3Guidance(null);
     setCurrentStep(1);
     announce("Wizard reset to Step 1.");
   }, [announce]);
