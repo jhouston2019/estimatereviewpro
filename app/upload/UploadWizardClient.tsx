@@ -339,6 +339,31 @@ function carrierVersionSegmentsForCategory(
   }));
 }
 
+/** Carrier+contractor/PA (or multi-version carrier) present for at least one category. */
+function hasComparisonTargets(workState: WizardState): boolean {
+  const docCats = categoriesWithNonemptyDocs(workState.documents);
+  for (const category of docCats) {
+    const hasCarrier = workState.documents.some(
+      (d) =>
+        d.category === category &&
+        d.side === "CARRIER" &&
+        d.extractedText.trim()
+    );
+    const hasOther = workState.documents.some(
+      (d) =>
+        d.category === category &&
+        d.side !== "CARRIER" &&
+        d.extractedText.trim()
+    );
+    const segs = carrierVersionSegmentsForCategory(
+      workState.documents,
+      category
+    );
+    if ((hasCarrier && hasOther) || segs.length >= 2) return true;
+  }
+  return false;
+}
+
 type WizardState = {
   accessToken: string;
   /** True after getSession() resolves (or Supabase env missing); avoids racing with "bypass". */
@@ -800,7 +825,7 @@ function stepIsNavigable(
     case 5:
       return analysis !== null;
     case 3:
-      return comparison !== null;
+      return analysis !== null;
     case 6:
       return analysis !== null;
     default:
@@ -1803,9 +1828,17 @@ export default function UploadWizardClient({
     try {
       const work = wizardStateRef.current;
       const comps = await runComparisonsForState(work);
-      if (!comps) {
+      if (comps === null) {
         setSubmitError(
           "Comparison could not be built. Check that both documents have full estimate line items (not just cover pages), then try again."
+        );
+        return;
+      }
+      if (Object.keys(comps).length === 0) {
+        setSubmitError(
+          hasComparisonTargets(work)
+            ? "Comparison could not be built. Check that both documents have full estimate line items (not just cover pages), then try again."
+            : "Add both a carrier estimate and a contractor/PA estimate on Step 1 before comparing."
         );
         return;
       }
@@ -1820,6 +1853,27 @@ export default function UploadWizardClient({
       setCompareBusy(false);
     }
   }, [announce, runComparisonsForState]);
+
+  const step3CompareAttemptRef = useRef(false);
+  useEffect(() => {
+    if (currentStep !== 3) {
+      step3CompareAttemptRef.current = false;
+      return;
+    }
+    if (step3CompareAttemptRef.current) return;
+    if (compareBusy || submitLoading) return;
+    if (comparisonHasLineRows(state.comparison)) return;
+    const work = wizardStateRef.current;
+    if (!hasComparisonTargets(work)) return;
+    step3CompareAttemptRef.current = true;
+    void rerunComparison();
+  }, [
+    compareBusy,
+    currentStep,
+    rerunComparison,
+    state.comparison,
+    submitLoading,
+  ]);
 
   const executeStep1Pipeline = useCallback(
     async (workState: WizardState): Promise<boolean> => {
@@ -3369,9 +3423,7 @@ export default function UploadWizardClient({
               onPreviewUnlock={handlePreviewUnlock}
               previewUnlockBusy={previewUnlockBusy}
               compareBusy={compareBusy}
-              onRerunComparison={
-                isPreviewMode ? undefined : () => void rerunComparison()
-              }
+              onRerunComparison={() => void rerunComparison()}
             />
           </section>
           <section

@@ -238,22 +238,22 @@ export function Step3ComparisonPanel({
         {comparison ? modeLabel(mode) : "—"}
       </p>
 
-      {!comparison && (
-        <p className="mt-6 text-sm text-[#7a8a9a]">
-          No comparison data available
-        </p>
-      )}
-
-      {comparison && !hasRows && (
+      {!hasRows && (
         <div
           className="mt-6 rounded-xl border border-rose-500/40 bg-rose-50 px-4 py-4 text-sm text-rose-900"
           role="alert"
         >
-          <p className="font-semibold">No line-item comparison was generated.</p>
+          <p className="font-semibold">
+            {comparison
+              ? "No line-item comparison was generated."
+              : "No comparison data available."}
+          </p>
           <p className="mt-2 text-rose-800/90">
-            This usually means the carrier or contractor/PA estimate text is
-            incomplete (cover page only, partial PDF, or a failed compare). Paste
-            full line items on Step 1 for both documents, then re-run comparison.
+            {comparison
+              ? "This usually means the carrier or contractor/PA estimate text is incomplete (cover page only, partial PDF, or a failed compare)."
+              : "Comparison has not been built yet, or the last attempt failed."}{" "}
+            Paste full line items on Step 1 for both the carrier and
+            contractor/PA estimates, then re-run comparison.
           </p>
           {onRerunComparison ? (
             <button

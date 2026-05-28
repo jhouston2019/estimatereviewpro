@@ -9,6 +9,10 @@ const {
   optionsResponse,
   verifyWizardAuth,
 } = require("./_wizardAuth.js");
+const {
+  buildFallbackComparison,
+  textLooksLikeEstimate,
+} = require("./_comparisonFallback.js");
 
 function resolveMode(contractorText) {
   if (contractorText == null) return "RECON_VS_CARRIER";
@@ -229,11 +233,10 @@ function truncateForModel(text, maxChars) {
   );
 }
 
-function textLooksLikeEstimate(body) {
-  return /\$\s*[\d,]+|\b(DESCRIPTION|QTY|QUANTITY|REMOVE|REPLACE)\b/i.test(
-    String(body || "")
-  );
-}
+const RETRY_SYSTEM = `Return ONE JSON object: {"lineItems":[...]}.
+Extract EVERY line item with a dollar amount from the pasted estimate texts.
+Each row: trade, carrierItem, carrierAmount, contractorItem, contractorAmount, delta (contractor-carrier), flagged (boolean), reason (short).
+Do NOT return an empty lineItems array if either text contains dollar figures or estimate tables.`;
 
 function finalizeResult(mode, parsed) {
   const rawItems = Array.isArray(parsed?.lineItems) ? parsed.lineItems : [];
@@ -271,10 +274,10 @@ exports.handler = async (event) => {
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
   const isPreview = auth.user?.isPreview === true;
-  const model = isPreview ? "gpt-4o-mini" : "gpt-4o";
-  const maxTokens = isPreview ? 2500 : 4000;
-  const openAiTimeoutMs = isPreview ? 20000 : 24000;
-  const textLimit = isPreview ? 120000 : 200000;
+  const model = "gpt-4o";
+  const maxTokens = 4000;
+  const openAiTimeoutMs = isPreview ? 28000 : 32000;
+  const textLimit = isPreview ? 160000 : 200000;
 
   let body;
   try {
@@ -344,50 +347,87 @@ exports.handler = async (event) => {
     category
   );
 
-  let parsed;
-  try {
+  async function callCompareModel(system, user) {
     const completion = await withTimeout(
       openai.chat.completions.create({
         model,
-        temperature: 0.2,
+        temperature: 0.15,
         max_tokens: maxTokens,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: "system", content: system },
+          { role: "user", content: user },
         ],
       }),
       openAiTimeoutMs
     );
     const raw = completion.choices[0]?.message?.content || "{}";
-    parsed = JSON.parse(raw);
+    return JSON.parse(raw);
+  }
+
+  let parsed;
+  try {
+    parsed = await callCompareModel(systemPrompt, userMessage);
   } catch (e) {
     console.error("compare-estimates OpenAI:", e);
-    return {
-      statusCode: 502,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        error: "Comparison generation failed",
-        code: "COMPARE_OPENAI_FAILED",
-        mode,
-      }),
-    };
+    const fallback = buildFallbackComparison(
+      mode,
+      carrierText,
+      mode === "LINE_COMPARE" ? contractorText : null
+    );
+    if (fallback?.lineItems?.length) {
+      console.warn("compare-estimates: OpenAI failed, using fallback");
+      parsed = fallback;
+    } else {
+      return {
+        statusCode: 502,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: "Comparison generation failed",
+          code: "COMPARE_OPENAI_FAILED",
+          mode,
+        }),
+      };
+    }
   }
 
   try {
-    const out = finalizeResult(mode, parsed);
-    if (
-      out.lineItems.length === 0 &&
+    let out = finalizeResult(mode, parsed);
+    const estimateLike =
       textLooksLikeEstimate(carrierText) &&
-      (mode !== "LINE_COMPARE" || textLooksLikeEstimate(contractorText))
-    ) {
-      console.warn("compare-estimates: model returned empty lineItems");
+      (mode !== "LINE_COMPARE" || textLooksLikeEstimate(contractorText));
+
+    if (out.lineItems.length === 0 && estimateLike) {
+      console.warn("compare-estimates: empty lineItems, retrying OpenAI");
+      try {
+        const retryParsed = await callCompareModel(RETRY_SYSTEM, userMessage);
+        const retryOut = finalizeResult(mode, retryParsed);
+        if (retryOut.lineItems.length > 0) out = retryOut;
+      } catch (retryErr) {
+        console.error("compare-estimates retry:", retryErr);
+      }
+    }
+
+    if (out.lineItems.length === 0 && estimateLike) {
+      const fallback = buildFallbackComparison(
+        mode,
+        carrierText,
+        mode === "LINE_COMPARE" ? contractorText : null
+      );
+      if (fallback?.lineItems?.length) {
+        console.warn("compare-estimates: using deterministic fallback");
+        out = fallback;
+      }
+    }
+
+    if (out.lineItems.length === 0 && estimateLike) {
+      console.warn("compare-estimates: no line items after AI and fallback");
       return {
         statusCode: 502,
         headers: corsHeaders,
         body: JSON.stringify({
           error:
-            "Comparison returned no line items. Try again or ensure both estimates have readable line-item text.",
+            "Comparison returned no line items. Paste full line-item text for both estimates on Step 1.",
           code: "COMPARE_EMPTY",
           mode,
         }),
