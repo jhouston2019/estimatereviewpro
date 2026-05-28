@@ -25,6 +25,7 @@ import {
   wizardSnapshotFromDeliverables,
 } from "@/lib/wizard-deliverables";
 import { comparisonHasLineRows } from "@/lib/estimate-json-parse";
+import { buildLocalComparison } from "@/lib/run-local-comparison";
 import {
   Step2AnalysisPanel,
   parseAnalysisResult,
@@ -1785,6 +1786,9 @@ export default function UploadWizardClient({
         if (docCats.length > 1) compareBody.category = category;
         if (versionDiff) compareBody.versionDiff = versionDiff;
 
+        const tryLocalFallback = (): ComparisonResult | null =>
+          buildLocalComparison(latestText, contractorJoined);
+
         const res = await wizardFetch(
           netlifyFunctionUrl("compare-estimates"),
           {
@@ -1794,21 +1798,26 @@ export default function UploadWizardClient({
         );
         if (!res.ok) {
           await res.text().catch(() => "");
+          const local = tryLocalFallback();
+          if (local) {
+            announce(
+              `Comparison built locally (${local.lineItems.length} line items).`
+            );
+            return local;
+          }
           return null;
         }
         const compareJson: unknown = await res.json();
         const parsed = parseComparisonResult(compareJson);
-        if (!parsed || !comparisonHasLineRows(parsed)) return null;
+        if (!parsed || !comparisonHasLineRows(parsed)) {
+          return tryLocalFallback();
+        }
         return parsed;
       };
 
       const nextComparisons: Record<string, ComparisonResult> = {};
       for (const category of compareTargets) {
         let parsed = await fetchCategoryComparison(category);
-        if (!parsed) {
-          announce(`Retrying comparison for ${category}…`);
-          parsed = await fetchCategoryComparison(category);
-        }
         if (!parsed) {
           announce(
             `Comparison failed for ${category}. Ensure both carrier and contractor/PA estimates have complete line-item text, then use Re-run comparison on Step 3.`

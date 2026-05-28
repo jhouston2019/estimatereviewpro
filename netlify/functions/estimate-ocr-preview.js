@@ -131,13 +131,25 @@ exports.handler = async (event) => {
     })),
   ];
 
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`OCR timed out after ${ms}ms`)), ms)
+      ),
+    ]);
+  }
+
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      max_tokens: 4096,
-      messages: [{ role: "user", content }],
-    });
+    const response = await withTimeout(
+      openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 2800,
+        messages: [{ role: "user", content }],
+      }),
+      20000
+    );
     const rawText = response.choices[0]?.message?.content ?? "";
     const { text: extractedText, stripped } = stripRefusalPreamble(rawText);
     if (isUnusableOcr(extractedText)) {
@@ -163,14 +175,17 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const isTimeout = /timed out/i.test(message);
     const isQuota =
       /429|quota|billing|insufficient/i.test(message) ||
       (err && typeof err === "object" && "status" in err && err.status === 429);
     const userMessage = isQuota
       ? "AI reading limit reached on the server (OpenAI quota). Paste the estimate text below, or retry after billing is updated."
-      : message;
+      : isTimeout
+        ? "OCR timed out — paste the estimate text below or try a smaller PDF."
+        : message;
     return {
-      statusCode: isQuota ? 429 : 500,
+      statusCode: isQuota ? 429 : isTimeout ? 504 : 500,
       headers: corsHeaders,
       body: JSON.stringify({
         error: userMessage,

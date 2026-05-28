@@ -12,13 +12,10 @@ const {
 const {
   buildFallbackComparison,
   textLooksLikeEstimate,
+  resolveCompareMode,
 } = require("./_comparisonFallback.js");
 
-function resolveMode(contractorText) {
-  if (contractorText == null) return "RECON_VS_CARRIER";
-  const t = String(contractorText).trim();
-  return t.length > 0 ? "LINE_COMPARE" : "RECON_VS_CARRIER";
-}
+const OPENAI_COMPARE_TIMEOUT_MS = 14000;
 
 function emptyResult(mode) {
   return {
@@ -120,67 +117,6 @@ ${String(carrierText)}
 ${contractorBlock}`;
 }
 
-const VERSION_DIFF_SYSTEM = `You compare two versions of a carrier estimate: PREVIOUS versus CURRENT.
-Return ONE JSON object only (no markdown) with this exact shape:
-{
-  "added": [ { "description": "string", "amount": number } ],
-  "removed": [ { "description": "string", "amount": number } ],
-  "changed": [ { "description": "string", "previousAmount": number, "currentAmount": number, "delta": number } ],
-  "netChange": number
-}
-Rules:
-- Base amounts only on explicit figures in the pasted texts; use 0 if not stated.
-- For "changed" rows, delta MUST equal currentAmount minus previousAmount.
-- netChange = reasonable net monetary movement from PREVIOUS to CURRENT as evidenced in the texts (not invented).
-- Arrays may be empty. Descriptions must be short and tied to the text.`;
-
-function normalizeVersionDiffFromModel(body, raw) {
-  const req = body.versionDiff || {};
-  const prevV = String(req.previousVersion || "");
-  const currV = String(req.currentVersion || "");
-  const mapAdded = (arr) => {
-    if (!Array.isArray(arr)) return [];
-    return arr.map((row) => {
-      const r = row && typeof row === "object" ? row : {};
-      return {
-        description: String(r.description ?? ""),
-        amount: Math.round((Number(r.amount) || 0) * 100) / 100,
-      };
-    });
-  };
-  const mapChanged = (arr) => {
-    if (!Array.isArray(arr)) return [];
-    return arr.map((row) => {
-      const r = row && typeof row === "object" ? row : {};
-      const pa = Math.round((Number(r.previousAmount) || 0) * 100) / 100;
-      const ca = Math.round((Number(r.currentAmount) || 0) * 100) / 100;
-      const delta =
-        Number.isFinite(Number(r.delta))
-          ? Math.round(Number(r.delta) * 100) / 100
-          : Math.round((ca - pa) * 100) / 100;
-      return {
-        description: String(r.description ?? ""),
-        previousAmount: pa,
-        currentAmount: ca,
-        delta,
-      };
-    });
-  };
-  const added = mapAdded(raw?.added);
-  const removed = mapAdded(raw?.removed);
-  const changed = mapChanged(raw?.changed);
-  let netChange = Math.round((Number(raw?.netChange) || 0) * 100) / 100;
-  if (!Number.isFinite(netChange)) netChange = 0;
-  return {
-    previousVersion: prevV,
-    currentVersion: currV,
-    added,
-    removed,
-    changed,
-    netChange,
-  };
-}
-
 function normalizeLineItem(row) {
   const trade = String(row?.trade ?? "");
   const carrierItem = String(row?.carrierItem ?? "");
@@ -233,11 +169,6 @@ function truncateForModel(text, maxChars) {
   );
 }
 
-const RETRY_SYSTEM = `Return ONE JSON object: {"lineItems":[...]}.
-Extract EVERY line item with a dollar amount from the pasted estimate texts.
-Each row: trade, carrierItem, carrierAmount, contractorItem, contractorAmount, delta (contractor-carrier), flagged (boolean), reason (short).
-Do NOT return an empty lineItems array if either text contains dollar figures or estimate tables.`;
-
 function finalizeResult(mode, parsed) {
   const rawItems = Array.isArray(parsed?.lineItems) ? parsed.lineItems : [];
   const lineItems = rawItems.map(normalizeLineItem);
@@ -274,10 +205,9 @@ exports.handler = async (event) => {
   const auth = await verifyWizardAuth(event);
   if (!auth.ok) return auth.response;
   const isPreview = auth.user?.isPreview === true;
-  const model = "gpt-4o";
-  const maxTokens = 4000;
-  const openAiTimeoutMs = isPreview ? 28000 : 32000;
-  const textLimit = isPreview ? 160000 : 200000;
+  const model = "gpt-4o-mini";
+  const maxTokens = 3500;
+  const textLimit = isPreview ? 120000 : 180000;
 
   let body;
   try {
@@ -293,10 +223,13 @@ exports.handler = async (event) => {
     };
   }
 
-  const carrierText = truncateForModel(
-    String(body.carrierText || "").trim(),
-    textLimit
-  );
+  const rawCarrier = String(body.carrierText || "").trim();
+  const rawContractor =
+    body.contractorText === undefined || body.contractorText === null
+      ? null
+      : String(body.contractorText).trim();
+
+  const carrierText = truncateForModel(rawCarrier, textLimit);
   if (!carrierText) {
     return {
       statusCode: 400,
@@ -309,20 +242,25 @@ exports.handler = async (event) => {
   }
 
   const contractorText =
-    body.contractorText === undefined || body.contractorText === null
-      ? null
-      : truncateForModel(String(body.contractorText).trim(), textLimit);
+    rawContractor === null ? null : truncateForModel(rawContractor, textLimit);
   const claimType = String(body.claimType || "");
   const category = body.category;
 
-  const vdRaw = body.versionDiff;
-  const hasVersionDiff =
-    vdRaw &&
-    typeof vdRaw === "object" &&
-    String(vdRaw.previousText || "").trim().length > 0 &&
-    String(vdRaw.currentText || "").trim().length > 0;
+  const mode = resolveCompareMode(rawContractor);
 
-  const mode = resolveMode(contractorText);
+  /** Fast path: deterministic table from pasted dollars (avoids 504 timeouts). */
+  const instant = buildFallbackComparison(
+    mode,
+    rawCarrier,
+    mode === "LINE_COMPARE" ? rawContractor : null
+  );
+  if (instant?.lineItems?.length > 0) {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify(instant),
+    };
+  }
 
   if (!process.env.OPENAI_API_KEY) {
     return {
@@ -359,7 +297,7 @@ exports.handler = async (event) => {
           { role: "user", content: user },
         ],
       }),
-      openAiTimeoutMs
+      OPENAI_COMPARE_TIMEOUT_MS
     );
     const raw = completion.choices[0]?.message?.content || "{}";
     return JSON.parse(raw);
@@ -372,8 +310,8 @@ exports.handler = async (event) => {
     console.error("compare-estimates OpenAI:", e);
     const fallback = buildFallbackComparison(
       mode,
-      carrierText,
-      mode === "LINE_COMPARE" ? contractorText : null
+      rawCarrier,
+      mode === "LINE_COMPARE" ? rawContractor : null
     );
     if (fallback?.lineItems?.length) {
       console.warn("compare-estimates: OpenAI failed, using fallback");
@@ -398,21 +336,10 @@ exports.handler = async (event) => {
       (mode !== "LINE_COMPARE" || textLooksLikeEstimate(contractorText));
 
     if (out.lineItems.length === 0 && estimateLike) {
-      console.warn("compare-estimates: empty lineItems, retrying OpenAI");
-      try {
-        const retryParsed = await callCompareModel(RETRY_SYSTEM, userMessage);
-        const retryOut = finalizeResult(mode, retryParsed);
-        if (retryOut.lineItems.length > 0) out = retryOut;
-      } catch (retryErr) {
-        console.error("compare-estimates retry:", retryErr);
-      }
-    }
-
-    if (out.lineItems.length === 0 && estimateLike) {
       const fallback = buildFallbackComparison(
         mode,
-        carrierText,
-        mode === "LINE_COMPARE" ? contractorText : null
+        rawCarrier,
+        mode === "LINE_COMPARE" ? rawContractor : null
       );
       if (fallback?.lineItems?.length) {
         console.warn("compare-estimates: using deterministic fallback");
@@ -432,30 +359,6 @@ exports.handler = async (event) => {
           mode,
         }),
       };
-    }
-    if (hasVersionDiff) {
-      const vdUser = `PREVIOUS CARRIER VERSION (${String(vdRaw.previousVersion || "PREVIOUS")}):\n${String(vdRaw.previousText)}\n\nCURRENT CARRIER VERSION (${String(vdRaw.currentVersion || "CURRENT")}):\n${String(vdRaw.currentText)}`;
-      try {
-        const vdCompletion = await withTimeout(
-          openai.chat.completions.create({
-            model,
-            temperature: 0.2,
-            max_tokens: isPreview ? 2000 : 3000,
-            response_format: { type: "json_object" },
-            messages: [
-              { role: "system", content: VERSION_DIFF_SYSTEM },
-              { role: "user", content: vdUser },
-            ],
-          }),
-          openAiTimeoutMs
-        );
-        const vdRawJson =
-          vdCompletion.choices[0]?.message?.content || "{}";
-        const vdParsed = JSON.parse(vdRawJson);
-        out.versionDiff = normalizeVersionDiffFromModel(body, vdParsed);
-      } catch (vdErr) {
-        console.error("compare-estimates versionDiff OpenAI:", vdErr);
-      }
     }
     return {
       statusCode: 200,
