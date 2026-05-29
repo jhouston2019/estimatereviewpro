@@ -42,13 +42,19 @@ const PLACEHOLDERS = [
   "[RESPONSE DEADLINE]",
 ];
 
-/** Inline paragraph lead-ins validated in order (see validateLetter). */
-const INLINE_HEADINGS = [
-  "Basis for Supplement.",
+const INLINE_HEADINGS_REQUIRED = [
   "Policy Obligations.",
   "Regulatory Duties.",
   "Demand.",
   "Reservation of Rights.",
+];
+
+const INLINE_HEADINGS_FIRST_SECTION = [
+  "Basis for Supplement.",
+  "Basis for Dispute.",
+  "Basis for Appeal.",
+  "Basis for Request.",
+  "Basis for",
 ];
 
 function letterTypeInstructions(letterType) {
@@ -253,20 +259,74 @@ function buildFallbackLetter(strategy, letterType) {
 }
 
 function validateLetter(text) {
-  if (!text || typeof text !== "string") return false;
+  if (!text || typeof text !== "string") {
+    console.warn("LETTER_VALIDATE_FAIL: not a string");
+    return false;
+  }
   const t = text.trim();
-  if (!t.toLowerCase().includes("10-day deadline")) return false;
+
+  // Check 10-day deadline phrasing
+  if (
+    !/10[\s-]day\s+deadline/i.test(t) &&
+    !/10[\s-]day\s+response/i.test(t) &&
+    !/ten[\s-]day/i.test(t)
+  ) {
+    console.warn(
+      "LETTER_VALIDATE_FAIL: missing 10-day deadline. First 300 chars:",
+      t.slice(0, 300)
+    );
+    return false;
+  }
+
+  // Check always-required headings in order
   let last = -1;
-  for (const h of INLINE_HEADINGS) {
+  for (const h of INLINE_HEADINGS_REQUIRED) {
     const idx = t.indexOf(h);
-    if (idx === -1) return false;
-    if (idx <= last) return false;
+    if (idx === -1) {
+      console.warn(`LETTER_VALIDATE_FAIL: missing heading "${h}"`);
+      return false;
+    }
+    if (idx <= last) {
+      console.warn(
+        `LETTER_VALIDATE_FAIL: heading out of order "${h}" at ${idx}, last was ${last}`
+      );
+      return false;
+    }
     last = idx;
   }
-  for (const p of PLACEHOLDERS) {
-    if (!t.includes(p)) return false;
+
+  // Check first-section heading exists before Policy Obligations
+  const policyIdx = t.indexOf("Policy Obligations.");
+  const hasFirstSection = INLINE_HEADINGS_FIRST_SECTION.some(
+    (h) => t.indexOf(h) !== -1 && t.indexOf(h) < policyIdx
+  );
+  if (!hasFirstSection) {
+    console.warn(
+      "LETTER_VALIDATE_FAIL: no first-section heading before Policy Obligations"
+    );
+    return false;
   }
-  if (/attorney\s+review/i.test(t)) return false;
+
+  // Check structural anchors
+  const hasReHeader = /Re:\s+Claim No\./i.test(t);
+  const hasDear = /Dear\s+\S+/i.test(t);
+  if (!hasReHeader || !hasDear) {
+    console.warn("LETTER_VALIDATE_FAIL: missing Re: header or Dear salutation");
+    return false;
+  }
+
+  if (!t.includes("[RESPONSE DEADLINE]") && !t.includes("[DISPUTED AMOUNT]")) {
+    console.warn(
+      "LETTER_VALIDATE_FAIL: missing both RESPONSE DEADLINE and DISPUTED AMOUNT placeholders"
+    );
+    return false;
+  }
+
+  if (/attorney\s+review/i.test(t)) {
+    console.warn("LETTER_VALIDATE_FAIL: contains 'attorney review'");
+    return false;
+  }
+
   return true;
 }
 
@@ -408,7 +468,11 @@ exports.handler = async (event) => {
       completion.choices[0]?.message?.content || ""
     ).trim();
   } catch (e) {
-    console.error("generate-estimate-letter OpenAI:", e);
+    console.error(
+      "generate-estimate-letter OpenAI ERROR:",
+      e?.message || String(e)
+    );
+    console.error("generate-estimate-letter OpenAI STACK:", e?.stack);
     letterText = buildFallbackLetter(strategy, letterType);
   }
 
