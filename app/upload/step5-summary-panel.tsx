@@ -349,15 +349,17 @@ export function Step5SummaryPanel({
   }, [analysis, comparison, claimMeta, strategy, announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
-    const root = document.getElementById("erp-step5-print-root");
-    if (!root) {
-      announce("Print region missing.");
-      return;
-    }
-    const text = root.innerText;
+    const payload = {
+      sections: {
+        claimMeta: claimMeta,
+        analysis: analysis,
+        comparison: comparison ?? undefined,
+      },
+      fileName: `${(claimMeta?.insuredName || "summary").replace(/\s+/g, "-").toLowerCase()}-summary.docx`,
+    };
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      body: JSON.stringify({ text, fileName: "wizard-summary.docx" }),
+      body: JSON.stringify(payload),
     });
     const ct = res.headers.get("content-type") || "";
     if (!res.ok || ct.includes("application/json")) {
@@ -369,11 +371,11 @@ export function Step5SummaryPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "wizard-summary.docx";
+    a.download = payload.fileName;
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary Word document downloaded.");
-  }, [analysis, announce, claimMeta, comparison, strategy, fetcher]);
+  }, [analysis, announce, claimMeta, comparison, fetcher]);
 
   const carrierNameDisplay = claimMeta.carrierName?.trim() || "—";
 

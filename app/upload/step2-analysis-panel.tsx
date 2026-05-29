@@ -172,18 +172,19 @@ export function Step2AnalysisPanel({
   }, [announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
-    const root = document.getElementById("erp-step2-print-root");
-    if (!root) {
-      announce("Download failed: missing print region.");
+    if (!analysis) {
+      announce("No analysis to export.");
       return;
     }
-    const text = root.innerText;
+    const payload = {
+      sections: {
+        analysis: analysis,
+      },
+      fileName: `${"estimate".replace(/\s+/g, "-").toLowerCase()}-analysis.docx`,
+    };
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      body: JSON.stringify({
-        text,
-        fileName: "estimate-analysis.docx",
-      }),
+      body: JSON.stringify(payload),
     });
     const ct = res.headers.get("content-type") || "";
     if (!res.ok || ct.includes("application/json")) {
@@ -195,11 +196,11 @@ export function Step2AnalysisPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "estimate-analysis.docx";
+    a.download = payload.fileName;
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce, fetcher]);
+  }, [analysis, announce, fetcher]);
 
   const previewFindingMap = useMemo(
     () => (analysis ? buildPreviewFindingIndex(analysis) : new Map()),

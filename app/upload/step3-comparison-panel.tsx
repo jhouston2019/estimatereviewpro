@@ -195,13 +195,16 @@ export function Step3ComparisonPanel({
       announce("No comparison line items to export. Re-run comparison first.");
       return;
     }
-    const text = buildComparisonText(comparison, claimMeta);
+    const payload = {
+      sections: {
+        claimMeta: claimMeta,
+        comparison: comparison,
+      },
+      fileName: `${(claimMeta?.insuredName || "comparison").replace(/\s+/g, "-").toLowerCase()}-comparison.docx`,
+    };
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      body: JSON.stringify({
-        text,
-        fileName: "estimate-comparison.docx",
-      }),
+      body: JSON.stringify(payload),
     });
     const ct = res.headers.get("content-type") || "";
     if (!res.ok || ct.includes("application/json")) {
@@ -213,7 +216,7 @@ export function Step3ComparisonPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "estimate-comparison.docx";
+    a.download = payload.fileName;
     a.click();
     URL.revokeObjectURL(url);
     announce("Comparison Word document downloaded.");

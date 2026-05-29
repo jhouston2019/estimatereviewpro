@@ -217,15 +217,24 @@ export function Step6LetterPanel({
   }, [announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
-    const root = document.getElementById("erp-step6-letter-export-source");
-    if (!root) {
-      announce("Export source missing.");
-      return;
-    }
-    const text = root.innerText;
+    const payload = {
+      sections: {
+        claimMeta: {
+          insuredName: letterPlaceholders.insured,
+          policyNumber: letterPlaceholders.policy,
+          claimNumber: letterPlaceholders.claim,
+          dateOfLoss: letterPlaceholders.dol,
+          adjusterName: letterPlaceholders.adjuster,
+          carrierName: letterPlaceholders.carrier,
+        },
+        letter: letterRaw ?? "",
+        letterTitle: "Demand Letter",
+      },
+      fileName: `${(letterPlaceholders.insured || "letter").replace(/\s+/g, "-").toLowerCase()}-letter.docx`,
+    };
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
-      body: JSON.stringify({ text, fileName: "estimate-letter.docx" }),
+      body: JSON.stringify(payload),
     });
     const ct = res.headers.get("content-type") || "";
     if (!res.ok || ct.includes("application/json")) {
@@ -237,11 +246,11 @@ export function Step6LetterPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "estimate-letter.docx";
+    a.download = payload.fileName;
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [announce, fetcher]);
+  }, [announce, fetcher, letterPlaceholders, letterRaw]);
 
   const patchField = (key: keyof LetterPlaceholderFields, value: string) => {
     onLetterPlaceholdersChange({ [key]: value });
