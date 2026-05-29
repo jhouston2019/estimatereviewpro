@@ -5,6 +5,11 @@ import { LockIcon } from "@/components/LockIcon";
 import { PreviewPaywallBlock } from "@/components/PreviewPaywallBlock";
 import { netlifyFunctionUrl } from "@/lib/netlify-function-url";
 import {
+  buildComprehensiveWizardDocxPayload,
+  buildComprehensiveWizardPlainText,
+  comprehensiveWizardFileSlug,
+} from "@/lib/review-export-text";
+import {
   buildPreviewFindingIndex,
   PREVIEW_BLUR_CLASS,
   previewBlurForFindingKey,
@@ -327,10 +332,22 @@ export function Step5SummaryPanel({
   }, []);
 
   const downloadPdf = useCallback(async () => {
-    const text = buildSummaryText(analysis, comparison, claimMeta, strategy);
+    if (!analysis) {
+      announce("No analysis to export.");
+      return;
+    }
+    const slug = comprehensiveWizardFileSlug(claimMeta?.insuredName);
+    const text = buildComprehensiveWizardPlainText({
+      claimMeta,
+      analysis,
+      comparison: comparison ?? undefined,
+    });
     const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
-      body: JSON.stringify({ text, fileName: "wizard-summary.pdf" }),
+      body: JSON.stringify({
+        text,
+        fileName: `${slug}-comprehensive-report.pdf`,
+      }),
     });
     const ct = res.headers.get("content-type") || "";
     if (!res.ok || ct.includes("application/json")) {
@@ -342,21 +359,22 @@ export function Step5SummaryPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "wizard-summary.pdf";
+    a.download = `${slug}-comprehensive-report.pdf`;
     a.click();
     URL.revokeObjectURL(url);
     announce("Summary PDF downloaded.");
-  }, [analysis, comparison, claimMeta, strategy, announce, fetcher]);
+  }, [analysis, comparison, claimMeta, announce, fetcher]);
 
   const downloadWord = useCallback(async () => {
-    const payload = {
-      sections: {
-        claimMeta: claimMeta,
-        analysis: analysis,
-        comparison: comparison ?? undefined,
-      },
-      fileName: `${(claimMeta?.insuredName || "summary").replace(/\s+/g, "-").toLowerCase()}-summary.docx`,
-    };
+    if (!analysis) {
+      announce("No analysis to export.");
+      return;
+    }
+    const payload = buildComprehensiveWizardDocxPayload({
+      claimMeta,
+      analysis,
+      comparison: comparison ?? undefined,
+    });
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify(payload),

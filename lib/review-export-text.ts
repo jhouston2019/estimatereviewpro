@@ -178,6 +178,103 @@ export function buildComparisonExportPlainText(
 /** Alias for review exports; same as `buildComparisonExportPlainText`. */
 export { buildComparisonExportPlainText as buildComparisonPlainText };
 
+/** Claim fields shared by wizard Step 2 / Step 5 comprehensive exports. */
+export type ComprehensiveExportClaimMeta = {
+  insuredName?: string;
+  carrierName?: string;
+  policyNumber?: string;
+  claimNumber?: string;
+  dateOfLoss?: string;
+  adjusterName?: string;
+  state?: string;
+  claimType?: string;
+};
+
+function claimMetaPlainLines(
+  claimMeta: ComprehensiveExportClaimMeta
+): string[] {
+  const fields: [string, string | undefined][] = [
+    ["Insured", claimMeta.insuredName],
+    ["Policy Number", claimMeta.policyNumber],
+    ["Claim Number", claimMeta.claimNumber],
+    ["Date of Loss", claimMeta.dateOfLoss],
+    ["Adjuster", claimMeta.adjusterName],
+    ["Carrier", claimMeta.carrierName],
+    ["State", claimMeta.state],
+    ["Claim Type", claimMeta.claimType],
+  ];
+  const lines: string[] = ["CLAIM IDENTIFICATION", ""];
+  for (const [label, val] of fields) {
+    if (val?.trim()) lines.push(`${label}: ${val.trim()}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+/** Plain text matching structured Word export (cover + analysis + comparison). */
+export function buildComprehensiveWizardPlainText(opts: {
+  claimMeta?: ComprehensiveExportClaimMeta | null;
+  analysis: AnalysisResult | null;
+  comparison?: ComparisonResult | null;
+}): string {
+  const out: string[] = [
+    "Estimate Review Pro — Comprehensive Report",
+    "",
+    "Insurance Estimate Analysis Report",
+    "",
+  ];
+
+  if (opts.claimMeta) {
+    out.push(...claimMetaPlainLines(opts.claimMeta));
+    out.push("=".repeat(60), "");
+  }
+
+  if (opts.analysis) {
+    out.push(buildAnalysisExportPlainText(opts.analysis));
+  }
+
+  if (opts.comparison) {
+    out.push("=".repeat(60), "", buildComparisonExportPlainText(opts.comparison));
+  }
+
+  return out.join("\n").trim() + "\n";
+}
+
+export function comprehensiveWizardFileSlug(
+  insuredName?: string | null
+): string {
+  return (insuredName?.trim() || "report").replace(/\s+/g, "-").toLowerCase();
+}
+
+/** Payload for generate-docx structured path (parity with comprehensive PDF text). */
+export function buildComprehensiveWizardDocxPayload(opts: {
+  claimMeta?: ComprehensiveExportClaimMeta | null;
+  analysis: AnalysisResult | null;
+  comparison?: ComparisonResult | null;
+  fileName?: string;
+}): {
+  sections: {
+    claimMeta?: ComprehensiveExportClaimMeta;
+    analysis?: AnalysisResult;
+    comparison?: ComparisonResult;
+  };
+  fileName: string;
+} {
+  const slug = comprehensiveWizardFileSlug(opts.claimMeta?.insuredName);
+  const sections: {
+    claimMeta?: ComprehensiveExportClaimMeta;
+    analysis?: AnalysisResult;
+    comparison?: ComparisonResult;
+  } = {};
+  if (opts.claimMeta) sections.claimMeta = opts.claimMeta;
+  if (opts.analysis) sections.analysis = opts.analysis;
+  if (opts.comparison) sections.comparison = opts.comparison;
+  return {
+    sections,
+    fileName: opts.fileName ?? `${slug}-comprehensive-report.docx`,
+  };
+}
+
 function summaryDataToPlainText(data: unknown, indent: string): string {
   if (data === null || data === undefined) return `${indent}—\n`;
   if (typeof data === "string")

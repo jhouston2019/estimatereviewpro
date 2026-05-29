@@ -3606,6 +3606,7 @@ export default function UploadWizardClient({
             <Step2AnalysisPanel
               analysis={state.analysis}
               comparison={state.comparison}
+              claimMeta={state.claimMeta}
               onBack={onStep2Back}
               onNext={onStep2Next}
               announce={announce}

@@ -10,6 +10,12 @@ import {
   previewBlurForFindingKey,
   previewMoreFindingsCount,
 } from "@/lib/preview-blur";
+import {
+  buildComprehensiveWizardDocxPayload,
+  buildComprehensiveWizardPlainText,
+  comprehensiveWizardFileSlug,
+  type ComprehensiveExportClaimMeta,
+} from "@/lib/review-export-text";
 import { wizardFetch } from "@/lib/supabaseClient";
 import type {
   AnalysisResult,
@@ -68,6 +74,7 @@ type WizardApiFetch = typeof wizardFetch;
 type Props = {
   analysis: AnalysisResult | null;
   comparison: ComparisonResult | null;
+  claimMeta?: ComprehensiveExportClaimMeta | null;
   onBack: () => void;
   onNext: () => void;
   announce: (message: string) => void;
@@ -91,6 +98,7 @@ const ERP_WHITE_ACTION_PANEL =
 export function Step2AnalysisPanel({
   analysis,
   comparison,
+  claimMeta,
   onBack,
   onNext,
   announce,
@@ -142,17 +150,21 @@ export function Step2AnalysisPanel({
   }, []);
 
   const downloadPdf = useCallback(async () => {
-    const root = document.getElementById("erp-step2-print-root");
-    if (!root) {
-      announce("Download failed: missing print region.");
+    if (!analysis) {
+      announce("No analysis to export.");
       return;
     }
-    const text = root.innerText;
+    const slug = comprehensiveWizardFileSlug(claimMeta?.insuredName);
+    const text = buildComprehensiveWizardPlainText({
+      claimMeta,
+      analysis,
+      comparison: comparison ?? undefined,
+    });
     const res = await fetcher(netlifyFunctionUrl("generate-pdf"), {
       method: "POST",
       body: JSON.stringify({
         text,
-        fileName: "estimate-analysis.pdf",
+        fileName: `${slug}-comprehensive-report.pdf`,
       }),
     });
     const ct = res.headers.get("content-type") || "";
@@ -165,23 +177,22 @@ export function Step2AnalysisPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "estimate-analysis.pdf";
+    a.download = `${slug}-comprehensive-report.pdf`;
     a.click();
     URL.revokeObjectURL(url);
     announce("PDF downloaded.");
-  }, [announce, fetcher]);
+  }, [analysis, announce, claimMeta, comparison, fetcher]);
 
   const downloadWord = useCallback(async () => {
     if (!analysis) {
       announce("No analysis to export.");
       return;
     }
-    const payload = {
-      sections: {
-        analysis: analysis,
-      },
-      fileName: `${"estimate".replace(/\s+/g, "-").toLowerCase()}-analysis.docx`,
-    };
+    const payload = buildComprehensiveWizardDocxPayload({
+      claimMeta,
+      analysis,
+      comparison: comparison ?? undefined,
+    });
     const res = await fetcher(netlifyFunctionUrl("generate-docx"), {
       method: "POST",
       body: JSON.stringify(payload),
@@ -200,7 +211,7 @@ export function Step2AnalysisPanel({
     a.click();
     URL.revokeObjectURL(url);
     announce("Word document downloaded.");
-  }, [analysis, announce, fetcher]);
+  }, [analysis, announce, claimMeta, comparison, fetcher]);
 
   const previewFindingMap = useMemo(
     () => (analysis ? buildPreviewFindingIndex(analysis) : new Map()),

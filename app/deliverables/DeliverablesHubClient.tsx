@@ -168,6 +168,7 @@ function DeliverablesBody({
             <Step2AnalysisPanel
               analysis={d.analysis}
               comparison={d.comparison}
+              claimMeta={d.claimMeta}
               onBack={noop}
               onNext={noop}
               announce={announce}
