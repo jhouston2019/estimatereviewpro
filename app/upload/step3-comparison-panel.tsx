@@ -380,7 +380,11 @@ export function Step3ComparisonPanel({
                 </tr>
               </thead>
               <tbody>
-                {lineItems.map((row, n) => (
+                {lineItems.map((row, n) => {
+                  const depreciationNote = String(
+                    (row as { depreciationNote?: string }).depreciationNote ?? ""
+                  ).trim();
+                  return (
                   <tr
                     key={n}
                     id={`erp-step3-row-${n}`}
@@ -442,9 +446,16 @@ export function Step3ComparisonPanel({
                       className="bg-white px-3 py-2 align-top text-[11px] text-[#6a6a64]"
                     >
                       {row.reason}
+                      {depreciationNote !== "" && (
+                        <p className="mt-1 text-[11px] text-[#6a6a64]">
+                          <span className="font-medium">Depreciation: </span>
+                          {depreciationNote}
+                        </p>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 <tr
                   className={`border-t border-[#e0e0dc] font-medium ${isPreviewMode ? "filter blur-[4px] select-none [pointer-events:none]" : ""}`}
                 >

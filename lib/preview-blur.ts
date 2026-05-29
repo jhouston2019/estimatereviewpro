@@ -28,6 +28,10 @@ type FindingSource = {
   actionItems?: string[];
   requiredDocuments?: string[];
   escalationOptions?: string[];
+  depreciationFindings?: string[];
+  badFaithIndicators?: string[];
+  executiveSummary?: string;
+  carrierStrategy?: string;
 };
 
 /** Global index across all finding lists (matches step 2 preview behavior). */
@@ -38,15 +42,23 @@ export function buildPreviewFindingIndex(source: FindingSource): Map<string, num
     if (!arr) return;
     for (let i = 0; i < arr.length; i += 1) m.set(`${prefix}:${i}`, g++);
   };
+  const addString = (val: string | undefined, prefix: string) => {
+    if (val == null || !String(val).trim()) return;
+    m.set(prefix, g++);
+  };
+  addString(source.executiveSummary, "ex");
+  addString(source.carrierStrategy, "cs");
   add(source.proceduralDefects, "pc");
   add(source.scopeOmissions, "om");
   add(source.pricingFlags, "pr");
+  add(source.depreciationFindings, "dp");
   add(source.codeUpgradeGaps, "cd");
   add(source.opFindings, "op");
   add(source.disputeAngles, "an");
   add(source.actionItems, "ac");
   add(source.requiredDocuments, "rq");
   add(source.escalationOptions, "es");
+  add(source.badFaithIndicators, "bf");
   return m;
 }
 

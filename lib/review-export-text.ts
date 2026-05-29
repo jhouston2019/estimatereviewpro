@@ -46,6 +46,16 @@ export function buildAnalysisExportPlainText(
   const parts: string[] = [
     "Estimate Review Pro — Analysis",
     "",
+  ];
+
+  if (analysis.executiveSummary.trim()) {
+    parts.push("SUMMARY", "", analysis.executiveSummary, "");
+  }
+  if (analysis.carrierStrategy.trim()) {
+    parts.push("CARRIER APPROACH", "", analysis.carrierStrategy, "");
+  }
+
+  parts.push(
     `Risk level: ${analysis.riskLevel}`,
     "",
     "Carrier amount",
@@ -71,6 +81,15 @@ export function buildAnalysisExportPlainText(
   parts.push(
     listSection("Pricing flags", analysis.pricingFlags, "None listed.")
   );
+  if (analysis.depreciationFindings.length > 0) {
+    parts.push(
+      listSection(
+        "DEPRECIATION ISSUES",
+        analysis.depreciationFindings,
+        "None listed."
+      )
+    );
+  }
   parts.push(
     listSection("Code upgrade gaps", analysis.codeUpgradeGaps, "None listed.")
   );
@@ -92,6 +111,15 @@ export function buildAnalysisExportPlainText(
   parts.push(
     listSection("Escalation options", analysis.escalationOptions, "None listed.")
   );
+  if (analysis.badFaithIndicators.length > 0) {
+    parts.push(
+      listSection(
+        "BAD FAITH INDICATORS",
+        analysis.badFaithIndicators,
+        "None listed."
+      )
+    );
+  }
   if (analysis.availableStrategies.length > 0) {
     parts.push("Available strategies");
     for (const s of analysis.availableStrategies) {
@@ -119,16 +147,21 @@ export function buildComparisonExportPlainText(
   if (comparison.lineItems.length > 0) {
     parts.push("Line items", "");
     for (const row of comparison.lineItems) {
-      parts.push(
-        [
-          `Trade: ${row.trade}`,
-          `  Carrier: ${row.carrierItem} — ${formatMoney(row.carrierAmount)}`,
-          `  Other: ${row.contractorItem} — ${formatMoney(row.contractorAmount)}`,
-          `  Delta: ${formatMoney(row.delta)}${row.flagged ? " (flagged)" : ""}`,
-          `  Note: ${row.reason}`,
-          "",
-        ].join("\n")
-      );
+      const rowLines = [
+        `Trade: ${row.trade}`,
+        `  Carrier: ${row.carrierItem} — ${formatMoney(row.carrierAmount)}`,
+        `  Other: ${row.contractorItem} — ${formatMoney(row.contractorAmount)}`,
+        `  Delta: ${formatMoney(row.delta)}${row.flagged ? " (flagged)" : ""}`,
+        `  Note: ${row.reason}`,
+      ];
+      const depreciationNote = String(
+        (row as { depreciationNote?: string }).depreciationNote ?? ""
+      ).trim();
+      if (depreciationNote) {
+        rowLines.push(`  Depreciation: ${depreciationNote}`);
+      }
+      rowLines.push("");
+      parts.push(rowLines.join("\n"));
     }
   } else {
     parts.push("No line items in comparison.", "");

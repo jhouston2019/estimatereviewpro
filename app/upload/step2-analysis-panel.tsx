@@ -383,6 +383,34 @@ export function Step2AnalysisPanel({
           </div>
         )}
 
+        {analysis.executiveSummary.trim() ? (
+          <section
+            id="erp-step2-card-summary"
+            className="mt-4 border-b border-[#ebebea] pb-3"
+          >
+            <h3 className={sectionHeading}>Summary</h3>
+            <div className="mt-1 rounded-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#1e3f6e] bg-[#f8fafc] px-4 py-3">
+              <p className="text-sm leading-relaxed text-[#2a3a4a]">
+                {analysis.executiveSummary}
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {analysis.carrierStrategy.trim() ? (
+          <section
+            id="erp-step2-card-carrier-approach"
+            className="mt-4 border-b border-[#ebebea] pb-3"
+          >
+            <h3 className={sectionHeading}>Carrier Approach</h3>
+            <div className="mt-1 rounded-[10px] border-[0.5px] border-[#e8dcc8] border-l-[3px] border-l-[#f0a050] bg-[#fff8ef] px-4 py-3">
+              <p className="text-sm leading-relaxed text-[#2a3a4a]">
+                {analysis.carrierStrategy}
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
             <section id="erp-step2-card-gap" className="flex flex-col gap-3">
@@ -500,6 +528,33 @@ export function Step2AnalysisPanel({
                 </div>
               </section>
             </div>
+
+            {analysis.depreciationFindings.length > 0 ? (
+              <div className="border-b border-[#ebebea] pb-3">
+                <section id="erp-step2-card-depreciation">
+                  <h3 className={sectionHeading}>Depreciation Issues</h3>
+                  <div className={`${ERP_WHITE_FINDING_PANEL} mt-1`}>
+                    <ul className="flex flex-col gap-1.5">
+                      {analysis.depreciationFindings.map((t, i) => (
+                        <li
+                          key={i}
+                          id={`erp-step2-depreciation-${i + 1}`}
+                          className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                            `dp:${i}`
+                          )}`}
+                        >
+                          <span
+                            className="erp-find-dot erp-find-dot-red"
+                            aria-hidden
+                          />
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              </div>
+            ) : null}
 
             <div className="border-b border-[#ebebea] pb-3">
               <section id="erp-step2-card-code-upgrade">
@@ -682,6 +737,34 @@ export function Step2AnalysisPanel({
               )}
             </div>
           </section>
+
+          {analysis.badFaithIndicators.length > 0 ? (
+            <section
+              id="erp-step2-section-bad-faith"
+              className="border-b border-[#ebebea] pb-3"
+            >
+              <h3 className={sectionHeading}>Bad Faith Indicators</h3>
+              <div className={`${ERP_WHITE_FINDING_PANEL} mt-1`}>
+                <ul className="flex flex-col gap-1.5">
+                  {analysis.badFaithIndicators.map((t, i) => (
+                    <li
+                      key={i}
+                      id={`erp-step2-bad-faith-${i + 1}`}
+                      className={`flex gap-2 text-sm text-[#2a3a4a] ${blurFinding(
+                        `bf:${i}`
+                      )}`}
+                    >
+                      <span
+                        className="erp-find-dot erp-find-dot-red"
+                        aria-hidden
+                      />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ) : null}
 
           {isPreviewMode && previewMoreFindings > 0 ? (
             <p

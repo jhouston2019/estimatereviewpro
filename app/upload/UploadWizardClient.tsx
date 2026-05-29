@@ -2514,6 +2514,7 @@ export default function UploadWizardClient({
             claimType: s.claimMeta.claimType,
             letterType: s.letterType,
             tone: "FORMAL_PROFESSIONAL",
+            state: s.claimMeta.state ?? "",
           }),
         }
       );

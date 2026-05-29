@@ -42,6 +42,7 @@ export async function saveWizardReview(
               dateOfLoss: m.dateOfLoss,
               adjusterName: m.adjusterName,
               responseDeadline: m.responseDeadline,
+              state: m.state ?? "",
             },
           }
         : a;

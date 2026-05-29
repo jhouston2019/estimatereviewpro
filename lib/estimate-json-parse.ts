@@ -17,6 +17,10 @@ export type AnalysisResult = {
   escalationOptions: string[];
   availableStrategies: string[];
   recommendedStrategy: string;
+  carrierStrategy: string;
+  depreciationFindings: string[];
+  badFaithIndicators: string[];
+  executiveSummary: string;
 };
 
 export type VersionDiffResult = {
@@ -182,5 +186,19 @@ export function parseAnalysisResult(raw: unknown): AnalysisResult | null {
     escalationOptions: strArr("escalationOptions"),
     availableStrategies: strArr("availableStrategies"),
     recommendedStrategy: String(raw.recommendedStrategy || ""),
+    carrierStrategy:
+      typeof raw.carrierStrategy === "string"
+        ? raw.carrierStrategy.trim()
+        : "",
+    depreciationFindings: Array.isArray(raw.depreciationFindings)
+      ? raw.depreciationFindings.map((x: unknown) => String(x)).filter(Boolean)
+      : [],
+    badFaithIndicators: Array.isArray(raw.badFaithIndicators)
+      ? raw.badFaithIndicators.map((x: unknown) => String(x)).filter(Boolean)
+      : [],
+    executiveSummary:
+      typeof raw.executiveSummary === "string"
+        ? raw.executiveSummary.trim()
+        : "",
   };
 }

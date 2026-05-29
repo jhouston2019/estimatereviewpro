@@ -9,6 +9,7 @@ const {
   optionsResponse,
   verifyWizardAuth,
 } = require("./_wizardAuth.js");
+const { getStateContextForPrompt } = require("./_stateContext.js");
 
 const STRATEGIES = [
   "FULL_SUPPLEMENT_DEMAND",
@@ -71,7 +72,10 @@ function letterTypeInstructions(letterType) {
   }
 }
 
-const LETTER_SYSTEM_PROMPT = `You write a formal legal demand letter as plain text only.
+const LETTER_SYSTEM_PROMPT = `You are a senior public adjuster and insurance claims advocate
+writing a formal demand letter on behalf of a property insurance claimant. Your letters are
+known for being precise, evidence-grounded, persuasive, and professionally intimidating to
+carriers — without fabricating facts, statutes, or policy provisions not in the record.
 
 OUTPUT RULES (strict):
 - Output plain text only. No HTML, no markdown, no code fences.
@@ -88,29 +92,74 @@ Re: Claim No. [CLAIM NUMBER] | Policy No. [POLICY NUMBER] | Date of Loss: [DATE 
 
 Dear [ADJUSTER NAME]:
 
-[BACKGROUND paragraph — no heading, just prose]
+[BACKGROUND paragraph — no heading, just prose. State the claim context, the nature of the loss,
+and the insured's position. Reference the carrier's estimate amount and the disputed amount.
+Set an assertive but professional tone from the first sentence.]
 
-[BASIS FOR SUPPLEMENT paragraph — start with bold-equivalent lead: "Basis for Supplement.  " then prose]
+[BASIS FOR SUPPLEMENT paragraph — start inline: "Basis for Supplement.  " then prose.
+This is the substantive core of the letter. Draw directly from the analysis JSON:
+- If scopeOmissions is non-empty: identify the most significant omissions by trade and explain
+  why they are required.
+- If pricingFlags is non-empty: cite the suppressed pricing categories and why fair market
+  value is higher.
+- If depreciationFindings is non-empty: identify the depreciation methodology defects —
+  non-depreciable items held, excessive rates, recoverable depreciation not scheduled.
+- If opFindings is non-empty: state the O&P entitlement basis (number of trades, GC
+  coordination requirement) and the dollar impact.
+- If codeUpgradeGaps is non-empty: identify code-required items that must be included
+  regardless of the carrier's scope preference.
+- If badFaithIndicators is non-empty: note the pattern of deficiencies in a way that
+  signals awareness of bad faith exposure without using the phrase "bad faith" directly —
+  use language like "pattern of suppression", "unreasonable scope narrowing", or
+  "failure to document basis for exclusions."
+Do not invent facts not in the analysis. Do not cite specific Xactimate codes or statute
+numbers unless they appear in the analysis JSON.]
 
-[POLICY OBLIGATIONS paragraph — start with "Policy Obligations.  " then prose]
+[POLICY OBLIGATIONS paragraph — start inline: "Policy Obligations.  " then prose.
+Reference the carrier's general obligations under the policy — to pay the full replacement
+cost value of covered losses, to document the basis for any depreciation applied, to include
+code-required upgrades, and to provide a complete scope. Use [POLICY NUMBER] and [CLAIM NUMBER].
+Do not cite specific policy sections or endorsements unless they appear in the analysis JSON.]
 
-[REGULATORY DUTIES paragraph — start with "Regulatory Duties.  " then prose]
+[REGULATORY DUTIES paragraph — start inline: "Regulatory Duties.  " then prose.
+Reference the carrier's general regulatory obligations: prompt claims handling, good faith
+adjustment, and documentation requirements. If the state field in the analysis metadata is
+present and is a state known for specific bad faith or prompt payment exposure (TX, FL, CA,
+GA, CO, OK, LA, MS, AL), include a state-specific sentence noting that the state's regulatory
+framework is being monitored and that the insured's rights under applicable unfair claims
+practices standards are reserved — without citing specific statute numbers unless they appear
+in the analysis. If state is unknown or not a high-exposure state, use general language only.
+Reference [ADJUSTER NAME] and [RESPONSE DEADLINE].]
 
-[DEMAND paragraph — start with "Demand.  " then prose, must include phrase: 10-day deadline]
+[DEMAND paragraph — start inline: "Demand.  " then prose.
+State the specific demand clearly: payment of [DISPUTED AMOUNT] within the 10-day deadline
+referenced here, or a written response identifying each disputed item with specific factual
+and policy basis for the carrier's position. This 10-day deadline is offered as a reasonable
+response window; calendar date [RESPONSE DEADLINE] remains relevant for scheduling.
+State that failure to respond will result in escalation through all available channels.]
 
-[RESERVATION OF RIGHTS paragraph — start with "Reservation of Rights.  " then prose]
+[RESERVATION OF RIGHTS paragraph — start inline: "Reservation of Rights.  " then prose.
+Expressly reserve all rights and remedies available to [INSURED NAME] under the policy,
+applicable law, and regulatory standards. Reference the claim number [CLAIM NUMBER], policy
+[POLICY NUMBER], and carrier [CARRIER NAME]. State that nothing in this letter waives or
+limits any right, remedy, or cause of action available to the insured.]
 
 Very truly yours,
 
 [INSURED NAME]
 
-- Do NOT use ALL-CAPS standalone section headings on their own line. Headings must be inline at the start of each paragraph followed by two spaces then the body text.
-- Include ALL placeholders: [INSURED NAME], [POLICY NUMBER], [CLAIM NUMBER], [DATE OF LOSS], [ADJUSTER NAME], [CARRIER NAME], [DISPUTED AMOUNT], [RESPONSE DEADLINE]
-- Tone: formal, professional, precise.
+ADDITIONAL RULES:
+- Do NOT use ALL-CAPS standalone section headings on their own line.
+- Include ALL placeholders: [INSURED NAME], [POLICY NUMBER], [CLAIM NUMBER], [DATE OF LOSS],
+  [ADJUSTER NAME], [CARRIER NAME], [DISPUTED AMOUNT], [RESPONSE DEADLINE]
+- Tone: assertive, formal, professional. The letter should feel like it came from someone
+  who knows exactly what they are doing and is not going away.
 - No attorney-review disclaimers.
-- No fabricated statute numbers, case citations, or specific policy language.
-- The user message specifies letterType; follow the letter-type framing instructions there. Also reflect the selected strategy code from the payload (supplement vs partial dispute vs re-inspection vs appraisal vs custom) using only facts and themes present in the analysis JSON.
-- Never output a line or sentence that begins with the word "Strategy:" or reads like an internal label (for example, do not paste phrases such as "Strategy: full supplement demand"). Instead, weave the intent of the selected strategy into normal sentences in the background and basis paragraphs only, in plain language, without naming the raw code string.`;
+- No fabricated statute numbers, case citations, or specific policy language not in the analysis.
+- The letter should be substantive — 600 to 900 words of body content. Thin letters do not
+  move carriers. Use the analysis findings to fill every section with specific, grounded content.
+- Never output a line beginning with "Strategy:" or any internal label. Weave the strategy
+  intent into natural sentences only.`;
 
 /** Short prose reflecting the strategy — no "Strategy:" labels (used in fallback and guides model). */
 function strategyVoiceForProse(strategy) {
@@ -293,6 +342,8 @@ exports.handler = async (event) => {
     body.analysis !== undefined && body.analysis !== null && typeof body.analysis === "object"
       ? body.analysis
       : {};
+  const state = String(body.state ?? analysis?.state ?? "").trim().toUpperCase();
+  const stateContextBlock = getStateContextForPrompt(state);
 
   if (!process.env.OPENAI_API_KEY) {
     return {
@@ -313,6 +364,7 @@ exports.handler = async (event) => {
       claimType,
       letterType,
       tone,
+      state,
       ...(customInstructions ? { customInstructions } : {}),
       ...(additionalNotes ? { additionalNotes } : {}),
     },
@@ -332,6 +384,9 @@ exports.handler = async (event) => {
   } else if (letterType === "CUSTOM" && !customInstructions) {
     contextBlocks += `\n\n---\nCUSTOM LETTER: No custom instructions were provided; produce the letter from the analysis JSON only, still following the CUSTOM letter type rules and structure.\n---`;
   }
+  if (stateContextBlock) {
+    contextBlocks += `\n\n---\nSTATE REGULATORY CONTEXT (use this to inform the Regulatory Duties paragraph — do not quote statute numbers verbatim, but use the context to calibrate the tone and leverage referenced):\n${stateContextBlock}\n---`;
+  }
 
   const userMessage = `Produce the letter now.\n\n${userPayload}${contextBlocks}`;
 
@@ -340,7 +395,7 @@ exports.handler = async (event) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.2,
-      max_tokens: 3500,
+      max_tokens: 4500,
       messages: [
         { role: "system", content: systemContent },
         {

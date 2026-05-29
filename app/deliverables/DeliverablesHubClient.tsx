@@ -90,6 +90,7 @@ function DeliverablesBody({
             claimType: d.claimMeta.claimType,
             letterType,
             tone: "FORMAL_PROFESSIONAL",
+            state: d.claimMeta.state ?? "",
           }),
         }
       );

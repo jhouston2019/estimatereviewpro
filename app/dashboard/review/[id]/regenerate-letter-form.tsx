@@ -126,12 +126,46 @@ export function RegenerateLetterForm({
         parsedAnalysis,
         comparisonJson
       );
+      const analysisRecord =
+        typeof parsedAnalysis === "object" &&
+        parsedAnalysis !== null &&
+        !Array.isArray(parsedAnalysis)
+          ? (parsedAnalysis as Record<string, unknown>)
+          : null;
+      const claimMetaInAnalysis =
+        analysisRecord?.claimMeta &&
+        typeof analysisRecord.claimMeta === "object" &&
+        !Array.isArray(analysisRecord.claimMeta)
+          ? (analysisRecord.claimMeta as Record<string, unknown>)
+          : null;
+      let letterState = String(claimMetaInAnalysis?.state ?? "").trim();
+      if (!letterState && summaryJsonForPlaceholders != null) {
+        const summaryParsed = parseJsonIfString(summaryJsonForPlaceholders);
+        if (
+          summaryParsed !== null &&
+          typeof summaryParsed === "object" &&
+          !Array.isArray(summaryParsed)
+        ) {
+          const summaryCm = (summaryParsed as Record<string, unknown>)
+            .claimMeta;
+          if (
+            summaryCm &&
+            typeof summaryCm === "object" &&
+            !Array.isArray(summaryCm)
+          ) {
+            letterState = String(
+              (summaryCm as Record<string, unknown>).state ?? ""
+            ).trim();
+          }
+        }
+      }
       const body: Record<string, unknown> = {
         analysis: analysisPayload,
         strategy: strat,
         claimType: claimType || "",
         letterType,
         tone: "FORMAL_PROFESSIONAL",
+        state: letterState || "",
       };
       if (letterType === "CUSTOM") {
         body.customInstructions = customInstructions;

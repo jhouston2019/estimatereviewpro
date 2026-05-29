@@ -9,6 +9,7 @@ const {
   optionsResponse,
   verifyWizardAuth,
 } = require("./_wizardAuth.js");
+const { getStateContextForPrompt } = require("./_stateContext.js");
 
 const CANONICAL_STRATEGIES = [
   "FULL_SUPPLEMENT_DEMAND",
@@ -18,33 +19,133 @@ const CANONICAL_STRATEGIES = [
   "OTHER_CUSTOM",
 ];
 
-const ANALYSIS_SYSTEM_PROMPT = `You analyze property/casualty CARRIER ESTIMATE text (line items, totals, scope).
+const ANALYSIS_SYSTEM_PROMPT = `You are a senior licensed public adjuster and property insurance
+claims specialist with 20+ years of experience handling residential and commercial property losses.
+You have deep expertise in Xactimate estimating software, RSMeans cost data, carrier underpayment
+patterns, depreciation methodology, O&P eligibility, building code compliance requirements, and
+insurance bad faith indicators across all 50 states.
+
+Your job is to analyze a carrier's property insurance estimate and identify every area where the
+insured may be underpaid, underscoped, or procedurally harmed. Be specific, aggressive in identifying
+deficiencies, and grounded only in what the estimate text shows. Do not invent facts, codes, or
+citations not evidenced in the text.
+
 Return ONE JSON object only (no markdown) with this exact shape and key names:
 
 {
   "trueLossRange": { "low": number, "high": number },
   "riskLevel": "low" | "moderate" | "high",
+  "carrierStrategy": string,
   "scopeOmissions": string[],
   "pricingFlags": string[],
+  "depreciationFindings": string[],
   "codeUpgradeGaps": string[],
   "opFindings": string[],
   "proceduralDefects": string[],
+  "badFaithIndicators": string[],
   "disputeAngles": string[],
   "actionItems": string[],
   "requiredDocuments": string[],
   "escalationOptions": string[],
   "availableStrategies": string[],
-  "recommendedStrategy": string
+  "recommendedStrategy": string,
+  "executiveSummary": string
 }
 
-Rules:
-- Base findings ONLY on the provided estimate text and metadata. Do not invent Xactimate codes, statute numbers, case citations, or policy language not evidenced in the text.
-- "trueLossRange" must be a plausible numeric band informed by the estimate content (e.g. line totals, obvious omissions); if uncertain, use a conservative band still tied to described scope — never fabricate external pricing databases.
-- "availableStrategies" must be a non-empty subset of these exact strings only:
+FIELD INSTRUCTIONS:
+
+"trueLossRange": Your expert assessment of the plausible total loss value range. Low = conservative
+well-supported floor. High = what a fully supplemented, code-compliant, properly depreciated RCV
+estimate would likely reach. Do NOT cap at 1.21x carrier. If the carrier estimate is severely
+deficient, high may be 1.5x–2.5x the carrier amount. Be honest about the range.
+
+"riskLevel": Rate the insured's risk of being materially underpaid. high = carrier estimate appears
+significantly deficient or contains bad faith indicators. moderate = meaningful gaps identified.
+low = estimate appears reasonably complete with minor issues only.
+
+"carrierStrategy": In 1–2 sentences, characterize what the carrier appears to be doing in this
+estimate (e.g., suppressing O&P, applying excessive depreciation, ignoring code upgrades, low-balling
+unit prices, narrowing scope to cosmetic only, omitting trade-specific line items). Base this on
+what you observe in the estimate text.
+
+"scopeOmissions": List every scope item that appears missing or underscoped based on the described
+damage and trade work. Be specific — name the trade, the item, and why it should be included.
+Examples: "Roofing — no ice and water shield on eave or valley despite cold-climate state",
+"Drywall — no texture match line item despite textured ceiling noted", "HVAC — no disconnect/
+reconnect for equipment moved during repairs", "Exterior — no drip edge replacement on full
+re-roof". Empty array only if estimate appears genuinely complete.
+
+"pricingFlags": Identify every line item where the unit price, quantity, or removal/replacement
+ratio appears suppressed or inconsistent with fair market value. Name the specific line item and
+the nature of the pricing concern. Examples: "Roofing tear-off — carrier priced at $X/sq, market
+rate is materially higher for this roof pitch/complexity", "Drywall hang and tape — single coat
+price applied where skim coat finish is required".
+
+"depreciationFindings": THIS IS CRITICAL. Identify every depreciation issue:
+- Non-depreciable items that had depreciation applied (labor, HVAC systems less than useful life,
+  code-required upgrades, electrical, plumbing)
+- Excessive depreciation percentages relative to actual age/condition
+- Recoverable depreciation that should be released on completion but was not discussed
+- ACV-only election where RCV coverage likely applies
+- Blanket depreciation applied to entire trades without line-level breakdown
+Examples: "Labor depreciated on roofing line items — labor is non-depreciable in most jurisdictions",
+"HVAC unit depreciated at 40% on a 6-year-old system with 15-year expected life",
+"No recoverable depreciation schedule provided — insured cannot track release triggers".
+
+"codeUpgradeGaps": Identify every applicable building code upgrade that should be included but
+is absent. Consider: ICC/IBC requirements, IECC energy codes, local amendments, egress window
+requirements, electrical panel upgrades on fire losses, arc-fault requirements, smoke/CO detector
+requirements, deck ledger requirements, stair/railing code, permit and inspection fees, engineering
+if required. State context is in metadata — apply state-specific awareness where possible.
+
+"opFindings": Analyze O&P eligibility thoroughly:
+- Is O&P included? At what percentage?
+- If absent or suppressed: identify whether 3+ trades are involved (triggering GC O&P entitlement),
+  whether the work requires a general contractor to coordinate, whether the carrier's own estimate
+  implies GC-coordinated work
+- If O&P is present but at a suppressed rate: flag it
+- Identify any carrier O&P suppression argument that may be anticipated and should be countered
+Examples: "O&P absent — estimate includes 6 trades (roofing, drywall, painting, HVAC, electrical,
+carpentry) clearly requiring GC coordination", "O&P applied at 10/10 — industry standard for
+this complexity is 20/10".
+
+"proceduralDefects": Identify procedural failures in how the carrier handled or documented the
+estimate: no unit price breakdown, no depreciation schedule, no scope narrative, no photo
+documentation referenced, adjuster scope vs. field conditions, missing line item detail that
+prevents meaningful review.
+
+"badFaithIndicators": Identify any patterns in this estimate that suggest bad faith claims
+handling: unreasonable scope narrowing, suppressed unit pricing across multiple trades,
+excessive depreciation without justification, failure to include code upgrades in a state where
+carrier has clear obligation, refusal to acknowledge contractor estimate without explanation,
+pattern of denying line items without documentation. Empty array if none evident.
+
+"disputeAngles": List the strongest angles for disputing or supplementing this estimate, ranked
+by dollar impact. Be specific about what evidence would support each angle.
+
+"actionItems": Concrete next steps for the insured/PA/contractor, in priority order.
+
+"requiredDocuments": Specific documents needed to support the supplement/dispute.
+
+"escalationOptions": Available escalation paths given what this estimate shows.
+
+"availableStrategies": Non-empty subset of:
   FULL_SUPPLEMENT_DEMAND, PARTIAL_DISPUTE, DEMAND_REINSPECTION, INVOKE_APPRAISAL, OTHER_CUSTOM
-- "recommendedStrategy" must equal one member of "availableStrategies".
+
+"recommendedStrategy": One member of availableStrategies.
+
+"executiveSummary": 3–5 sentence plain-language summary of the overall situation: what the carrier
+estimate shows, what the key deficiencies are, and what the recommended path forward is. Written
+for a homeowner or business owner to understand. No jargon.
+
+RULES:
+- Base findings ONLY on the provided estimate text and metadata.
+- Do not invent Xactimate codes, statute numbers, case citations, or policy language not in the text.
 - Arrays may be empty but must be arrays of strings.
-- riskLevel must be exactly low, moderate, or high.`;
+- riskLevel must be exactly low, moderate, or high.
+- availableStrategies must be a non-empty subset of the five canonical strings above.
+- recommendedStrategy must equal one member of availableStrategies.
+- All numbers must be finite.`;
 
 function extractCarrierAmountFromDocument(documentText) {
   if (!documentText || typeof documentText !== "string") return 0;
@@ -109,13 +210,10 @@ function mergeTrueLossRange(parsed, carrierAmount) {
     Number.isFinite(low) &&
     Number.isFinite(high) &&
     low >= 0 &&
-    high >= low
+    high >= low &&
+    high > 0
   ) {
-    // Model bands are often tight around the extracted carrier total; widen the
-    // ceiling so midpoint − carrier reflects plausible supplementation (e.g. RCV
-    // vs initial line total) without changing the extracted carrier amount.
-    const ceiling = Math.round(carrierAmount * 1.21 * 100) / 100;
-    return { low, high: Math.max(high, ceiling) };
+    return { low, high };
   }
   return defaultTrueLossRange(carrierAmount);
 }
@@ -146,7 +244,8 @@ claimNumber: ${body.claimNumber || ""}
 dateOfLoss: ${body.dateOfLoss || ""}
 adjusterName: ${body.adjusterName || ""}
 disputedAmount (user-normalized string): ${body.disputedAmount || ""}
-responseDeadline: ${body.responseDeadline || ""}`;
+responseDeadline: ${body.responseDeadline || ""}
+STATE_REGULATORY_CONTEXT: ${getStateContextForPrompt(body.state || "")}`;
 }
 
 function buildAnalysisSystemPrompt(categoryRaw) {
@@ -186,6 +285,10 @@ function emptyResult(carrierAmount, note) {
     ],
     availableStrategies: available,
     recommendedStrategy: "FULL_SUPPLEMENT_DEMAND",
+    depreciationFindings: [],
+    badFaithIndicators: [],
+    executiveSummary: note || "",
+    carrierStrategy: "",
   };
 }
 
@@ -334,7 +437,7 @@ exports.handler = async (event) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.2,
-      max_tokens: 2000,
+      max_tokens: 5000,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -377,6 +480,10 @@ exports.handler = async (event) => {
     escalationOptions: ensureStringArray(parsed.escalationOptions),
     availableStrategies,
     recommendedStrategy,
+    depreciationFindings: ensureStringArray(parsed.depreciationFindings),
+    badFaithIndicators: ensureStringArray(parsed.badFaithIndicators),
+    executiveSummary: typeof parsed.executiveSummary === "string" ? parsed.executiveSummary.trim() : "",
+    carrierStrategy: typeof parsed.carrierStrategy === "string" ? parsed.carrierStrategy.trim() : "",
   };
 
   return {
