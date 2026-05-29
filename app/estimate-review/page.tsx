@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { StartingAtPrice } from "@/components/StartingAtPrice";
 
 export default function EstimateReviewPage() {
   return (
@@ -65,9 +66,7 @@ export default function EstimateReviewPage() {
             >
               Upload Estimate for Review
             </Link>
-            <span className="text-sm text-slate-400">
-              Starting at $49 • Multiple plans available
-            </span>
+            <StartingAtPrice />
           </div>
         </section>
 

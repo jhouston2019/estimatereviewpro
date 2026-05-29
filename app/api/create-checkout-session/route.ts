@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { appAbsoluteUrl } from '@/lib/appUrl';
+import {
+  buildCheckoutSessionParams,
+  isCheckoutPlanType,
+  missingPriceEnvHint,
+  resolveStripePriceId,
+} from '@/lib/billing/stripePlanPrices';
 
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2025-11-17.clover';
 
@@ -18,11 +24,17 @@ function maskKeyPrefix(value: string | undefined, expectedPrefix: string) {
 function stripeEnvDiagnostics() {
   const secret = process.env.STRIPE_SECRET_KEY;
   const publishable = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const secretPrefix = secret?.trim().startsWith('sk_live_')
+    ? 'sk_live_'
+    : 'sk_test_';
+  const publishablePrefix = publishable?.trim().startsWith('pk_live_')
+    ? 'pk_live_'
+    : 'pk_test_';
   return {
-    STRIPE_SECRET_KEY: maskKeyPrefix(secret, 'sk_test_'),
+    STRIPE_SECRET_KEY: maskKeyPrefix(secret, secretPrefix),
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: maskKeyPrefix(
       publishable,
-      'pk_test_'
+      publishablePrefix
     ),
   };
 }
@@ -55,16 +67,10 @@ export async function POST(request: NextRequest) {
         {
           error: 'Stripe secret key is not configured',
           details:
-            'Set STRIPE_SECRET_KEY in .env.local (Test mode: sk_test_…) and restart the dev server.',
+            'Set STRIPE_SECRET_KEY in .env.local (sk_test_… or sk_live_…) and restart the dev server.',
           stripeEnv: envDiag,
         },
         { status: 500 }
-      );
-    }
-
-    if (!secretKey.startsWith('sk_test_')) {
-      console.warn(
-        '[create-checkout-session] STRIPE_SECRET_KEY does not start with sk_test_'
       );
     }
 
@@ -74,163 +80,45 @@ export async function POST(request: NextRequest) {
 
     const { planType } = await request.json();
 
-    if (!planType) {
+    if (!planType || typeof planType !== 'string') {
       return NextResponse.json(
         { error: 'Missing planType' },
         { status: 400 }
       );
     }
 
-    const successUrl = appAbsoluteUrl(
-      'success?session_id={CHECKOUT_SESSION_ID}'
-    );
-
-    let sessionConfig: Stripe.Checkout.SessionCreateParams;
-
-    if (planType === 'single') {
-      // Single review — one-time $49
-      sessionConfig = {
-        mode: 'payment',
-        customer_creation: 'always',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Single Estimate Review',
-              },
-              unit_amount: 4900, // $49.00
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        metadata: {
-          plan_type: 'single',
-          plan_name: 'Single Review',
-          reviews_limit: '1',
-        },
-      };
-    } else if (planType === 'essential') {
-      // Essential — $399/mo, 10 reviews
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Essential Plan',
-              },
-              unit_amount: 39900, // $399.00
-              recurring: {
-                interval: 'month',
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        subscription_data: {
-          metadata: {
-            plan_type: 'essential',
-            plan_name: 'Essential',
-            review_limit: '10',
-            overage_price: '0',
-          },
-        },
-        metadata: {
-          plan_type: 'essential',
-          plan_name: 'Essential',
-          reviews_limit: '10',
-        },
-      };
-    } else if (planType === 'professional') {
-      // Professional — $699/mo, 20 reviews
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Professional Plan',
-              },
-              unit_amount: 69900, // $699.00
-              recurring: {
-                interval: 'month',
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        subscription_data: {
-          metadata: {
-            plan_type: 'professional',
-            plan_name: 'Professional',
-            review_limit: '20',
-            overage_price: '0',
-          },
-        },
-        metadata: {
-          plan_type: 'professional',
-          plan_name: 'Professional',
-          reviews_limit: '20',
-        },
-      };
-    } else if (planType === 'enterprise') {
-      // Enterprise — $1,499/mo, 50 reviews
-      sessionConfig = {
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Enterprise Plan',
-              },
-              unit_amount: 149900, // $1,499.00
-              recurring: {
-                interval: 'month',
-              },
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: successUrl,
-        cancel_url: appAbsoluteUrl('cancel'),
-        customer_email: undefined,
-        subscription_data: {
-          metadata: {
-            plan_type: 'enterprise',
-            plan_name: 'Enterprise',
-            review_limit: '50',
-            overage_price: '0',
-          },
-        },
-        metadata: {
-          plan_type: 'enterprise',
-          plan_name: 'Enterprise',
-          reviews_limit: '50',
-        },
-      };
-    } else {
+    if (!isCheckoutPlanType(planType)) {
       return NextResponse.json(
         { error: 'Invalid plan type' },
         { status: 400 }
       );
     }
+
+    const resolved = resolveStripePriceId(planType);
+    if (!resolved) {
+      console.error(
+        `[create-checkout-session] No Stripe price ID for plan "${planType}"`
+      );
+      return NextResponse.json(
+        {
+          error: `Stripe price not configured for ${planType}`,
+          details: missingPriceEnvHint(planType),
+        },
+        { status: 500 }
+      );
+    }
+
+    const successUrl = appAbsoluteUrl(
+      'success?session_id={CHECKOUT_SESSION_ID}'
+    );
+    const cancelUrl = appAbsoluteUrl('cancel');
+
+    const sessionConfig = buildCheckoutSessionParams(
+      planType,
+      resolved.priceId,
+      successUrl,
+      cancelUrl
+    );
 
     const checkoutSession = await stripe.checkout.sessions.create(sessionConfig);
 

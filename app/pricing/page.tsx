@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { markNewReviewCheckout } from "@/lib/wizard-snapshot";
+import type { CheckoutPlanType, PlanPriceDisplay } from "@/lib/billing/stripePlanPrices";
 
-type PlanKey = "single" | "essential" | "professional" | "enterprise";
+type PlanKey = CheckoutPlanType;
 
 const CORE_FEATURES: readonly string[] = [
   "Scope gap and omission detection",
@@ -59,8 +60,79 @@ function CheckLight() {
   );
 }
 
+function PlanPriceLine({
+  plan,
+  prices,
+  pricesLoading,
+  dark = false,
+}: {
+  plan: PlanKey;
+  prices: Partial<Record<PlanKey, PlanPriceDisplay>>;
+  pricesLoading: boolean;
+  dark?: boolean;
+}) {
+  const entry = prices[plan];
+  const amountClass = dark
+    ? "text-5xl font-bold text-white"
+    : "text-5xl font-bold text-slate-900";
+  const suffixClass = dark ? "text-slate-300" : "text-slate-600";
+
+  if (pricesLoading && !entry) {
+    return (
+      <div className="mb-4 flex items-baseline gap-2">
+        <span className={amountClass}>…</span>
+      </div>
+    );
+  }
+
+  if (!entry) {
+    return (
+      <div className="mb-4 flex items-baseline gap-2">
+        <span className={`text-sm ${suffixClass}`}>Price unavailable</span>
+      </div>
+    );
+  }
+
+  const suffixText = entry.suffix.startsWith("(")
+    ? entry.suffix
+    : entry.suffix.replace(/^\//, "");
+
+  return (
+    <div className="mb-4 flex items-baseline gap-2">
+      <span className={amountClass}>{entry.amountFormatted}</span>
+      <span className={suffixClass}>
+        {entry.suffix.startsWith("(") ? suffixText : `/${suffixText}`}
+      </span>
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const [loading, setLoading] = useState<PlanKey | null>(null);
+  const [prices, setPrices] = useState<Partial<Record<PlanKey, PlanPriceDisplay>>>(
+    {}
+  );
+  const [pricesLoading, setPricesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/plan-prices");
+        const data = await res.json();
+        if (!cancelled && data.plans) {
+          setPrices(data.plans);
+        }
+      } catch (e) {
+        console.error("Failed to load plan prices:", e);
+      } finally {
+        if (!cancelled) setPricesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCheckout = async (planType: PlanKey) => {
     setLoading(planType);
@@ -78,11 +150,14 @@ export default function PricingPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || "Failed to create checkout session");
+        const msg = [data.error, data.details].filter(Boolean).join(" — ");
+        throw new Error(msg || "Failed to create checkout session");
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Failed to start checkout. Please try again.");
+      const message =
+        error instanceof Error ? error.message : "Failed to start checkout.";
+      alert(message);
     } finally {
       setLoading(null);
     }
@@ -125,14 +200,14 @@ export default function PricingPage() {
         </div>
 
         <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
-          {/* Single */}
           <div className="relative rounded-lg border-2 border-[#2563EB] bg-[#F8FAFC] p-8">
             <div className="mb-6">
               <h2 className="mb-2 text-2xl font-bold text-slate-900">Single</h2>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-slate-900">$49</span>
-                <span className="text-slate-600">(one-time)</span>
-              </div>
+              <PlanPriceLine
+                plan="single"
+                prices={prices}
+                pricesLoading={pricesLoading}
+              />
             </div>
 
             <ul className="mb-8 space-y-3">
@@ -157,16 +232,16 @@ export default function PricingPage() {
             </button>
           </div>
 
-          {/* Essential */}
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
             <div className="mb-6">
               <h2 className="mb-2 text-2xl font-bold text-slate-900">
                 Essential
               </h2>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-slate-900">$399</span>
-                <span className="text-slate-600">/month</span>
-              </div>
+              <PlanPriceLine
+                plan="essential"
+                prices={prices}
+                pricesLoading={pricesLoading}
+              />
             </div>
 
             <ul className="mb-8 space-y-3">
@@ -196,16 +271,16 @@ export default function PricingPage() {
             </button>
           </div>
 
-          {/* Professional */}
           <div className="rounded-lg border border-slate-800 bg-[#F8FAFC] p-8">
             <div className="mb-6">
               <h2 className="mb-2 text-2xl font-bold text-slate-900">
                 Professional
               </h2>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-slate-900">$699</span>
-                <span className="text-slate-600">/month</span>
-              </div>
+              <PlanPriceLine
+                plan="professional"
+                prices={prices}
+                pricesLoading={pricesLoading}
+              />
             </div>
 
             <ul className="mb-8 space-y-3">
@@ -235,14 +310,15 @@ export default function PricingPage() {
             </button>
           </div>
 
-          {/* Enterprise */}
           <div className="relative rounded-lg border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-8">
             <div className="mb-6">
               <h2 className="mb-2 text-2xl font-bold text-white">Enterprise</h2>
-              <div className="mb-4 flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-white">$1,499</span>
-                <span className="text-slate-300">/month</span>
-              </div>
+              <PlanPriceLine
+                plan="enterprise"
+                prices={prices}
+                pricesLoading={pricesLoading}
+                dark
+              />
             </div>
 
             <ul className="mb-8 space-y-3">
