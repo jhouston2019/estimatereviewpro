@@ -69,7 +69,7 @@ export function buildAnalysisExportPlainText(
     "",
     `Recommended strategy: ${rec}`,
     "",
-  ];
+  );
 
   parts.push(
     listSection(
@@ -154,9 +154,7 @@ export function buildComparisonExportPlainText(
         `  Delta: ${formatMoney(row.delta)}${row.flagged ? " (flagged)" : ""}`,
         `  Note: ${row.reason}`,
       ];
-      const depreciationNote = String(
-        (row as { depreciationNote?: string }).depreciationNote ?? ""
-      ).trim();
+      const depreciationNote = row.depreciationNote;
       if (depreciationNote) {
         rowLines.push(`  Depreciation: ${depreciationNote}`);
       }

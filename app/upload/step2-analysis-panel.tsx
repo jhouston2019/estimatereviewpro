@@ -389,7 +389,11 @@ export function Step2AnalysisPanel({
             className="mt-4 border-b border-[#ebebea] pb-3"
           >
             <h3 className={sectionHeading}>Summary</h3>
-            <div className="mt-1 rounded-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#1e3f6e] bg-[#f8fafc] px-4 py-3">
+            <div
+              className={`mt-1 rounded-[10px] border-[0.5px] border-[#e0e0dc] border-l-[3px] border-l-[#1e3f6e] bg-[#f8fafc] px-4 py-3 ${blurFinding(
+                "ex"
+              )}`}
+            >
               <p className="text-sm leading-relaxed text-[#2a3a4a]">
                 {analysis.executiveSummary}
               </p>
@@ -403,7 +407,11 @@ export function Step2AnalysisPanel({
             className="mt-4 border-b border-[#ebebea] pb-3"
           >
             <h3 className={sectionHeading}>Carrier Approach</h3>
-            <div className="mt-1 rounded-[10px] border-[0.5px] border-[#e8dcc8] border-l-[3px] border-l-[#f0a050] bg-[#fff8ef] px-4 py-3">
+            <div
+              className={`mt-1 rounded-[10px] border-[0.5px] border-[#e8dcc8] border-l-[3px] border-l-[#f0a050] bg-[#fff8ef] px-4 py-3 ${blurFinding(
+                "cs"
+              )}`}
+            >
               <p className="text-sm leading-relaxed text-[#2a3a4a]">
                 {analysis.carrierStrategy}
               </p>

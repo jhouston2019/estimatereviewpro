@@ -48,6 +48,7 @@ export type ComparisonResult = {
     delta: number;
     flagged: boolean;
     reason: string;
+    depreciationNote: string;
   }>;
   totalCarrier: number;
   totalContractor: number;
@@ -86,6 +87,10 @@ export function parseComparisonResult(
       delta: Number(r.delta) || 0,
       flagged: Boolean(r.flagged),
       reason: String(r.reason ?? ""),
+      depreciationNote:
+        typeof r.depreciationNote === "string"
+          ? r.depreciationNote.trim()
+          : "",
     };
   });
   let versionDiff: VersionDiffResult | undefined;

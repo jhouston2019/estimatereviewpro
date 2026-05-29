@@ -381,9 +381,7 @@ export function Step3ComparisonPanel({
               </thead>
               <tbody>
                 {lineItems.map((row, n) => {
-                  const depreciationNote = String(
-                    (row as { depreciationNote?: string }).depreciationNote ?? ""
-                  ).trim();
+                  const depreciationNote = row.depreciationNote;
                   return (
                   <tr
                     key={n}
