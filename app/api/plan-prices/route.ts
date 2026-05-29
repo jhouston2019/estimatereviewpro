@@ -5,7 +5,6 @@ import {
   isCheckoutPlanType,
   planPriceFromStripe,
   resolveStripePriceId,
-  validatePriceForCheckout,
   type CheckoutPlanType,
   type PlanPriceDisplay,
 } from "@/lib/billing/stripePlanPrices";
@@ -36,9 +35,8 @@ export async function GET() {
 
     try {
       const price = await stripe.prices.retrieve(resolved.priceId);
-      const mismatch = validatePriceForCheckout(planType, price);
-      if (mismatch) {
-        console.warn(`[plan-prices] ${planType}: ${mismatch}`);
+      if (planType === "single" && price.type !== "one_time") {
+        console.warn(`[plan-prices] single: expected one-time price`);
         missing.push(planType);
         continue;
       }

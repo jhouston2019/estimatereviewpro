@@ -53,6 +53,11 @@ export function resolveStripePriceId(
     if (testSub) {
       return { priceId: testSub, envKey: STRIPE_PRICE_TEST_SUBSCRIPTION_ENV };
     }
+    // Same one-time test price as Single (copied to all plan env vars)
+    for (const envKey of CHECKOUT_PLAN_PRICE_ENV_KEYS.single) {
+      const priceId = process.env[envKey]?.trim();
+      if (priceId) return { priceId, envKey };
+    }
   }
 
   return null;
@@ -64,9 +69,8 @@ export function missingPriceEnvHint(planType: CheckoutPlanType): string {
     return `Set ${keys} (one-time price) or ${STRIPE_PRICE_TEST_ONETIME_ENV}=price_… in Netlify, then redeploy.`;
   }
   return (
-    `Set ${keys} (monthly recurring price) or ${STRIPE_PRICE_TEST_SUBSCRIPTION_ENV}=price_… ` +
-    `for all subscription plans in Netlify, then redeploy. ` +
-    `Note: subscription checkout cannot use the same one-time price as Single — create a $0.51/month recurring price in Stripe.`
+    `Set ${keys}, ${STRIPE_PRICE_TEST_SUBSCRIPTION_ENV}, or the same one-time price as ` +
+    `STRIPE_PRICE_SINGLE_REVIEW in Netlify, then redeploy.`
   );
 }
 
@@ -85,10 +89,15 @@ export function validatePriceForCheckout(
   if (mode === "payment" && price.type !== "one_time") {
     return `Price ${price.id} is recurring; Single checkout needs a one-time price in Stripe.`;
   }
-  if (mode === "subscription" && !price.recurring) {
-    return `Price ${price.id} is one-time; ${planType} checkout needs a monthly recurring price in Stripe (e.g. $0.51/month).`;
-  }
   return null;
+}
+
+/** Subscription plan using a one-time Stripe price — checkout uses price_data at the same amount. */
+export function subscriptionUsesOneTimePriceFallback(
+  planType: CheckoutPlanType,
+  price: Stripe.Price
+): boolean {
+  return planType !== "single" && !price.recurring;
 }
 
 export function formatUsdFromCents(cents: number): string {
@@ -114,8 +123,11 @@ export function planPriceFromStripe(
   price: Stripe.Price
 ): PlanPriceDisplay {
   const amountCents = price.unit_amount ?? 0;
-  const interval = price.recurring?.interval ?? null;
   const config = PLAN_CONFIG[planType];
+  const useMonthlyDisplay = subscriptionUsesOneTimePriceFallback(planType, price);
+  const interval = useMonthlyDisplay
+    ? ("month" as const)
+    : (price.recurring?.interval ?? null);
 
   return {
     planType,
@@ -123,14 +135,42 @@ export function planPriceFromStripe(
     amountCents,
     amountFormatted: formatUsdFromCents(amountCents),
     suffix:
-      config.billingCadence === "one_time" ? "(one-time)" : `/${interval ?? "month"}`,
+      config.billingCadence === "one_time" && !useMonthlyDisplay
+        ? "(one-time)"
+        : `/${interval ?? "month"}`,
     interval,
   };
 }
 
+export function checkoutLineItemForPlan(
+  planType: CheckoutPlanType,
+  price: Stripe.Price
+): Stripe.Checkout.SessionCreateParams.LineItem {
+  if (subscriptionUsesOneTimePriceFallback(planType, price)) {
+    const config = PLAN_CONFIG[planType];
+    const unitAmount = price.unit_amount;
+    if (unitAmount == null) {
+      throw new Error(`Price ${price.id} has no unit_amount`);
+    }
+    return {
+      price_data: {
+        currency: price.currency,
+        unit_amount: unitAmount,
+        recurring: { interval: "month" },
+        product_data: {
+          name: `${config.displayName} Plan`,
+        },
+      },
+      quantity: 1,
+    };
+  }
+
+  return { price: price.id, quantity: 1 };
+}
+
 export function buildCheckoutSessionParams(
   planType: CheckoutPlanType,
-  priceId: string,
+  lineItem: Stripe.Checkout.SessionCreateParams.LineItem,
   successUrl: string,
   cancelUrl: string
 ): Stripe.Checkout.SessionCreateParams {
@@ -143,9 +183,7 @@ export function buildCheckoutSessionParams(
     reviews_limit: reviewLimit,
   };
 
-  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-    { price: priceId, quantity: 1 },
-  ];
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [lineItem];
 
   if (planType === "single") {
     return {

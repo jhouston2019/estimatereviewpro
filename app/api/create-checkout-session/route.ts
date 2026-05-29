@@ -5,6 +5,7 @@ import {
   buildCheckoutSessionParams,
   isCheckoutPlanType,
   missingPriceEnvHint,
+  checkoutLineItemForPlan,
   resolveStripePriceId,
   validatePriceForCheckout,
 } from '@/lib/billing/stripePlanPrices';
@@ -139,9 +140,10 @@ export async function POST(request: NextRequest) {
     );
     const cancelUrl = appAbsoluteUrl('cancel');
 
+    const lineItem = checkoutLineItemForPlan(planType, stripePrice);
     const sessionConfig = buildCheckoutSessionParams(
       planType,
-      resolved.priceId,
+      lineItem,
       successUrl,
       cancelUrl
     );
