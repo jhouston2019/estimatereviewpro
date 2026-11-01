@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import type { Report } from "@/lib/report-types";
+import { withPublicCanonical } from "@/lib/seo/site";
+
+export const metadata: Metadata = withPublicCanonical("/examples", {
+  title: "Example estimate reviews | Estimate Review Pro",
+  description:
+    "Browse sample AI-powered insurance estimate review reports and see what a full analysis includes.",
+});
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

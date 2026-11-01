@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/contractor-estimate-review", {
   title: "Contractor Estimate Review | Compare Contractor vs Insurance Estimates | Estimate Review Pro",
   description: "Upload contractor and insurance carrier estimates to detect scope suppression and pricing manipulation. AI-powered comparison identifies major differences between contractor bids and carrier estimates.",
-};
+});
 
 export default function ContractorEstimateReviewPage() {
   return (

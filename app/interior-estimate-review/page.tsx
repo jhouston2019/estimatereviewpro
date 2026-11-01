@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/interior-estimate-review", {
   title: "Interior Damage Estimate Review | Detect Missing Scope | Estimate Review Pro",
   description: "Upload your interior damage insurance estimate and identify missing insulation, drywall suppression, ceiling texture mismatches, baseboard omissions, and paint scope gaps. AI-powered analysis for interior repairs.",
-};
+});
 
 export default function InteriorEstimateReviewPage() {
   return (

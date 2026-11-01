@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/xactimate-estimate-review", {
   title: "Xactimate Estimate Review Tool | Detect Missing Scope | Estimate Review Pro",
   description: "Upload your Xactimate estimate and instantly detect missing line items, scope suppression, and underpaid insurance estimates.",
-};
+});
 
 export default function XactimateEstimateReviewPage() {
   return (

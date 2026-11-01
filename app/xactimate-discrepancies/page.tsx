@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/xactimate-discrepancies", {
   title: "Xactimate Discrepancies | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional Xactimate discrepancies service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function XactimateDiscrepanciesPage() {
   return (

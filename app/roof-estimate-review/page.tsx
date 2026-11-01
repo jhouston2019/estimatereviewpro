@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/roof-estimate-review", {
   title: "Roof Estimate Review Tool | Detect Missing Roofing Scope | Estimate Review Pro",
   description: "Upload your roofing insurance estimate and instantly detect missing line items, suppressed scope, and underpaid roof claims. AI-powered analysis identifies starter rows, drip edge, ridge cap issues, and pricing manipulation.",
-};
+});
 
 export default function RoofEstimateReviewPage() {
   return (

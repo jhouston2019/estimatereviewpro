@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/contractor-estimate-verification", {
   title: "Contractor Estimate Verification | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional contractor estimate verification service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function ContractorEstimateVerificationPage() {
   return (

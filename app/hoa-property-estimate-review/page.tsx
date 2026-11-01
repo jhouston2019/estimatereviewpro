@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/hoa-property-estimate-review", {
   title: "HOA Property Estimate Review | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional HOA property estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function HoaPropertyEstimateReviewPage() {
   return (

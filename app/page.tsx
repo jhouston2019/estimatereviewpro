@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import WizardPreview from "@/components/WizardPreview";
+import { withPublicCanonical } from "@/lib/seo/site";
+
+export const metadata: Metadata = withPublicCanonical("/", {
+  title: "Estimate Review Pro",
+  description:
+    "AI-powered estimate review and comparison for property insurance claims.",
+});
 
 export default function Home() {
   return (

@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/mold-testing-estimate-review", {
   title: "Mold Testing Estimate Review | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional mold testing estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function MoldTestingEstimateReviewPage() {
   return (

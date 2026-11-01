@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/claim-estimate-review-service", {
   title: "Claim Estimate Review Service | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional claim estimate review service service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function ClaimEstimateReviewServicePage() {
   return (

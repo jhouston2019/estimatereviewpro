@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ContactForm } from "./contact-form";
+import { withPublicCanonical } from "@/lib/seo/site";
 
 const OWNER_EMAIL = "info@axis-strategic-labs.com";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/contact", {
   title: "Contact | Estimate Review Pro",
   description:
     "Get help with Estimate Review Pro. Contact Axis Strategic Labs for support and technical issues.",
-};
+});
 
 export default function ContactPage() {
   return (

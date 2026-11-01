@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/roof-repair-estimate-review", {
   title: "Roof Repair Estimate Review | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional roof repair estimate review service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function RoofRepairEstimateReviewPage() {
   return (

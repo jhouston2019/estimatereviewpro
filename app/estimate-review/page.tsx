@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
 import { StartingAtPrice } from "@/components/StartingAtPrice";
+import { withPublicCanonical } from "@/lib/seo/site";
+
+export const metadata: Metadata = withPublicCanonical("/estimate-review", {
+  title: "Estimate Review | Estimate Review Pro",
+  description:
+    "Professional AI-powered insurance estimate review for homeowners, contractors, and adjusters.",
+});
 
 export default function EstimateReviewPage() {
   return (

@@ -1,10 +1,11 @@
 import { Metadata } from "next";
+import { withPublicCanonical } from "@/lib/seo/site";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withPublicCanonical("/insurance-estimate-missing-line-items", {
   title: "Insurance Estimate Missing Line Items | AI-Powered Analysis | Estimate Review Pro",
   description: "Professional insurance estimate missing line items service. AI-powered analysis identifies missing items, pricing discrepancies, and scope gaps to identify scope gaps and structural inconsistencies.",
-};
+});
 
 export default function InsuranceEstimateMissingLineItemsPage() {
   return (
