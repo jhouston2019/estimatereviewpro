@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PricingSiteHeader } from "@/components/marketing/PricingSiteHeader";
 import { markNewReviewCheckout } from "@/lib/wizard-snapshot";
+import {
+  MARKETING_PLAN_PRICES,
+  marketingPlanPriceDisplays,
+} from "@/lib/billing/marketingPlanPricing";
 import type { CheckoutPlanType, PlanPriceDisplay } from "@/lib/billing/stripePlanPrices";
 
 type PlanKey = CheckoutPlanType;
@@ -23,7 +27,7 @@ const CORE_FEATURES: readonly string[] = [
 ];
 
 const SINGLE_FEATURES: readonly string[] = [
-  "1 estimate review",
+  MARKETING_PLAN_PRICES.single.featureLine,
   ...CORE_FEATURES,
 ];
 
@@ -114,31 +118,10 @@ function PlanPriceLine({
 
 export default function PricingPageClient({ userEmail }: Props) {
   const [loading, setLoading] = useState<PlanKey | null>(null);
-  const [prices, setPrices] = useState<Partial<Record<PlanKey, PlanPriceDisplay>>>(
-    {}
-  );
-  const [pricesLoading, setPricesLoading] = useState(true);
+  const prices: Partial<Record<PlanKey, PlanPriceDisplay>> =
+    marketingPlanPriceDisplays();
+  const pricesLoading = false;
   const isLoggedIn = Boolean(userEmail);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/plan-prices", { cache: "no-store" });
-        const data = await res.json();
-        if (!cancelled && data.plans) {
-          setPrices(data.plans);
-        }
-      } catch (e) {
-        console.error("Failed to load plan prices:", e);
-      } finally {
-        if (!cancelled) setPricesLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleCheckout = async (planType: PlanKey) => {
     setLoading(planType);
@@ -237,7 +220,7 @@ export default function PricingPageClient({ userEmail }: Props) {
 
             <ul className="mb-8 space-y-3">
               {[
-                "10 reviews per month, unused roll over",
+                MARKETING_PLAN_PRICES.essential.featureLine,
                 ...CORE_FEATURES,
               ].map((t) => (
                 <li
@@ -276,7 +259,7 @@ export default function PricingPageClient({ userEmail }: Props) {
 
             <ul className="mb-8 space-y-3">
               {[
-                "20 reviews per month, unused roll over",
+                MARKETING_PLAN_PRICES.professional.featureLine,
                 ...CORE_FEATURES,
               ].map((t) => (
                 <li
@@ -314,7 +297,7 @@ export default function PricingPageClient({ userEmail }: Props) {
 
             <ul className="mb-8 space-y-3">
               {[
-                "50 reviews per month, unused roll over",
+                MARKETING_PLAN_PRICES.enterprise.featureLine,
                 ...CORE_FEATURES,
               ].map((t) => (
                 <li

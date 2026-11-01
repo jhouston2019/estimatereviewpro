@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { withPublicCanonical } from "@/lib/seo/site";
+import { seoFaqPricingAnswer } from "@/lib/billing/marketingPlanPricing";
 import { SeoLandingPage } from "@/components/SeoLandingPage";
 
 export const metadata: Metadata = withPublicCanonical("/insurance-estimate-too-low", {
@@ -62,7 +63,7 @@ export default function InsuranceEstimateTooLowPage() {
           },
           {
                     "question": "How much does insurance estimate too low cost?",
-                    "answer": "Single estimate dispute costs $79, providing complete analysis and a professional PDF report. For homeowners handling multiple claims—such as public adjusters, contractors, or property managers—our unlimited subscription at $249/month offers better value. The subscription includes priority processing, unlimited estimates, and white-label reporting options. Compared to hiring a public adjuster (typically 10-15% of the settlement), our service provides significant cost savings while delivering comprehensive analysis."
+                    "answer": seoFaqPricingAnswer("dispute", "homeowners")
           }
 ]}
       ctaLabel="Start Your Estimate Review"

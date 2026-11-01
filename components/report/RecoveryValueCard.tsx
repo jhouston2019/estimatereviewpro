@@ -6,6 +6,7 @@
 'use client';
 
 import React from 'react';
+import { marketingSinglePriceUsd } from '@/lib/billing/marketingPlanPricing';
 
 export interface RecoveryValueProps {
   originalEstimate: number;
@@ -151,12 +152,14 @@ export default function RecoveryValueCard({
             <div>
               <p className="text-sm text-gray-600">Return on Investment</p>
               <p className="text-lg font-semibold text-gray-900">
-                {((recoveryOpportunity / 149) * 100).toFixed(0)}x ROI
+                {((recoveryOpportunity / marketingSinglePriceUsd()) * 100).toFixed(0)}x ROI
               </p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Review Cost</p>
-              <p className="text-lg font-semibold text-gray-900">$149</p>
+              <p className="text-lg font-semibold text-gray-900">
+                ${marketingSinglePriceUsd()}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Potential Recovery</p>

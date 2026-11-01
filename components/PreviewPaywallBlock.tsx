@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { PlanPriceDisplay } from "@/lib/billing/stripePlanPrices";
+import { MARKETING_PLAN_PRICES } from "@/lib/billing/marketingPlanPricing";
 
 type Props = {
   onUnlock: () => void;
@@ -15,29 +14,7 @@ export function PreviewPaywallBlock({
   onUnlock,
   busy = false,
 }: Props) {
-  const [singlePrice, setSinglePrice] = useState<PlanPriceDisplay | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/plan-prices", { cache: "no-store" });
-        const data = await res.json();
-        if (!cancelled && data.plans?.single) {
-          setSinglePrice(data.plans.single);
-        }
-      } catch {
-        /* keep fallback label */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const priceLabel = singlePrice
-    ? singlePrice.amountFormatted
-    : "$49";
+  const priceLabel = MARKETING_PLAN_PRICES.single.displayAmount;
 
   return (
     <div className="my-6 rounded-2xl border-2 border-[#2563EB]/40 bg-gradient-to-b from-slate-900 to-slate-950 p-6 text-center shadow-lg shadow-black/20">

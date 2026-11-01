@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { marketingPlanCostUsd } from '@/lib/billing/marketingPlanPricing';
 
 export interface UsageMetricsProps {
   /** @deprecated Ignored — usage is loaded for the signed-in session only. */
@@ -191,10 +192,15 @@ export default function UsageMetrics(_props: UsageMetricsProps) {
           <div>
             <p className="text-xs text-slate-400 mb-1">ROI</p>
             <p className="text-xl font-bold text-white">
-              {usage.planName === 'Single Review' 
-                ? `${((usage.averageRecovery / 149) * 100).toFixed(0)}x`
-                : `${((usage.totalRecovery / (usage.planName === 'Enterprise' ? 299 : 499)) * 100).toFixed(0)}x`
-              }
+              {(() => {
+                const planCost = marketingPlanCostUsd(usage.planName);
+                const isSingle =
+                  usage.planName.toLowerCase().includes('single');
+                const basis = isSingle
+                  ? usage.averageRecovery
+                  : usage.totalRecovery;
+                return `${((basis / planCost) * 100).toFixed(0)}x`;
+              })()}
             </p>
           </div>
         </div>
