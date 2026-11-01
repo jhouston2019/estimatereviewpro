@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "sync:static-pricing": "node scripts/sync-static-html-pricing.mjs",
+    "build": "node scripts/sync-static-html-pricing.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "lint:case": "git ls-files | sort",

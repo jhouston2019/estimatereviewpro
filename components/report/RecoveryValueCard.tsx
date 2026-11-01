@@ -27,6 +27,8 @@ export default function RecoveryValueCard({
   refundIssued = false,
   refundAmount,
 }: RecoveryValueProps) {
+  const singleReviewFallback = `$${marketingSinglePriceUsd().toFixed(2)}`;
+
   return (
     <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
@@ -115,7 +117,7 @@ export default function RecoveryValueCard({
                   </p>
                   <p className="text-blue-800 text-sm">
                     We found ${recoveryOpportunity.toLocaleString()} in potential recovery (below our $1,000 guarantee threshold). 
-                    A full refund of ${refundAmount ? `$${refundAmount.toFixed(2)}` : '$49.00'} has been issued to your payment method.
+                    A full refund of ${refundAmount ? `$${refundAmount.toFixed(2)}` : singleReviewFallback} has been issued to your payment method.
                   </p>
                 </div>
               ) : (

@@ -5,6 +5,7 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { marketingSinglePriceUsd } from '@/lib/billing/marketingPlanPricing';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-11-17.clover',
@@ -228,7 +229,7 @@ export async function checkRecoveryGuarantee(
   // Issue refund
   const refundResult = await issueStripeRefund(
     paymentIntentId,
-    49.00, // Full review price
+    marketingSinglePriceUsd(),
     `Recovery guarantee: Found only $${recoveryValue.toFixed(2)} (threshold: $${GUARANTEE_THRESHOLD})`
   );
   
@@ -260,7 +261,7 @@ export async function checkRecoveryGuarantee(
         .from('payment_transactions')
         .update({
           status: 'refunded',
-          refunded_amount: 149.00,
+          refunded_amount: marketingSinglePriceUsd(),
         })
         .eq('stripe_payment_id', paymentIntentId);
     } catch (error) {
@@ -276,7 +277,7 @@ export async function checkRecoveryGuarantee(
     true,
     {
       refundIssued: true,
-      refundAmount: 49.00,
+      refundAmount: marketingSinglePriceUsd(),
       stripeRefundId: refundResult.refundId,
     }
   );
@@ -287,7 +288,7 @@ export async function checkRecoveryGuarantee(
     guaranteeTriggered: true,
     recoveryValue,
     refundIssued: true,
-    refundAmount: 149.00,
+    refundAmount: marketingSinglePriceUsd(),
     stripeRefundId: refundResult.refundId,
     reason: `Recovery value ($${recoveryValue.toFixed(2)}) below guarantee threshold ($${GUARANTEE_THRESHOLD})`,
   };
